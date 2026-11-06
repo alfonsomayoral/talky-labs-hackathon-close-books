@@ -66,7 +66,6 @@ export function MemoryPage() {
             />
           </Card>
         </div>
-        <p className={styles.note}>Todavía no hay un dato por regla: la ejecución solo cuenta los movimientos de todas las reglas juntas.</p>
       </div>
 
       <Tabs tabs={TABS} value={tab} onChange={setTab} idPrefix="memoria" aria-label="Memoria y reglas" />
