@@ -4,7 +4,7 @@ import { Brain, Trash2 } from 'lucide-react'
 import { Badge, Button, Card, Dialog, EmptyState, IconButton, Mono, Pill, toast } from '@/components'
 import { useMemoryRuleActions, useRunStats } from '@/data'
 import type { MemoryRule } from '@/domain'
-import { formatDateTime } from '@/lib/format'
+import { formatDateTime, formatNumber } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { keyParams, ruleKindLabel, runCommand } from './model'
 import styles from './RuleList.module.css'
@@ -50,7 +50,7 @@ export function RuleList({ runId, rules }: Props) {
     <div className={styles.wrap}>
       <p className={styles.how}>
         Una regla no cambia esta ejecución: se aplica en la siguiente, que las carga con <Mono>{runCommand(runId)}</Mono>. Lánzala desde{' '}
-        <Link to={link('/ejecuciones', { vista: 'consola' })}>Ejecuciones</Link>.
+        <Link to={link('/ejecuciones', { vista: 'final' })}>Ejecuciones</Link>.
       </p>
 
       {rules.length === 0 ? (
@@ -81,7 +81,7 @@ export function RuleList({ runId, rules }: Props) {
                       ))}
                     </div>
                     <p className={styles.meta}>
-                      <Mono muted>{rule.ruleId}</Mono> · {rule.by} · {formatDateTime(rule.at)} ·{' '}
+                      <Mono muted>{rule.ruleId}</Mono> · {rule.affectedTxns > 0 ? `${formatNumber(rule.affectedTxns)} ${rule.affectedTxns === 1 ? 'movimiento' : 'movimientos'}` : 'Aún sin aplicar'} · {rule.by} · {formatDateTime(rule.at)} ·{' '}
                       {caseId ? (
                         <Link to={link('/bandeja', { ver: caseId })}>
                           Origen: caso <Mono>{caseId}</Mono>

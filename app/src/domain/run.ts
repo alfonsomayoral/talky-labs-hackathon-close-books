@@ -193,6 +193,8 @@ export interface MemoryRule {
   by: string
   at: string
   active: boolean
+  /** Movements of this run resolved by this rule; 0 until a run has used it. */
+  affectedTxns: number
 }
 
 export type CaseDecisionAction = 'done' | 'review' | 'manual'

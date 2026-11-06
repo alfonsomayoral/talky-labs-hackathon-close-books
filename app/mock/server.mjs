@@ -371,7 +371,7 @@ async function route(method, path, query, readBody) {
   }
 
   if (resource === 'memory-rules') {
-    if (method === 'GET') return human.memoryRules.filter((r) => r.active)
+    if (method === 'GET') return human.memoryRules.filter((r) => r.active).map((r) => ({ ...r, affectedTxns: new Set(explanations.filter((e) => e.sources.some((x) => x.kind === 'memoryRule' && x.ref === r.ruleId)).map((e) => e.bankTxnId)).size }))
     if (method === 'POST') {
       const rule = { ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, active: true, at: now(), ...(await readBody()) }
       human.memoryRules.push(rule)
