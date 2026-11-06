@@ -44,6 +44,8 @@ export interface DataTableProps<T> {
   /** j/k work anywhere on the page (not only with the table focused). Use on the page's main list. */
   globalKeys?: boolean
   rowHeight?: number
+  /** `cards`: every row is its own card, separated by a gap, on the page ground. */
+  variant?: 'table' | 'cards'
   /** Fixed height in px. By default the table fills its flex parent (capped at the viewport). */
   height?: number
   empty?: ReactNode
@@ -54,6 +56,7 @@ export interface DataTableProps<T> {
 const HEADER_HEIGHT = 32
 const GROUP_HEIGHT = 32
 const FLEX_MIN_WIDTH = 120
+const CARD_GAP = 8
 
 function track(width: number | string | undefined): string {
   if (width == null) return 'minmax(0, 1fr)'
@@ -78,6 +81,7 @@ export function DataTable<T>({
   onSelectedChange,
   onOpen,
   globalKeys = false,
+  variant = 'table',
   rowHeight = 36,
   height,
   empty,
@@ -117,10 +121,11 @@ export function DataTable<T>({
     return map
   }, [items, getRowId])
 
+  const gap = variant === 'cards' ? CARD_GAP : 0
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: (i) => (items[i]?.kind === 'group' ? GROUP_HEIGHT : rowHeight),
+    estimateSize: (i) => (items[i]?.kind === 'group' ? GROUP_HEIGHT : rowHeight + gap),
     getItemKey: (i) => {
       const it = items[i]
       return it.kind === 'group' ? `g:${it.key}` : `r:${getRowId(it.row)}`
@@ -214,7 +219,7 @@ export function DataTable<T>({
       aria-rowcount={items.length + 1}
       aria-activedescendant={selectedIndex != null ? rowDomId(selectedIndex) : undefined}
       tabIndex={0}
-      className={clsx(styles.root, className)}
+      className={clsx(styles.root, variant === 'cards' && styles.cards, className)}
       style={style}
       onKeyDown={onKeyDown}
       {...aria}
@@ -271,7 +276,7 @@ export function DataTable<T>({
                 aria-rowindex={v.index + 2}
                 aria-selected={selected}
                 className={clsx(styles.row, styles.dataRow, selected && styles.selected, onOpen && styles.clickable)}
-                style={offset}
+                style={{ ...offset, height: v.size - gap }}
                 onClick={() => {
                   setSelected(id)
                   onOpen?.(it.row)

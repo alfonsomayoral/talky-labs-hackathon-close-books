@@ -101,7 +101,7 @@ export function DatasetPage({ view }: { view: DatasetView }) {
         <span className={styles.count}>{filtered ? `${formatNumber(rows.length)} de ${formatNumber(scoped.length)}` : `${formatNumber(rows.length)} filas`}</span>
       </div>
       <div className={styles.tableCard}>
-        <DataTable rows={rows} columns={columns} getRowId={(o) => o.id} globalKeys onOpen={(o) => setOpenKey(refKey({ kind, id: o.id }))} aria-label={view.label} />
+        <DataTable variant="cards" rowHeight={52} rows={rows} columns={columns} getRowId={(o) => o.id} globalKeys onOpen={(o) => setOpenKey(refKey({ kind, id: o.id }))} aria-label={view.label} />
       </div>
     </div>
   )

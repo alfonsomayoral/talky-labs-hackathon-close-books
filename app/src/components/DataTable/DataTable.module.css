@@ -200,3 +200,32 @@
   position: sticky;
   left: 0;
 }
+
+/* Cards: each row is an independent white card on the page ground. */
+.cards {
+  background: transparent;
+}
+
+.cards .header {
+  background: var(--ground);
+  border-bottom: 0;
+}
+
+.cards .dataRow {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  transition: border-color var(--duration-fast) ease;
+}
+
+.cards .dataRow:hover {
+  border-color: var(--ink-4);
+  background: var(--bg);
+}
+
+.cards .selected,
+.cards .selected:hover {
+  border-color: var(--brand-line);
+  background: var(--bg);
+  box-shadow: inset 3px 0 0 var(--brand);
+}

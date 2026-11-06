@@ -22,8 +22,9 @@ export function ObjectPanelHost() {
     <SidePanel
       open={!!ref}
       onClose={() => setKey(null)}
-      storageKey="panel-width"
-      defaultWidth={600}
+      storageKey="panel-width-v2"
+      defaultWidth={Math.round(window.innerWidth * 0.4)}
+      minWidth={480}
       aria-label="Detalle del objeto"
       title={
         ref && (
