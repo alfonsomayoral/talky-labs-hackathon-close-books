@@ -151,3 +151,35 @@ def test_partial_payment_to_a_factor_finds_the_invoice_in_the_entity_that_pays(t
     phase.items = pl.concat([copy(pl.lit("ES01").alias("entity"), pl.lit("API-A").alias("item_id")),
                              copy(pl.lit("FR01").alias("entity"), pl.lit("API-B").alias("item_id"))])
     assert payment_runs.propose(phase)["BT-1"].lines == [("API-A", 9582)]
+
+
+def test_monday_debit_collects_what_fell_due_over_the_weekend(tmp_path):
+    # CF020022091286: debit on Monday 2022-09-19 clears transfers due on the 17th and the 18th.
+    phase = _confirming_phase(tmp_path, "2021-09-08", -22000)
+    phase.items = phase.items.with_columns(
+        pl.when(pl.col("item_id") == "API-4").then(pl.lit("2021-09-06")).otherwise(pl.col("due_date")).alias("due_date"))
+    assert {i for i, _ in payment_runs.propose(phase)["BT-1"].lines} == {"API-1", "API-2", "API-3", "API-4"}
+
+
+def test_confirming_debit_paid_late_is_found_by_exact_amount_when_it_cites_one_supplier(tmp_path):
+    # CF020021071266: "1 PROVEEDORES" booked on 09-29 for a transfer due on 07-08.
+    phase = _confirming_phase(tmp_path, "2021-11-20", -2900)
+    phase.txns = phase.txns.with_columns(pl.lit("PAGO CONFIRMING | REMESA CF010021091055 1 PROVEEDORES").alias("text"))
+    assert {i for i, _ in payment_runs.propose(phase)["BT-1"].lines} == {"API-4"}
+
+
+def test_aggregated_debit_citing_the_number_of_transfers_clears_the_whole_run_even_if_the_sum_differs(tmp_path):
+    # PR010321070839: "BULK PAYMENT ... 341 TRANSFERS"; the file's amounts are in the document currency.
+    phase = _confirming_phase(tmp_path, "2021-09-20", -99999)
+    file = tmp_path / "payment_runs" / "ES01_202109_0.csv"
+    file.write_text(file.read_text().replace(",confirming,", ",aggregated,"))
+    phase.txns = phase.txns.with_columns(pl.lit("BULK PAYMENT CF010021091055 3 TRANSFERS").alias("text"))
+    assert len(payment_runs.propose(phase)["BT-1"].lines) == 4
+
+
+def test_aggregated_debit_with_another_count_and_sum_is_not_guessed(tmp_path):
+    phase = _confirming_phase(tmp_path, "2021-09-20", -99999)
+    file = tmp_path / "payment_runs" / "ES01_202109_0.csv"
+    file.write_text(file.read_text().replace(",confirming,", ",aggregated,"))
+    phase.txns = phase.txns.with_columns(pl.lit("BULK PAYMENT CF010021091055 7 TRANSFERS").alias("text"))
+    assert payment_runs.propose(phase) == {}
