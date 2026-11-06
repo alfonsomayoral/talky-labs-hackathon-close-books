@@ -1,6 +1,7 @@
 """Where a phase lives. db/ and runs/ are outside git; nothing here lists entities, accounts or formats."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -8,6 +9,12 @@ DB = ROOT / "db"
 RUNS = ROOT / "runs"
 PKG = DB / "bankrec-docs-and-masters"
 SCORER = PKG / "starter" / "bankrec_score.py"
+CATEGORY_CODES = Path(__file__).parent / "data" / "category_codes.csv"
+
+
+def category_codes_path() -> Path:
+    """The table learned from TRAIN; CLOSEBOOKS_CATEGORY_CODES points a run to another one (holdout checks)."""
+    return Path(os.environ.get("CLOSEBOOKS_CATEGORY_CODES") or CATEGORY_CODES)
 
 
 def phase_dir(name: str) -> Path:
