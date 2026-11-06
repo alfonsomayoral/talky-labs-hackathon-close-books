@@ -1,67 +1,69 @@
-/* Design tokens — Talky brand (ARCHITECTURE.md §5.4). Light theme only. */
+/* Design tokens — Talky brand (ARCHITECTURE.md §5.4). Dark theme only. */
 :root {
-  /* Brand: Talky (usetalky.com CSS: --naranja, --marino, --tinta, --papel). */
-  --brand: #f3572f;
-  --brand-hover: #e2481f;
-  --brand-soft: #fdede8;
-  --brand-border: #fbc9b9;
-  /* Orange for small text on white: #f3572f only reaches 3.4:1, this reaches 5.0:1. */
-  --brand-ink: #c93d18;
-  /* Orange for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
-  --brand-line: #e2481f;
-  /* Hover and active of the primary button, whose fill is --brand-ink so white text reaches 5:1. */
-  --brand-strong: #a8341a;
-  --navy: #16224f;
-  --navy-deep: #0f1838;
+  /* Native controls, scrollbars and form widgets render dark too. */
+  color-scheme: dark;
 
-  /* Ink: Talky's blue-black, not neutral black */
-  --ink: #101938;
-  --ink-strong: #0f1838;
-  --ink-2: #5e6377;
-  --ink-3: #646979;
-  --ink-4: #a2a5b2;
-  --ink-inverse: #ffffff;
+  /* Brand: forest green as the accent; navy and ink from Talky (usetalky.com CSS: --marino, --tinta).
+     Classic forest green (#228b22) only reaches 3.9:1 on --bg, so the hue (142°) is kept and lightened. */
+  --brand: #46a86a;
+  --brand-hover: #52b476;
+  --brand-soft: #182d3d;
+  --brand-border: #254f4a;
+  /* Green for small text on the dark surfaces: 8.9:1 on --bg, 7.7:1 on --bg-muted (--brand reaches 5.8:1). */
+  --brand-ink: #7ccb95;
+  /* Green for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
+  --brand-line: #46a86a;
+  --brand-strong: #8fd5a6;
 
-  /* Lines and surfaces */
-  --line: #e3e5ec;
-  --line-soft: #eff0f4;
-  --line-strong: #d3d6df;
-  /* App ground: a low-chroma stone from Talky's paper; sidebar and canvas sit on it, cards are white. */
-  --ground: #f4f3f0;
-  --ground-hover: rgb(16 25 56 / 0.045);
-  --ground-active: rgb(16 25 56 / 0.07);
+  /* Ink: light text tinted towards Talky's blue, not neutral white. --ink-inverse is Talky's navy (marino),
+     the text on light fills: the primary button and green checks. */
+  --ink: #e6e8f0;
+  --ink-strong: #f5f6fa;
+  --ink-2: #aeb3c7;
+  --ink-3: #9499b0;
+  --ink-4: #5d6484;
+  --ink-inverse: #16224f;
+
+  /* Lines and surfaces: Talky's blue-black (tinta) as the ground; the sheet and its cards sit one step lighter. */
+  --line: #263052;
+  --line-soft: #1c2545;
+  --line-strong: #344070;
+  --ground: #0a0f24;
+  --ground-hover: rgb(255 255 255 / 0.05);
+  --ground-active: rgb(255 255 255 / 0.08);
   --sheet-gap: 8px;
   --sheet-radius: 12px;
-  --shadow-sheet: 0 1px 2px rgb(16 25 56 / 0.05), 0 2px 8px rgb(16 25 56 / 0.04);
-  /* Every card at rest, and the lift on hover (as in the Kalmora app): cards read apart from the white sheet. */
-  --shadow-card: 0 1px 2px rgb(16 25 56 / 0.06), 0 2px 6px rgb(16 25 56 / 0.05);
-  --shadow-card-hover: 0 2px 4px rgb(16 25 56 / 0.07), 0 8px 20px rgb(16 25 56 / 0.08);
-  --bg: #ffffff;
-  --bg-subtle: #f6f7f9;
-  --bg-muted: #eef0f4;
-  --bg-overlay: rgb(15 24 56 / 0.32);
+  --shadow-sheet: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.25);
+  /* Every card at rest, and the lift on hover (as in the Kalmora app): on dark the edge does most of the work. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.2);
+  --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.35), 0 8px 20px rgb(0 0 0 / 0.4);
+  --bg: #111936;
+  --bg-subtle: #151e3e;
+  --bg-muted: #1b2547;
+  --bg-overlay: rgb(3 6 18 / 0.6);
 
-  /* Status: base (dots, bars, icons), bg (soft fills), border, ink (text on bg / white, AA). */
-  --ok: #059669;
-  --ok-bg: #ecfdf5;
-  --ok-border: #a7f3d0;
-  --ok-ink: #047857;
-  --warn: #d97706;
-  --warn-bg: #fffbeb;
-  --warn-border: #fde68a;
-  --warn-ink: #b45309;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --danger-border: #fecaca;
-  --danger-ink: #b91c1c;
-  --info: #2e4db3;
-  --info-bg: #eff6ff;
-  --info-border: #bfdbfe;
-  --info-ink: #2e4db3;
-  --neutral: #9ca3af;
-  --neutral-bg: #f4f4f5;
-  --neutral-border: #e4e4e7;
-  --neutral-ink: #4b5563;
+  /* Status: base (dots, bars, icons), bg (soft fills, 14 % of base over --bg), border (38 %), ink (text on
+     bg / --bg, AA). */
+  --ok: #10b981;
+  --ok-bg: #112f40;
+  --ok-border: #115652;
+  --ok-ink: #34d399;
+  --warn: #f59e0b;
+  --warn-bg: #312c30;
+  --warn-border: #684c26;
+  --warn-ink: #fbbf24;
+  --danger: #ef4444;
+  --danger-bg: #301f38;
+  --danger-border: #65293b;
+  --danger-ink: #f87171;
+  --info: #6b8af0;
+  --info-bg: #1e2950;
+  --info-border: #33447d;
+  --info-ink: #9db1f7;
+  --neutral: #8b93a8;
+  --neutral-bg: #222a46;
+  --neutral-border: #3f4761;
+  --neutral-ink: #b4bacb;
 
   /* Radii */
   --radius-xs: 4px;
@@ -104,12 +106,12 @@
   --weight-medium: 500;
   --weight-semibold: 600;
 
-  /* Elevation — hairlines first, shadows stay faint */
-  --shadow-xs: 0 1px 2px rgb(9 9 11 / 0.04);
-  --shadow-sm: 0 1px 3px rgb(9 9 11 / 0.06), 0 1px 2px rgb(9 9 11 / 0.04);
-  --shadow-popover: 0 8px 24px rgb(9 9 11 / 0.08), 0 2px 6px rgb(9 9 11 / 0.04);
-  --shadow-panel: -12px 0 32px rgb(9 9 11 / 0.06);
-  --shadow-dialog: 0 24px 64px rgb(9 9 11 / 0.16), 0 4px 12px rgb(9 9 11 / 0.06);
+  /* Elevation — hairlines first; on dark, shadows need more weight to read at all */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.3), 0 1px 2px rgb(0 0 0 / 0.2);
+  --shadow-popover: 0 8px 24px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+  --shadow-panel: -12px 0 32px rgb(0 0 0 / 0.4);
+  --shadow-dialog: 0 24px 64px rgb(0 0 0 / 0.55), 0 4px 12px rgb(0 0 0 / 0.3);
 
   /* Layers */
   --z-sticky: 10;

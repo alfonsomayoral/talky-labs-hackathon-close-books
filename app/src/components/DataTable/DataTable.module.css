@@ -201,7 +201,7 @@
   left: 0;
 }
 
-/* Cards: every row is its own white card on the view's sheet, separated by its edge and a soft shadow;
+/* Cards: every row is its own card on the view's sheet, separated by its edge and a soft shadow;
    hover lifts it, the selected row carries the brand edge. */
 .cards {
   background: transparent;

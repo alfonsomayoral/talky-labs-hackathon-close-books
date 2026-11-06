@@ -1,4 +1,4 @@
-/* The window: a collapsed icon rail on the stone ground, and every view inside one white sheet inset 8px
+/* The window: a collapsed icon rail on the dark ground, and every view inside one sheet inset 8px
    (radius 12, 1px edge, no shadow), with its cards on top. Hovering the rail widens it and pushes the sheet,
    which reflows beside it (the rail's width is the one animated property). Below 900px the rail goes,
    the sheet fills the window and the sidebar is a drawer. */

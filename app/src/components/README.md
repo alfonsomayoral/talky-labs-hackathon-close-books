@@ -4,11 +4,11 @@ Import everything from `@/components`. Tokens: `src/design/tokens.css` (Talky br
 
 ## Rules
 
-- **Colour carries meaning only.** Orange (`--brand`) = primary action, selection, focus. Status colours = status. Everything else is ink on white with hairline borders (`--line`).
-- **One primary button per view** (orange pill). The rest: `secondary` (bordered) or `ghost`.
-- **Orange text on white** must use `--brand-ink` (#C93D18), never `--brand` (fails contrast at 12–13px). Status text on tinted fills uses `--ok-ink`, `--warn-ink`, `--danger-ink`, `--info-ink`.
-- **Orange indicators** (selected border or underline, focus ring, check) use `--brand-line` (#E2481F, ≥ 3:1). Orange fills under white text use `--brand-ink`, as the primary button does. `--brand` stays for large areas and icons next to a label.
-- **Grey text** is `--ink-3` at least on white and `--ink-2` on `--ground` or `--bg-muted`; `--ink-4` is only for disabled text and decorative icons.
+- **Colour carries meaning only.** Forest green (`--brand`) = main data, selection, focus. Status colours = status. Everything else is light ink on the dark surfaces with hairline borders (`--line`). Dark theme only.
+- **One primary button per view** (light fill, navy text). The rest: `secondary` (bordered) or `ghost`.
+- **Small green text** uses `--brand-ink` (#7CCB95, 8.9:1 on `--bg`). Status text on tinted fills uses `--ok-ink`, `--warn-ink`, `--danger-ink`, `--info-ink`.
+- **Green indicators** (selected border or underline, focus ring, check) use `--brand-line` (#46A86A, ≥ 3:1). Green fills take `--ink-inverse` (navy) text, as the checked filter box does. `--brand` stays for large areas and icons next to a label.
+- **Grey text** is `--ink-3` at least (AA on `--bg` and `--bg-muted`); `--ink-4` is only for disabled text and decorative icons.
 - **Ids, accounts, codes, policy refs** → `Mono`. **Money** → `Amount` (never format cents by hand), right-aligned in tables. Dates/percent/durations → `@/lib/format`.
 - **Density:** rows 36px, 13px text, 16px lucide icons with 1.5 stroke (set globally by `LucideProvider` in `main.tsx`; just render `<Icon />`).
 - No banners, illustrations, gradients or heavy shadows. Empty states: an icon, a sentence, one action.

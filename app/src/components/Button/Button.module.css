@@ -45,9 +45,10 @@
   height: 14px;
 }
 
-/* Primary: Talky navy, flat. Orange stays for data, selection and focus (ARCHITECTURE.md §5.4). */
+/* Primary: a light fill with Talky navy text, flat; the one light block on the dark sheet. Green stays for
+   data, selection and focus (ARCHITECTURE.md §5.4). */
 .primary {
-  background: var(--navy);
+  background: var(--ink-strong);
   color: var(--ink-inverse);
   padding: 0 var(--space-4);
   font-weight: var(--weight-semibold);
@@ -59,7 +60,7 @@
 
 .primary:hover:not(:disabled),
 .primary:active:not(:disabled) {
-  background: var(--navy-deep);
+  background: var(--ink);
 }
 
 .secondary {

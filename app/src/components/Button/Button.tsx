@@ -8,7 +8,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type ButtonSize = 'sm' | 'md'
 
 interface ButtonOwnProps {
-  /** `primary` is the orange pill: one per view, for the main action. Default `secondary`. */
+  /** `primary` is the light-filled button: one per view, for the main action. Default `secondary`. */
   variant?: ButtonVariant
   size?: ButtonSize
   leadingIcon?: ReactNode
