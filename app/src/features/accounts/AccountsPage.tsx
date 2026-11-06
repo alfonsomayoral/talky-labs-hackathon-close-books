@@ -26,9 +26,9 @@ const COLUMNS: Column<Account>[] = [
     ),
     sortValue: (a) => a.accountId,
   },
-  { id: 'bank', header: 'Banco', width: 'minmax(112px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
-  { id: 'entity', header: 'Sociedad', width: 84, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
-  { id: 'currency', header: 'Divisa', width: 64, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
+  { id: 'bank', header: 'Banco', width: 'minmax(150px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
+  { id: 'entity', header: 'Sociedad', width: 104, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
+  { id: 'currency', header: 'Divisa', width: 84, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
   {
     id: 'format',
     header: 'Formato',
@@ -45,13 +45,13 @@ const COLUMNS: Column<Account>[] = [
     },
     sortValue: (a) => currentFormat(a.formats),
   },
-  { id: 'txns', header: 'Movimientos', width: 104, align: 'right', cell: (a) => formatNumber(a.txns), sortValue: (a) => a.txns },
+  { id: 'txns', header: 'Movimientos', width: 124, align: 'right', cell: (a) => formatNumber(a.txns), sortValue: (a) => a.txns },
   {
     id: 'inflow',
     header: 'Entradas',
     width: 120,
     align: 'right',
-    cell: (a) => <Amount cents={a.inflowCents} currency={a.currency} decimals={0} />,
+    cell: (a) => <Amount cents={a.inflowCents} currency={a.currency} decimals={0} compact />,
     sortValue: (a) => a.inflowCents,
   },
   {
@@ -59,21 +59,21 @@ const COLUMNS: Column<Account>[] = [
     header: 'Salidas',
     width: 120,
     align: 'right',
-    cell: (a) => <Amount cents={a.outflowCents} currency={a.currency} decimals={0} />,
+    cell: (a) => <Amount cents={a.outflowCents} currency={a.currency} decimals={0} compact />,
     sortValue: (a) => a.outflowCents,
   },
   {
     id: 'net',
-    header: 'Saldo acumulado',
-    width: 140,
+    header: 'Neto del periodo',
+    width: 148,
     align: 'right',
-    cell: (a) => <Amount cents={a.netCents} currency={a.currency} decimals={0} colorize />,
+    cell: (a) => <Amount cents={a.netCents} currency={a.currency} decimals={0} compact />,
     sortValue: (a) => a.netCents,
   },
   {
     id: 'reconciled',
     header: '% conciliado',
-    width: 112,
+    width: 132,
     cell: (a) =>
       a.reconciledRate == null ? (
         '—'
@@ -106,7 +106,7 @@ export function AccountsPage() {
 
   return (
     <Page fill>
-      <PageHeader title="Cuentas bancarias" subtitle="Las cuentas del grupo, su formato, su saldo y su conciliación. Pulsa una cuenta para ver sus movimientos." />
+      <PageHeader title="Cuentas bancarias" subtitle="Las cuentas del grupo, su formato, su neto y su conciliación. Pulsa una cuenta para ver sus movimientos." />
       <div className={styles.metrics}>
         <Card padding="sm">
           <Metric label="Cuentas" value={formatNumber(summary.accounts)} loading={accounts.isPending} />
