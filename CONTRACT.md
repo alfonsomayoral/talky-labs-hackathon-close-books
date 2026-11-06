@@ -113,7 +113,7 @@ Una fila por partida con movimiento en la fase o abierta al inicio: `itemId`, `i
 ```json
 {"runId": "live-20261107-021000", "phase": "live", "dataDir": "db/live", "createdAt": "…", "gitCommit": "5680257",
  "durationMs": 241000, "stages": {"load": 12000, "index": 8000, "documents": 90000, "rules": 70000, "resolve": 30000, "output": 31000},
- "txns": 203083, "rows": 748211, "byRule": {"FILE-DD-BATCH": 93786, "FALLBACK-UNIDENTIFIED": 4120},
+ "txns": 203083, "rows": 748211, "csvBytes": 34120000, "byRule": {"FILE-DD-BATCH": 93786, "FALLBACK-UNIDENTIFIED": 4120},
  "byException": {"SHORT_DISCOUNT": 12000}, "byCategory": {"BANK_FEES": 9800},
  "cases": {"auto": 180000, "needs_review": 3000, "question": 400, "fallback": 2000},
  "models": {"claude-haiku-5-5": {"calls": 812, "inputTokens": 1200000, "outputTokens": 90000, "costUsd": 0.4}},
@@ -121,7 +121,7 @@ Una fila por partida con movimiento en la fase o abierta al inicio: `itemId`, `i
  "score": null}
 ```
 
-`score` es la salida de `score_submission` del evaluador oficial (`score`, `metrics`, `segments`) cuando la fase tiene golden; si no, `null`. `stages` en milisegundos.
+`score` es la salida de `score_submission` del evaluador oficial (`score`, `metrics`, `segments`) cuando la fase tiene golden; si no, `null`. `stages` en milisegundos. `csvBytes` es el tamaño de `submission.csv.gz` **sin comprimir** (límite oficial: 60 MB).
 
 ## 3. Invariantes
 
