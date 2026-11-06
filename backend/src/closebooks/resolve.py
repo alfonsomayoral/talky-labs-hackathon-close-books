@@ -22,6 +22,12 @@ def resolve(phase: Phase, proposals: dict[str, Proposal]) -> tuple[list[Row], Op
             out = fallback(txn)
             rows.append(Row(txn_id, None, None, None, out.category, out.exception or None, out.rule, out.confidence))
             continue
+        if proposal.category:
+            exception = "UNIDENTIFIED" if proposal.category == "UNIDENTIFIED" else None
+            rows.append(Row(txn_id, None, None, None, proposal.category, exception, proposal.rule,
+                            proposal.confidence, proposal.party_id, proposal.reference, proposal.sources,
+                            proposal.candidates))
+            continue
         for item_id, applied in proposal.lines:
             amount, exception = decide(item_id, currency[item_id], txn["currency"], balances.open(item_id), applied,
                                        proposal.returned)
