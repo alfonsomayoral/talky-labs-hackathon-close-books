@@ -211,7 +211,7 @@
   border-radius: var(--radius-pill);
   background: var(--danger-bg);
   color: var(--danger-ink);
-  font-size: var(--text-11);
+  font-size: var(--text-12);
   font-weight: var(--weight-semibold);
   line-height: 18px;
   text-align: center;
