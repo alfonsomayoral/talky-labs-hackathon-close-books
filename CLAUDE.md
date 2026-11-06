@@ -72,8 +72,8 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 
 El frontend está congelado en la fase 0 (ARCHITECTURE.md §3): no se amplía sin decidirlo antes. Si se toca, estas reglas siguen valiendo.
 
-- La marca es la de Talky ([usetalky.com](https://usetalky.com)): naranja `#F3572F` para el dato principal, la selección y el foco; marino `#16224F` para la única acción primaria; tinta `#101938`; Newsreader para titulares, Geist para el texto y Chivo Mono para ids (al estilo de rex.inc). Está en `src/design/tokens.css` (ver ARCHITECTURE.md §5.4 y §5.5).
-- Cada vista va dentro de la hoja blanca del shell; su contenido son tarjetas con borde de 1 px y la sombra suave de `--shadow-card`, que crece al pasar el ratón. Lo que abre otra cosa es una tarjeta. La barra lateral es un rail que se despliega al pasar el ratón y empuja la vista.
+- La marca es la de Talky ([usetalky.com](https://usetalky.com)) en dos temas, claro y oscuro, que se cambian desde la barra lateral: verde bosque para el dato principal, la selección y el foco; una sola acción primaria por vista; Newsreader para titulares, Geist para el texto y Chivo Mono para ids. Los valores viven en `src/design/tokens.css` (ARCHITECTURE.md §5.4 y §5.5).
+- Cada vista va dentro de la hoja del shell; su contenido son tarjetas con borde de 1 px y la sombra suave de `--shadow-card`, que crece al pasar el ratón. Lo que abre otra cosa es una tarjeta. La barra lateral es un rail que se despliega al pasar el ratón y empuja la vista.
 - Solo los tokens de `src/design/tokens.css`: ningún color, sombra ni radio fuera de ellos. Estilos con CSS Modules, un fichero por componente.
 - Importes con `<Amount>`, ids y códigos con `<Mono>`, fechas y porcentajes con `@/lib/format`. Nunca se formatean a mano.
 - Las vistas importan de `@/data`, `@/domain`, `@/components` y `@/lib`. Nunca de `data/sources`, `data/parsers` ni `data/registry` por dentro.

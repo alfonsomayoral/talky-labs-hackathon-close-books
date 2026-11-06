@@ -39,7 +39,7 @@
   padding: 0 10px var(--space-3);
 }
 
-/* Workspace and scope: one white control. */
+/* Workspace and scope: one control on the sheet colour. */
 .scope {
   display: flex;
   align-items: center;

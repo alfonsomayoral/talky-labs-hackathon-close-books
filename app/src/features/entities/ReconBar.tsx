@@ -1,4 +1,4 @@
-// Bank matches as one stacked bar: casadas in Talky orange (the screen's data hue), sugeridas in its pale tint,
+// Bank matches as one stacked bar: casadas in the brand green (the screen's data hue), sugeridas in its pale tint,
 // sin casar in grey. The legend is the same marks scaled down.
 import { formatNumber } from '@/lib/format'
 import type { MatchCounts } from '@/features/overview/model'
