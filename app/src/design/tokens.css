@@ -18,7 +18,7 @@
   --ink: #101938;
   --ink-strong: #0f1838;
   --ink-2: #5e6377;
-  --ink-3: #6b7083;
+  --ink-3: #646979;
   --ink-4: #a2a5b2;
   --ink-inverse: #ffffff;
 
@@ -26,10 +26,10 @@
   --line: #e3e5ec;
   --line-soft: #eff0f4;
   --line-strong: #d3d6df;
-  /* App ground (sidebar sits on it, Talky's --papel) and the working sheet each page floats as. */
-  --ground: #faf5ea;
-  --ground-hover: rgb(16 25 56 / 0.05);
-  --ground-active: rgb(16 25 56 / 0.08);
+  /* App ground: a low-chroma stone from Talky's paper; sidebar and canvas sit on it, cards are white. */
+  --ground: #f4f3f0;
+  --ground-hover: rgb(16 25 56 / 0.045);
+  --ground-active: rgb(16 25 56 / 0.07);
   --sheet-gap: 8px;
   --sheet-radius: 12px;
   --shadow-sheet: 0 1px 2px rgb(16 25 56 / 0.05), 0 2px 8px rgb(16 25 56 / 0.04);
@@ -63,8 +63,8 @@
   /* Radii */
   --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --radius-pill: 9999px;
 
   /* Spacing (4px scale) */
@@ -126,11 +126,12 @@
 
   /* Layout */
   --sidebar-width: 248px;
-  --topbar-height: 44px;
-  --row-height: 36px;
+  --canvas-max: 1320px;
+  --topbar-height: 48px;
+  --row-height: 40px;
   --control-height-sm: 24px;
-  --control-height-md: 30px;
-  --page-padding: 32px 40px;
+  --control-height-md: 34px;
+  --page-padding: 32px 40px 48px;
   --icon-size: 16px;
 }
 

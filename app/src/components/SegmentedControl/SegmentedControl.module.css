@@ -45,7 +45,5 @@
 .checked:hover {
   background: var(--bg);
   color: var(--ink-strong);
-  box-shadow:
-    0 0 0 1px var(--line),
-    var(--shadow-xs);
+  box-shadow: 0 0 0 1px var(--line);
 }

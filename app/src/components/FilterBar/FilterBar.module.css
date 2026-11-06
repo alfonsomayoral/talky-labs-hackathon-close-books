@@ -37,7 +37,6 @@
   border-style: solid;
   border-color: var(--line);
   color: var(--ink);
-  box-shadow: var(--shadow-xs);
 }
 
 .trigger {

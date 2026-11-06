@@ -37,7 +37,6 @@
 .secondary {
   background: var(--bg);
   border-color: var(--line);
-  box-shadow: var(--shadow-xs);
 }
 
 .secondary:hover:not(:disabled) {

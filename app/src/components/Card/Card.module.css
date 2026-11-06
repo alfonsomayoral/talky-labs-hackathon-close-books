@@ -11,12 +11,11 @@
   cursor: pointer;
   transition:
     border-color var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease;
+    background-color var(--duration-fast) ease;
 }
 
 .interactive:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--ink-4);
 }
 
 .header {

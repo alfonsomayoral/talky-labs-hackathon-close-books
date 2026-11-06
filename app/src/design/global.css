@@ -24,7 +24,7 @@ body,
 
 body {
   font-family: var(--font-sans);
-  font-size: var(--text-13);
+  font-size: var(--text-14);
   line-height: var(--leading);
   color: var(--ink);
   background: var(--bg-subtle);

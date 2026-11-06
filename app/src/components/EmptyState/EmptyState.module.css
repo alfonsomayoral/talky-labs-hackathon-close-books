@@ -22,7 +22,6 @@
   border-radius: var(--radius-md);
   background: var(--bg);
   color: var(--ink-3);
-  box-shadow: var(--shadow-xs);
 }
 
 .sm .icon {

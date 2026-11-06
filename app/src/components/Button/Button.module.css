@@ -45,11 +45,10 @@
   height: 14px;
 }
 
-/* Talky primary: orange pill. Fill is --brand-ink: white on --brand only reaches 2.8:1. */
+/* Primary: Talky navy, flat. Orange stays for data, selection and focus (ARCHITECTURE.md §5.4). */
 .primary {
-  background: var(--brand-ink);
+  background: var(--navy);
   color: var(--ink-inverse);
-  border-radius: var(--radius-pill);
   padding: 0 var(--space-4);
   font-weight: var(--weight-semibold);
 }
@@ -60,14 +59,13 @@
 
 .primary:hover:not(:disabled),
 .primary:active:not(:disabled) {
-  background: var(--brand-strong);
+  background: var(--navy-deep);
 }
 
 .secondary {
   background: var(--bg);
   border-color: var(--line);
   color: var(--ink);
-  box-shadow: var(--shadow-xs);
 }
 
 .secondary:hover:not(:disabled) {

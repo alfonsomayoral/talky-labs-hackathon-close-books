@@ -90,6 +90,13 @@ export function formatMonth(month: string | null | undefined): string {
   return d ? df({ month: 'short', year: 'numeric', timeZone: 'UTC' }).format(d) : EMPTY
 }
 
+/** `2026-09` → `septiembre de 2026`, for titles. */
+export function formatMonthLong(month: string | null | undefined): string {
+  if (!month) return EMPTY
+  const d = toDate(`${month.slice(0, 7)}-01`)
+  return d ? df({ month: 'long', year: 'numeric', timeZone: 'UTC' }).format(d) : EMPTY
+}
+
 /** ISO timestamp → `3 oct 2026, 12:03` in the viewer's time zone (or the given one). */
 export function formatDateTime(value: string | Date | null | undefined, opts: { timeZone?: string } = {}): string {
   if (value == null || value === '') return EMPTY
