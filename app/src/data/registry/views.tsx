@@ -36,7 +36,7 @@ const name = (links: Links, ref: ObjectRef): string => {
 const entityCol = <T extends { entityId: string }>(): Column<T> => ({
   id: 'entity',
   header: 'Sociedad',
-  width: 84,
+  width: 96,
   cell: (o) => <Mono muted>{o.entityId}</Mono>,
   sortValue: (o) => o.entityId,
 })

@@ -137,6 +137,8 @@ export function samplePackage(): { files: PackageFile[]; run: Run } {
   // Planted: invoice of the suspicious vendor carrying the new IBAN.
   const ibanInvoice = invoices.find((i) => i.vendorId === SUSPICIOUS_VENDOR)!
   ibanInvoice.iban = SUSPICIOUS_NEW_IBAN
+  // The vendor master is exported after the change: it already holds the new IBAN.
+  suspicious.iban = SUSPICIOUS_NEW_IBAN
 
   const erpEvents = [
     ...invoices.slice(0, 18).map((inv, i) => ({
