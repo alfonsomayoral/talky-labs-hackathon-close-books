@@ -1,0 +1,22 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Client data package and runs: never committed
+/data/
+/runs/
+
+# Python (backend/)
+.venv/
+__pycache__/
+*.py[cod]
+
+# Frontend (app/)
+node_modules
+dist
+coverage
+*.local
+*.log
+.vscode/*
+.idea
