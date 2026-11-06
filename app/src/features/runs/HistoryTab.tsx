@@ -39,6 +39,7 @@ export function HistoryTab({ onGoToConsole }: { onGoToConsole: () => void }) {
         columns={COLUMNS}
         getRowId={(r) => r.runId}
         selectedId={openId}
+        onSelectedChange={(id) => openId && id && setOpenId(id)}
         onOpen={(r) => setOpenId(r.runId)}
         globalKeys
         empty={

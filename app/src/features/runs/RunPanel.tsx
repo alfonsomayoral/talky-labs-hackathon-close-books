@@ -114,6 +114,7 @@ export function RunPanel({ runId, onClose }: { runId: string | null; onClose: ()
       open={runId != null}
       onClose={onClose}
       title={<Mono>{runId}</Mono>}
+      aria-label="Detalle de la ejecución"
       defaultWidth={600}
       storageKey="runs-panel"
       footer={
