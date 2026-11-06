@@ -7,8 +7,9 @@ NO_BALANCE_EFFECT = {"DUPLICATE_PAYMENT"}
 
 
 class OpenBalances:
-    def __init__(self, opening: dict[str, int]):
+    def __init__(self, opening: dict[str, int], totals: dict[str, int] | None = None):
         self._open = opening
+        self._totals = totals or {}
         self._history: dict[str, list[dict]] = defaultdict(list)
 
     def open(self, item_id: str) -> int:
@@ -16,7 +17,9 @@ class OpenBalances:
 
     def apply(self, item_id: str, amount_cents: int, exception: str, txn_id: str, booking_date: str) -> None:
         if exception == "RETURNED":
-            self._open[item_id] += amount_cents
+            # The payment returned may predate the data: the balance can never exceed the document.
+            reopened = self._open[item_id] + amount_cents
+            self._open[item_id] = min(reopened, self._totals.get(item_id, reopened))
         elif exception not in NO_BALANCE_EFFECT:
             self._open[item_id] -= amount_cents
         self._history[item_id].append(
