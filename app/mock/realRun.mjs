@@ -202,7 +202,8 @@ export async function loadRealRun(runDir, dbDir) {
     run, phaseDir, asOf,
     masters: { entities, accounts },
     txns, explanations, items, openItems, parties, partyFacts, documents, detailFiles, documentFacts: [],
-    cases: readJsonl(join(runDir, 'cases.jsonl')), questions: readJsonl(join(runDir, 'questions.jsonl')), drafts: readJsonl(join(runDir, 'drafts.jsonl')),
+    // CONTRACT.md §2.2: a case's amount is a magnitude; the sign is in the movement.
+    cases: readJsonl(join(runDir, 'cases.jsonl')).map((c) => ({ ...c, amountCents: Math.abs(c.amountCents), amountEur: Math.abs(c.amountEur) })), questions: readJsonl(join(runDir, 'questions.jsonl')), drafts: readJsonl(join(runDir, 'drafts.jsonl')),
     /** Text of a document on disk: PDFs and xlsx have none without the extraction facts. */
     documentText(path) {
       if (/\.(pdf|xlsx)$/.test(path)) return null

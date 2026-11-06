@@ -2,8 +2,8 @@
 import { INBOX_STATUSES } from '@/domain'
 import type { SortState } from '@/components'
 
-/** The API sorts by one field: priority first, ties in the API's own order. */
-export const DEFAULT_SORT = 'priority'
+/** Most urgent first and, within a priority, the largest amount (CONTRACT.md §5.1). */
+export const DEFAULT_SORT = 'priority,-amountEur'
 const SORT_FIELDS = ['priority', 'amountEur', 'bookingDate']
 
 export function sortFromParam(param: string | null): SortState | null {
