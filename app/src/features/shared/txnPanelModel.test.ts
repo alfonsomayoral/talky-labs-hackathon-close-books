@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DetailRow } from '@/domain'
-import { decisionOf, sumByCurrency } from './txnPanelModel'
+import { decisionOf, distinctParties, sumByCurrency } from './txnPanelModel'
 
 describe('sumByCurrency', () => {
   it('never adds different currencies, and skips rows with no amount', () => {
@@ -29,5 +29,12 @@ describe('decisionOf', () => {
 
   it('has no confidence when the movement has no rows', () => {
     expect(decisionOf([])).toEqual({ rules: [], confidence: null })
+  })
+})
+
+describe('distinctParties', () => {
+  it('counts the parties of the items: a payment run pays several suppliers', () => {
+    const rows = [{ item: { partyId: 'S1' } }, { item: { partyId: 'S2' } }, { item: { partyId: 'S1' } }, { item: null }] as DetailRow[]
+    expect(distinctParties(rows)).toBe(2)
   })
 })
