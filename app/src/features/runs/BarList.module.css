@@ -1,0 +1,29 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 76px;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--row-height);
+  font-size: var(--text-13);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.value {
+  text-align: right;
+  color: var(--ink-2);
+}
