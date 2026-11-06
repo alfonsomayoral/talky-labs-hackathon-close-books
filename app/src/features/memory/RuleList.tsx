@@ -12,10 +12,9 @@ import styles from './RuleList.module.css'
 interface Props {
   runId: string
   rules: MemoryRule[]
-  onNew: () => void
 }
 
-export function RuleList({ runId, rules, onNew }: Props) {
+export function RuleList({ runId, rules }: Props) {
   const [entity] = useEntityScope()
   const scoped = useScopedTo()
   const stats = useRunStats(runId, null)
@@ -59,12 +58,7 @@ export function RuleList({ runId, rules, onNew }: Props) {
           <EmptyState
             icon={<Brain />}
             title={entity ? 'Ninguna regla para esta sociedad' : 'Todavía no se ha enseñado nada al sistema'}
-            description="Las reglas nacen al responder una pregunta de la bandeja y marcar «guardar como regla», o aquí."
-            action={
-              <Button variant="secondary" onClick={onNew}>
-                Nueva regla
-              </Button>
-            }
+            description="Las reglas nacen al responder una pregunta de la bandeja y marcar «guardar como regla», o con «Nueva regla»."
           />
         </Card>
       ) : (
