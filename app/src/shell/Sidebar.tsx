@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router'
 import clsx from 'clsx'
 import { ChevronsUpDown, LayoutDashboard, Search, Upload } from 'lucide-react'
-import { Kbd, Menu, TalkyMark, type MenuItem } from '@/components'
+import { Kbd, Menu, TalkyLogo, type MenuItem } from '@/components'
 import { PAGE_VIEWS, useData } from '@/data'
 import { formatMonth, formatNumber } from '@/lib/format'
 import { MOD_KEY } from '@/lib/keyboard'
@@ -58,9 +58,9 @@ export function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.product}>
-        <TalkyMark size={22} />
+        <TalkyLogo height={30} />
+        <span className={styles.productDivider} aria-hidden />
         <span className={styles.productName}>Close the Books</span>
-        <span className={styles.productBy}>· Talky</span>
       </div>
       <div className={styles.controls}>
         <Scope />
