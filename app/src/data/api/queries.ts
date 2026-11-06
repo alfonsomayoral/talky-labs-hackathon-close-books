@@ -55,7 +55,7 @@ export function usePagedList<T>(path: string | null, params: QueryParams = {}, s
     queryKey: [path, params, size],
     enabled: path != null,
     initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => get<Paged<T>>(path!, { ...params, page: pageParam, size }, signal),
+    queryFn: ({ pageParam, signal }) => get<Paged<T>>(path!, { size, ...params, page: pageParam }, signal),
     getNextPageParam: (last) => (last.page * last.size < last.total ? last.page + 1 : undefined),
     placeholderData: keepPreviousData,
   })
