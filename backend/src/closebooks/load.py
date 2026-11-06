@@ -113,6 +113,15 @@ def _merge_open(issued: pl.DataFrame, opening: pl.DataFrame | None) -> pl.DataFr
     return pl.concat([updated.select(ITEM_COLUMNS), carried.select(ITEM_COLUMNS)])
 
 
+def load_detail(phase: Phase, folder: str) -> pl.DataFrame:
+    """All files of a detail folder as text, each row with the relative path of its file."""
+    files = sorted((phase.dir / folder).glob("*.csv"))
+    if not files:
+        return pl.DataFrame()
+    return pl.concat([load_table(f).with_columns(pl.lit(f"{folder}/{f.name}").alias("file")) for f in files],
+                     how="diagonal_relaxed")
+
+
 def cancelled_item_ids(items: pl.DataFrame) -> set[str]:
     """POLICIES §5.7: a cancelled invoice and its cancelling credit note are never settled by bank."""
     notes = items.filter(pl.col("item_type") == "ARC", pl.col("reason") == "Anulación de factura")

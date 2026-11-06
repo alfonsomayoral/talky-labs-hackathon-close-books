@@ -39,6 +39,32 @@ def test_duplicate_payment_does_not_move_the_balance():
     assert b.open("ARI-1") == 0
 
 
-def test_default_amount_is_the_open_balance_and_stated_cash_wins():
-    assert decide(open_cents=1000, applied_cents=None) == (1000, "")
-    assert decide(open_cents=1000, applied_cents=400) == (400, "")
+def line(open_cents, applied=None, *, item="API-1", item_currency="EUR", txn_currency="EUR", returned=False):
+    return decide(item_id=item, item_currency=item_currency, txn_currency=txn_currency, open_cents=open_cents,
+                  applied_cents=applied, returned=returned)
+
+
+def test_payment_of_the_open_balance_clears_with_no_exception():
+    assert line(1000) == (1000, "")
+    assert line(1000, 1000) == (1000, "")
+
+
+def test_payment_of_less_than_the_balance_is_partial_for_what_was_applied():
+    assert line(1000, 400) == (400, "PARTIAL")
+
+
+def test_invoice_paid_from_an_account_in_another_currency_is_fx_at_full_amount():
+    assert line(1000, 1000, item_currency="USD", txn_currency="EUR") == (1000, "FX_DIFFERENCE")
+
+
+def test_partial_keeps_its_code_and_credit_note_stays_empty_in_a_foreign_currency_line():
+    assert line(1000, 400, item_currency="USD") == (400, "PARTIAL")
+    assert line(1000, 1000, item="APC-1", item_currency="USD") == (1000, "")
+
+
+def test_paying_an_item_already_settled_is_a_duplicate_of_what_was_paid_again():
+    assert line(0, 1000) == (1000, "DUPLICATE_PAYMENT")
+
+
+def test_returned_operation_reopens_the_amount_of_the_original_allocation():
+    assert line(0, 1000, returned=True) == (1000, "RETURNED")

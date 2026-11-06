@@ -41,8 +41,8 @@ def build_cases(rows: list[Row], txns: dict[str, dict], created_at: str) -> list
         cases.append({
             "caseId": f"CASE-{txn_id}", "kind": kind, "status": status, "priority": _priority(txn["amount_eur_cents"]),
             "entity": txn["entity"], "bankTxnId": txn_id, "partyId": row.party_id,
-            "itemIds": [r for r in [row.item_id] if r], "amountCents": txn["amount_cents"],
-            "currency": txn["currency"], "amountEur": txn["amount_eur_cents"], "bookingDate": txn["booking_date"],
+            "itemIds": [r for r in [row.item_id] if r], "amountCents": abs(txn["amount_cents"]),
+            "currency": txn["currency"], "amountEur": abs(txn["amount_eur_cents"]), "bookingDate": txn["booking_date"],
             "summary": f"{'Cobro' if txn['amount_cents'] > 0 else 'Cargo'} de "
                        f"{_money(txn['amount_cents'], txn['currency'])} sin casación: {who}",
             "suggestedAction": action, "questionId": None, "draftId": None, "rule": row.rule,

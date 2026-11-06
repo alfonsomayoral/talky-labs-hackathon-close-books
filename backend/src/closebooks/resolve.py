@@ -23,7 +23,8 @@ def resolve(phase: Phase, proposals: dict[str, Proposal]) -> tuple[list[Row], Op
             rows.append(Row(txn_id, None, None, None, out.category, out.exception or None, out.rule, out.confidence))
             continue
         for item_id, applied in proposal.lines:
-            amount, exception = decide(balances.open(item_id), applied)
+            amount, exception = decide(item_id, currency[item_id], txn["currency"], balances.open(item_id), applied,
+                                       proposal.returned)
             balances.apply(item_id, amount, exception, txn_id, txn["booking_date"])
             rows.append(Row(txn_id, item_id, amount, currency[item_id], None, exception or None, proposal.rule,
                             proposal.confidence, proposal.party_id, proposal.reference, proposal.sources,

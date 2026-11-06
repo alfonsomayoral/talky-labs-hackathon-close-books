@@ -12,19 +12,15 @@ import orjson
 from .cases import build_cases
 from .evaluate import score_file
 from .load import load_phase
-from .model import Proposal
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
 from .paths import ROOT, RUNS
 from .resolve import resolve
+from .rules import propose
 
 
 def _git_commit() -> str | None:
     done = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True)
     return done.stdout.strip() or None
-
-
-def _propose(phase) -> dict[str, Proposal]:
-    return {}
 
 
 def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -> Path:
@@ -44,7 +40,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
 
     phase = load_phase(phase_name)
     lap("load")
-    proposals = _propose(phase)
+    proposals = propose(phase)
     lap("rules")
     rows, balances = resolve(phase, proposals)
     lap("resolve")
