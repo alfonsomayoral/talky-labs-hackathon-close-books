@@ -156,8 +156,8 @@ def test_partial_payment_to_a_factor_finds_the_invoice_in_the_entity_that_pays(t
 def test_monday_debit_collects_what_fell_due_over_the_weekend(tmp_path):
     # CF020022091286: debit on Monday 2022-09-19 clears transfers due on the 17th and the 18th.
     phase = _confirming_phase(tmp_path, "2021-09-08", -22000)
-    phase.items = phase.items.with_columns(
-        pl.when(pl.col("item_id") == "API-4").then(pl.lit("2021-09-06")).otherwise(pl.col("due_date")).alias("due_date"))
+    earlier = pl.when(pl.col("item_id") == "API-4").then(pl.lit("2021-09-06")).otherwise(pl.col("due_date"))
+    phase.items = phase.items.with_columns(earlier.alias("due_date"))
     assert {i for i, _ in payment_runs.propose(phase)["BT-1"].lines} == {"API-1", "API-2", "API-3", "API-4"}
 
 
