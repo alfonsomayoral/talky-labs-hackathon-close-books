@@ -29,7 +29,7 @@ export function CollectionsPage() {
 
   const columns = useMemo<Column<AgingParty>[]>(
     () => [
-      { id: 'partyName', header: 'Cliente', width: 'minmax(180px, 2fr)', sortValue: (p) => p.partyName.toLowerCase(), cell: (p) => <span className={styles.truncate}>{p.partyName}</span> },
+      { id: 'partyName', header: 'Cliente', width: 'minmax(180px, 2fr)', sortValue: (p) => (p.partyName ?? '').toLowerCase(), cell: (p) => <span className={styles.truncate}>{p.partyName}</span> },
       { id: 'entity', header: 'Sociedad', width: 104, sortValue: (p) => p.entity, cell: (p) => <Mono>{p.entity}</Mono> },
       { id: 'overdueEur', header: 'Vencido', width: 120, align: 'right', sortValue: (p) => p.overdueEur, cell: (p) => <Amount cents={p.overdueEur} currency="EUR" compact /> },
       { id: 'buckets', header: 'Tramos', width: 'minmax(120px, 1fr)', cell: (p) => <AgingBar buckets={p.buckets} label={`${p.partyName}: saldo por tramo de vencimiento`} /> },
