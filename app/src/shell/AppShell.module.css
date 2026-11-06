@@ -1,0 +1,142 @@
+/* The window: a collapsed icon rail on the stone ground, and every view inside one white sheet inset 8px
+   (radius 12, 1px edge, no shadow), with its cards on top. Hovering the rail widens it and pushes the sheet,
+   which reflows beside it (the rail's width is the one animated property). Below 900px the rail goes,
+   the sheet fills the window and the sidebar is a drawer. */
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--ground);
+}
+
+.rail {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--rail-width);
+  transition: width 200ms var(--ease-out);
+}
+
+.railExpanded {
+  width: var(--sidebar-width);
+}
+
+.sidebarWrap {
+  position: absolute;
+  inset: 0;
+  background: var(--ground);
+  overflow: hidden;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  margin: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0;
+  border: 1px solid var(--line);
+  border-radius: var(--sheet-radius);
+  background: var(--bg);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.content:focus-visible {
+  outline: none;
+}
+
+.mobileBar {
+  display: none;
+}
+
+.skipLink {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-toast);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-strong);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus-visible {
+  transform: none;
+}
+
+.scrim {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .rail,
+  .railExpanded {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 0;
+    z-index: var(--z-overlay);
+    transition: none;
+  }
+
+  .sidebarWrap {
+    inset: 0 auto 0 0;
+    width: var(--sidebar-width);
+    transform: translateX(-100%);
+    transition: transform var(--duration-slow) var(--ease-out);
+  }
+
+  .drawerOpen {
+    transform: none;
+    box-shadow: var(--shadow-panel);
+  }
+
+  .sheet {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .mobileBar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    height: var(--topbar-height);
+    padding: 0 var(--space-2) 0 var(--space-4);
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  .mobileTitle {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-strong);
+    font-weight: var(--weight-semibold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-overlay) - 1);
+    display: block;
+    background: var(--bg-overlay);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .sidebarWrap {
+    transition: none;
+  }
+}

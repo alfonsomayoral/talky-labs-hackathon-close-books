@@ -20,3 +20,6 @@ coverage
 *.log
 .vscode/*
 .idea
+
+# Design tooling output
+.taste-skill/

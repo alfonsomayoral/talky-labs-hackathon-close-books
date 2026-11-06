@@ -1,0 +1,305 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  overflow: hidden;
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--ground);
+}
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 56px;
+  padding: 0 var(--space-4) 0 18px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.productName {
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: var(--text-16);
+  font-weight: var(--weight-light);
+  letter-spacing: -0.01em;
+}
+
+.productDivider {
+  width: 1px;
+  height: 18px;
+  background: var(--line-strong);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 10px var(--space-3);
+}
+
+/* Workspace and scope: one white control. */
+.scope {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  text-align: left;
+  transition: border-color var(--duration-fast) ease;
+}
+
+.scope:hover,
+.scope[aria-expanded='true'] {
+  border-color: var(--line-strong);
+}
+
+.scopeText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.scopeName,
+.scopeSub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scopeName {
+  color: var(--ink-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.scopeSub {
+  color: var(--ink-3);
+  font-size: var(--text-12);
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.menu {
+  width: 300px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-height-md);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--ink-3);
+  transition: background-color var(--duration-fast) ease;
+}
+
+.search:hover {
+  background: var(--ground-hover);
+  color: var(--ink-2);
+}
+
+.searchLabel {
+  flex: 1;
+  text-align: left;
+}
+
+.keys {
+  display: inline-flex;
+}
+
+/* Navigation */
+.nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2) 10px var(--space-4);
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sectionTitle {
+  padding: 0 var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  font-weight: var(--weight-medium);
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5, 10px);
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--ink-2);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.entry:hover {
+  background: var(--ground-hover);
+  color: var(--ink);
+}
+
+.entryIcon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  color: var(--ink-3);
+}
+
+.entryLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  font-variant-numeric: tabular-nums;
+}
+
+.active,
+.active:hover {
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--ink-strong);
+}
+
+.active .entryIcon {
+  color: var(--brand);
+}
+
+.alertCount {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-pill);
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+  font-size: var(--text-11);
+  font-weight: var(--weight-semibold);
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) 0 17px;
+  white-space: nowrap;
+  color: var(--ink-3);
+  font-size: var(--text-12);
+}
+
+.sourceDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--warn);
+}
+
+.sourceDot[data-source='zip'] {
+  background: var(--ok);
+}
+
+/* Collapsed rail: only the icons, centred in --rail-width; everything else fades out in place
+   so expanding never reflows the labels. */
+.productName,
+.productDivider,
+.scopeText,
+.chevron,
+.searchLabel,
+.keys,
+.sectionTitle,
+.entryLabel,
+.count,
+.alertCount,
+.sourceText {
+  transition: opacity var(--duration) var(--ease-out);
+}
+
+.sidebar:not([data-expanded]) :is(.productName, .productDivider, .scopeText, .chevron, .searchLabel, .keys, .sectionTitle, .entryLabel, .count, .alertCount, .sourceText) {
+  opacity: 0;
+}
+
+.sidebar:not([data-expanded]) .scope {
+  border-color: transparent;
+  background: transparent;
+}
+
+.entry,
+.search,
+.scope {
+  transition:
+    width var(--duration) var(--ease-out),
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.sidebar:not([data-expanded]) :is(.entry, .search, .scope) {
+  width: 40px;
+}
+
+/* Collapsed: Talky's mark alone in the rail; expanded: the full logo. */
+.logoFull {
+  flex-shrink: 0;
+}
+
+.sidebar:not([data-expanded]) .logoFull,
+.sidebar[data-expanded] .markOnly {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry,
+  .search,
+  .scope {
+    transition: none;
+  }
+}

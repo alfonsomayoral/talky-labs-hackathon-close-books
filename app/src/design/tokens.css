@@ -1,0 +1,144 @@
+/* Design tokens — Talky brand (ARCHITECTURE.md §5.4). Light theme only. */
+:root {
+  /* Brand: Talky (usetalky.com CSS: --naranja, --marino, --tinta, --papel). */
+  --brand: #f3572f;
+  --brand-hover: #e2481f;
+  --brand-soft: #fdede8;
+  --brand-border: #fbc9b9;
+  /* Orange for small text on white: #f3572f only reaches 3.4:1, this reaches 5.0:1. */
+  --brand-ink: #c93d18;
+  /* Orange for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
+  --brand-line: #e2481f;
+  /* Hover and active of the primary button, whose fill is --brand-ink so white text reaches 5:1. */
+  --brand-strong: #a8341a;
+  --navy: #16224f;
+  --navy-deep: #0f1838;
+
+  /* Ink: Talky's blue-black, not neutral black */
+  --ink: #101938;
+  --ink-strong: #0f1838;
+  --ink-2: #5e6377;
+  --ink-3: #646979;
+  --ink-4: #a2a5b2;
+  --ink-inverse: #ffffff;
+
+  /* Lines and surfaces */
+  --line: #e3e5ec;
+  --line-soft: #eff0f4;
+  --line-strong: #d3d6df;
+  /* App ground: a low-chroma stone from Talky's paper; sidebar and canvas sit on it, cards are white. */
+  --ground: #f4f3f0;
+  --ground-hover: rgb(16 25 56 / 0.045);
+  --ground-active: rgb(16 25 56 / 0.07);
+  --sheet-gap: 8px;
+  --sheet-radius: 12px;
+  --shadow-sheet: 0 1px 2px rgb(16 25 56 / 0.05), 0 2px 8px rgb(16 25 56 / 0.04);
+  /* Every card at rest, and the lift on hover (as in the Kalmora app): cards read apart from the white sheet. */
+  --shadow-card: 0 1px 2px rgb(16 25 56 / 0.06), 0 2px 6px rgb(16 25 56 / 0.05);
+  --shadow-card-hover: 0 2px 4px rgb(16 25 56 / 0.07), 0 8px 20px rgb(16 25 56 / 0.08);
+  --bg: #ffffff;
+  --bg-subtle: #f6f7f9;
+  --bg-muted: #eef0f4;
+  --bg-overlay: rgb(15 24 56 / 0.32);
+
+  /* Status: base (dots, bars, icons), bg (soft fills), border, ink (text on bg / white, AA). */
+  --ok: #059669;
+  --ok-bg: #ecfdf5;
+  --ok-border: #a7f3d0;
+  --ok-ink: #047857;
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --warn-border: #fde68a;
+  --warn-ink: #b45309;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --danger-ink: #b91c1c;
+  --info: #2e4db3;
+  --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+  --info-ink: #2e4db3;
+  --neutral: #9ca3af;
+  --neutral-bg: #f4f4f5;
+  --neutral-border: #e4e4e7;
+  --neutral-ink: #4b5563;
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
+
+  /* Spacing (4px scale) */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Typography */
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Headlines and headline figures: a light serif, set at --weight-light. */
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-mono: 'Chivo Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  --text-11: 11px;
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-20: 20px;
+  --text-24: 24px;
+  --text-32: 32px;
+  --leading-tight: 1.25;
+  --leading: 1.45;
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Elevation — hairlines first, shadows stay faint */
+  --shadow-xs: 0 1px 2px rgb(9 9 11 / 0.04);
+  --shadow-sm: 0 1px 3px rgb(9 9 11 / 0.06), 0 1px 2px rgb(9 9 11 / 0.04);
+  --shadow-popover: 0 8px 24px rgb(9 9 11 / 0.08), 0 2px 6px rgb(9 9 11 / 0.04);
+  --shadow-panel: -12px 0 32px rgb(9 9 11 / 0.06);
+  --shadow-dialog: 0 24px 64px rgb(9 9 11 / 0.16), 0 4px 12px rgb(9 9 11 / 0.06);
+
+  /* Layers */
+  --z-sticky: 10;
+  --z-sidebar: 20;
+  --z-panel: 40;
+  --z-dropdown: 50;
+  --z-overlay: 60;
+  --z-dialog: 70;
+  --z-popover: 80;
+  --z-toast: 90;
+  --z-tooltip: 100;
+
+  /* Motion */
+  --duration-fast: 100ms;
+  --duration: 160ms;
+  --duration-slow: 240ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --rail-width: 60px;
+  --topbar-height: 48px;
+  --row-height: 40px;
+  --control-height-sm: 24px;
+  --control-height-md: 34px;
+  --page-padding: 32px 40px 48px;
+  --icon-size: 16px;
+}
+
+/* Reduced motion keeps the durations: colour and opacity changes still confirm state. Each component that
+   moves things (panel, dialog, popover, toast, progress) swaps its travel for a fade in its own stylesheet. */
