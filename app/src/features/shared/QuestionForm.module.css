@@ -1,0 +1,96 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.form > button {
+  align-self: flex-start;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.question {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-14);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading);
+  color: var(--ink-strong);
+}
+
+.option,
+.rule {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  font-size: var(--text-13);
+  line-height: var(--leading);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease;
+}
+
+.option:hover,
+.rule:hover:not([data-disabled]) {
+  border-color: var(--line-strong);
+}
+
+.option:has(input:checked),
+.rule:has(input:checked) {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+
+.option:has(input:focus-visible),
+.rule:has(input:focus-visible) {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 1px;
+}
+
+.option input,
+.rule input {
+  flex-shrink: 0;
+  margin-top: 3px;
+  accent-color: var(--brand-line);
+}
+
+.rule[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ruleText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.ruleTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-weight: var(--weight-medium);
+  color: var(--ink-strong);
+}
+
+.ruleTitle svg {
+  width: 14px;
+  height: 14px;
+  color: var(--brand-ink);
+}
+
+.ruleDescription {
+  color: var(--ink-2);
+}

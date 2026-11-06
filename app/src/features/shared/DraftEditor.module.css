@@ -1,0 +1,27 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--text-12);
+  line-height: var(--leading);
+  color: var(--ink-3);
+}
