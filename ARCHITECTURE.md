@@ -142,22 +142,24 @@ Fase 0 no persiste nada: recargar la página vuelve a los fixtures. La persisten
 ### 5.1 Navegación
 
 ```
-[◆] Grupo <Holding>        ▾   selector de sociedad: «Todas» o una
-    Sep 2026 · Abierto     ▾   periodo
+[◆] Close the Books · Talky
+┌ <Holding>               ⇅ ┐   grupo, periodo y alcance: todo el grupo o una sociedad
+└ sept 2026 · todo el grupo ┘
+  Buscar               ⌘K
 
-CIERRE
-  Resumen                       /
-DATOS                           generado desde el registro
-  Sociedades                    /sociedades
-  Proveedores                   /proveedores
-  Contratos                     /contratos
-  Órdenes de compra             /pedidos
-  Facturas                      /facturas
-  Transacciones bancarias       /banco
-  Libro mayor                   /libro-mayor
+Cierre
+  Resumen               5       alertas del agente
+Datos del cliente               generado desde el registro (navLabel si el nombre no cabe)
+  Sociedades            4       /sociedades (tarjetas)
+  Proveedores          14       /proveedores
+  Contratos             6       /contratos
+  Pedidos              28       /pedidos
+  Facturas             57       /facturas
+  Banco                57       /banco
+  Libro mayor         275       /libro-mayor
 ──────
   Importar datos                /importar
-  ⌘K Comandos  ·  ? Atajos
+  ● Datos de muestra            origen de los datos cargados
 ```
 
 - **El alcance va en la URL:** `?sociedad=<id>` y `?periodo=<yyyy-mm>`. Un enlace copiado abre la misma vista.
@@ -166,15 +168,18 @@ DATOS                           generado desde el registro
 
 ### 5.2 Resumen
 
-1. **Frase de apertura** con el estado del cierre y la cifra clave.
-2. **Cinco tarjetas, una por criterio del jurado:** precisión contable, conciliación, detección de fraude, autonomía segura y auditabilidad. Salen del `Run`; sin `Run`, «—» y la definición en un tooltip.
-3. **Sociedades del grupo:** país, moneda, volumen de datos y estado del cierre por sociedad.
-4. **Inventario de datos:** recuento por tipo, con enlace a su pestaña, y aviso si hay ficheros sin reconocer o filas con problemas.
-5. **«Te necesitan»:** las alertas del `Run` por severidad, con importe y objeto afectado. Cada una abre el panel lateral.
+Su pregunta: ¿qué queda para cerrar el periodo y qué necesita a una persona?
+
+1. **Título y hallazgo:** «Cierre de septiembre de 2026» y, debajo, lo retenido por riesgo y lo pendiente de revisar. A la derecha, «Revisar alertas» (primaria) e «Importar datos».
+2. **Una franja con los cinco criterios del jurado:** precisión contable, conciliación, detección de fraude, autonomía segura y auditabilidad. Salen del `Run`; sin `Run`, «—» y la definición en un tooltip.
+3. **«Te necesitan»** (2/3): las alertas del `Run` por severidad, como tarjetas con motivo, tipo, objeto e importe. Cada una abre el panel lateral.
+4. **Conciliación bancaria** (1/3): el porcentaje casado, la barra casadas/sugeridas/sin casar, los movimientos por revisar y una barra por sociedad.
+5. **Sociedades del grupo:** una tarjeta por sociedad con su volumen y su conciliación; filtra toda la app.
+6. **Datos del cliente:** una tarjeta por tipo con una vista previa de sus filas reales; abre su tabla.
 
 ### 5.3 Páginas de datos
 
-Todas son la misma `DatasetPage`: cabecera con recuento, `FilterBar`, `DataTable` virtualizada y panel lateral con las pestañas **Detalle · Relacionados · Historial · Alertas**. Las alertas del `Run` sobre un objeto se marcan en su fila.
+Todas son la misma `DatasetPage`: título con el recuento y las filas con alertas, buscador y una faceta, y la `DataTable` virtualizada dentro de una tarjeta. Sociedades, con pocas filas y cada una puerta a su alcance, se muestra como tarjetas. El panel lateral tiene las pestañas **Detalle** (alertas y datos) · **Relacionados** (tarjetas agrupadas por tipo) · **Historial** (línea temporal con antes y después). Las alertas del `Run` sobre un objeto se marcan en su fila.
 
 ### 5.4 Marca: Talky
 
@@ -182,14 +187,14 @@ La referencia es [usetalky.com](https://usetalky.com). Los valores siguientes sa
 
 | Token | Valor | Uso |
 | --- | --- | --- |
-| `--brand` | `#F3572F` (naranja Talky) | Acción primaria, selección, foco, iconos junto a etiqueta |
-| `--brand-hover` | `#E2481F` | Hover de la acción primaria |
+| `--brand` | `#F3572F` (naranja Talky) | El dato principal (lo conciliado), la selección y el foco |
+| `--brand-line` | `#E2481F` | Indicadores naranjas sin texto (foco, subrayado de la pestaña activa) |
 | `--brand-soft` | `#FDEDE8` | Fondo de la selección |
 | `--brand-ink` | Variante más oscura de `#F3572F` que llegue a 4,5:1 sobre blanco; se calcula en fase 0 | Texto naranja pequeño. `#F3572F` sobre blanco no llega a AA |
-| `--navy` | `#16224F` (marino) · `#0F1838` (marino hondo) | Marca en la barra lateral, cabeceras de tarjeta destacadas |
+| `--navy` | `#16224F` (marino) · `#0F1838` (marino hondo) | La acción primaria de cada pantalla, plana |
 | `--ink` | `#101938` (tinta) | Texto principal: tinta azulada, no negro |
-| `--ink-2` · `--ink-3` | `#5E6377` · `#A2A5B2` | Texto secundario · terciario |
-| `--ground` | `#FAF5EA` (papel) | Fondo de la app detrás de la hoja blanca |
+| `--ink-2` · `--ink-3` · `--ink-4` | `#5E6377` · `#646979` · `#A2A5B2` | Texto secundario · terciario (AA sobre el fondo) · solo decorativo |
+| `--ground` | `#F4F3F0` | Fondo de la app: una piedra de baja saturación sacada del papel de Talky (`#FAF5EA` se lee como crema). Las tarjetas son blancas |
 | `--bg-muted` | `#EEF0F4` | Superficies neutras, cabeceras de tabla |
 | `--info` | `#2E4DB3` | Estado informativo, enlaces |
 
@@ -201,11 +206,11 @@ La referencia es [usetalky.com](https://usetalky.com). Los valores siguientes sa
 
 Se autoalojan con `@fontsource` (sin dependencia de Google Fonts en la demo). Los colores de estado (ok, warn, danger) se mantienen de Kalmora, ajustados para no competir con el naranja.
 
-Logo: el símbolo de Talky (anillo sin letras) junto al nombre del producto en la cabecera de la barra lateral.
+Logo: el símbolo de Talky junto al nombre del producto, «Close the Books», en la cabecera de la barra lateral.
 
 ### 5.5 Reglas visuales
 
-Se heredan del frontend de Kalmora: naranja solo para la acción primaria, la selección y el foco; colores de estado solo para estado; sin banners, ilustraciones ni degradados; filas de 36 px; números a la derecha con `tabular-nums`; importes con `<Amount>` e ids con `<Mono>`. El tono es el de la web de Talky: denso, centrado en el producto, con códigos en mono como elemento visual. Interfaz en español; código en inglés.
+Estilo «achromatic ledger» de la skill de diseño, con la marca de Talky: el cromo en tinta, una sola acción primaria en marino y el naranja solo en el dato principal, la selección y el foco. Superficies planas: tarjetas blancas con borde de 1 px sobre el fondo, sin sombras en reposo, radios de 8 y 6 px. Lo que abre otra cosa es una tarjeta (alertas, sociedades, tipos de dato, objetos relacionados), a la manera de rex.inc. Además, de Kalmora: colores de estado solo para estado; sin banners, ilustraciones ni degradados; filas de 36 px; números a la derecha con `tabular-nums`; importes con `<Amount>` e ids con `<Mono>`. El tono es el de la web de Talky: denso, centrado en el producto, con códigos en mono como elemento visual. Interfaz en español; código en inglés.
 
 ## 6. Qué se reutiliza del repo de Kalmora
 
