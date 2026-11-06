@@ -58,6 +58,8 @@ describe('rowsCell', () => {
     expect(rowsCell(exc)).toEqual({ first: 'Sin identificar', mono: false, extra: 0 })
     const cat = { ...base, rowCount: 1, assignments: [{ documentNumber: null, category: 'BANK_FEE', exception: null }] } as unknown as TxnRow
     expect(rowsCell(cat)).toEqual({ first: 'BANK_FEE', mono: false, extra: 0 })
+    const known = { ...base, rowCount: 1, assignments: [{ documentNumber: null, category: 'BANK_FEES', exception: null }] } as unknown as TxnRow
+    expect(rowsCell(known)).toEqual({ first: 'Comisiones bancarias', mono: false, extra: 0 })
   })
   it('has nothing when the movement has no rows', () => {
     expect(rowsCell({ ...base, rowCount: 0 } as TxnRow)).toEqual({ first: null, mono: false, extra: 0 })

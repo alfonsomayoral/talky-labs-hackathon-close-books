@@ -1,6 +1,6 @@
 // Pure logic of the reconciliation screen: URL filters → API params, facet options, table cells.
 import type { Account, CaseStatus, RunStats, TxnRow } from '@/domain'
-import { CASE_STATUS_LABEL, exceptionLabel, INBOX_STATUSES } from '@/domain'
+import { CASE_STATUS_LABEL, categoryLabel, exceptionLabel, INBOX_STATUSES } from '@/domain'
 import type { SortState } from '@/components'
 
 export type FacetKey = 'entity' | 'account' | 'format' | 'rule' | 'exception' | 'category' | 'status'
@@ -61,7 +61,7 @@ export function rowsCell(row: TxnRow): RowsCell {
   if (!a || row.rowCount === 0) return { first: null, mono: false, extra: 0 }
   const extra = row.rowCount - 1
   if (a.documentNumber) return { first: a.documentNumber, mono: true, extra }
-  const label = a.exception ? exceptionLabel(a.exception) : a.category
+  const label = a.exception ? exceptionLabel(a.exception) : a.category ? categoryLabel(a.category) : null
   return { first: label, mono: false, extra }
 }
 
@@ -85,7 +85,7 @@ export function buildFacetOptions(stats: RunStats | undefined, accounts: Account
     format: [...new Set((accounts ?? []).flatMap((a) => a.formats.map((f) => f.format)))].sort().map((format) => ({ value: format, label: format })),
     rule: (stats?.byRule ?? []).map((r) => ({ value: r.rule, label: r.rule, count: r.txns })),
     exception: (stats?.byException ?? []).map((e) => ({ value: e.exception, label: exceptionLabel(e.exception) })),
-    category: (stats?.byCategory ?? []).map((c) => ({ value: c.category, label: c.category, count: c.txns })),
+    category: (stats?.byCategory ?? []).map((c) => ({ value: c.category, label: categoryLabel(c.category), count: c.txns })),
     status: (Object.entries(stats?.byStatus ?? {}) as [CaseStatus, number][])
       .sort(([a], [b]) => statusRank(a) - statusRank(b))
       .map(([status, count]) => ({ value: status, label: CASE_STATUS_LABEL[status] ?? status, count })),
