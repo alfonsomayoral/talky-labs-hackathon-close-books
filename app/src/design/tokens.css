@@ -24,9 +24,9 @@
   --ink-inverse: #ffffff;
 
   /* Lines and surfaces */
-  --line: #e3e5ec;
+  --line: #d0d3dc;
   --line-soft: #eff0f4;
-  --line-strong: #d3d6df;
+  --line-strong: #bfc3cf;
   /* App ground: a low-chroma stone from Talky's paper; sidebar and canvas sit on it, cards are white. */
   --ground: #f4f3f0;
   --ground-hover: rgb(16 25 56 / 0.045);
@@ -92,7 +92,6 @@
   /* Headlines and headline figures: a light serif, set at --weight-light. */
   --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
   --font-mono: 'Chivo Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
-  --text-11: 11px;
   --text-12: 12px;
   --text-13: 13px;
   --text-14: 14px;
@@ -169,9 +168,9 @@
   --ink-inverse: #16224f;
 
   /* Lines and surfaces: Talky's blue-black (tinta) as the ground; the sheet and its cards sit one step lighter. */
-  --line: #263052;
+  --line: #2e3a63;
   --line-soft: #1c2545;
-  --line-strong: #344070;
+  --line-strong: #3f4c80;
   --ground: #0a0f24;
   --ground-hover: rgb(255 255 255 / 0.05);
   --ground-active: rgb(255 255 255 / 0.08);

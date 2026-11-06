@@ -138,6 +138,7 @@ def build_holdout(dest: Path | None = None) -> Path:
         _link_months(train / folder, out / folder)
     _link_indexed(train / "remittance_advices", out / "remittance_advices", "received_date")
     _link_indexed(train / "pdfs", out / "pdfs", "document_date")
+    (out / "prior_phases").write_text("train\n")
     return out
 
 
@@ -302,4 +303,5 @@ def build_drift(dest: Path | None = None) -> Path:
     for folder in ("remittance_advices", "pdfs", "bank_statements"):
         _link(source / folder, out / folder)
     _masters_final(out)
+    (out / "prior_phases").write_text("train\n")
     return out

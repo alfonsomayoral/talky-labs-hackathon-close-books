@@ -119,8 +119,10 @@ def _rows_of_debit(txn: dict, rows: list[dict], transfers: dict[str, dict], by_t
     if not rows:
         return []
     target = abs(txn["amount_cents"])
-    if rows[0]["run_type"] == "aggregated" and sum(t["transfer_cents"] for t in transfers.values()) == target:
-        return rows
+    if rows[0]["run_type"] == "aggregated":
+        whole = sum(t["transfer_cents"] for t in transfers.values()) == target
+        if whole or str(len(transfers)) in re.findall(r"\b\d+\b", txn["text"]):
+            return rows
     if rows[0]["run_type"] == "confirming":
         return _due_group(txn, rows, target, by_transfer, transfers, used)
     text = txn["text"].upper()
@@ -150,9 +152,15 @@ def _due_group(txn: dict, rows: list[dict], target: int, by_transfer: dict, tran
         if (account, e2e) not in used and e2e in due_of:
             groups[due_of[e2e]].append(e2e)
     booked = date.fromisoformat(txn["booking_date"])
+    candidates: list[str] = []
     for days_late in range(MAX_DAYS_AFTER_DUE + 1):
-        group = groups.get((booked - timedelta(days=days_late)).isoformat(), [])
-        if group and sum(transfers[e]["transfer_cents"] for e in group) == target:
-            used.update((account, e) for e in group)
-            return [row for e in group for row in by_transfer[account, e]]
+        candidates = candidates + groups.get((booked - timedelta(days=days_late)).isoformat(), [])
+        if candidates and sum(transfers[e]["transfer_cents"] for e in candidates) == target:
+            used.update((account, e) for e in candidates)
+            return [row for e in candidates for row in by_transfer[account, e]]
+    if re.search(r"\b1 [A-Z]", txn["text"]):
+        late = [e for es in groups.values() for e in es if transfers[e]["transfer_cents"] == target]
+        if len(late) == 1:
+            used.add((account, late[0]))
+            return by_transfer[account, late[0]]
     return []

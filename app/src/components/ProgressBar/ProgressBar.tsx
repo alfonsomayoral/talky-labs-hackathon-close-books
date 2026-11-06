@@ -6,6 +6,8 @@ import styles from './ProgressBar.module.css'
 export interface ProgressSegment {
   value: number
   tone: Tone
+  /** A token of the design system (`var(--danger-ink)`) when two segments need the same tone but must tell apart. */
+  color?: string
   label: string
 }
 
@@ -41,7 +43,7 @@ export function ProgressBar({ value = 0, max = 1, indeterminate, tone = 'brand',
                 <span
                   key={s.label}
                   className={styles.segment}
-                  style={{ width: `${(s.value / sum) * 100}%`, background: toneColor(s.tone) }}
+                  style={{ width: `${(s.value / sum) * 100}%`, background: s.color ?? toneColor(s.tone) }}
                   title={`${s.label}: ${formatNumber(s.value)} (${formatPercent(s.value / sum)})`}
                 />
               ) : null,
@@ -51,7 +53,7 @@ export function ProgressBar({ value = 0, max = 1, indeterminate, tone = 'brand',
           <ul className={styles.legend}>
             {segments.map((s) => (
               <li key={s.label} className={styles.legendItem}>
-                <span className={styles.legendDot} style={{ background: toneColor(s.tone) }} aria-hidden />
+                <span className={styles.legendDot} style={{ background: s.color ?? toneColor(s.tone) }} aria-hidden />
                 <span>{s.label}</span>
                 <span className={clsx(styles.legendCount, 'tabular')}>{formatNumber(s.value)}</span>
               </li>

@@ -1,7 +1,9 @@
 """One phase of the package as Polars tables. Amounts in integer cents, always with their currency."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
+from datetime import date, timedelta
 from pathlib import Path
 
 import polars as pl
@@ -11,6 +13,11 @@ from .paths import masters_dir, phase_dir
 ITEM_COLUMNS = ["item_id", "item_type", "entity", "party_id", "party_name", "document_number", "issue_date",
                 "due_date", "currency", "total_cents", "open_cents", "payment_terms", "customer_po",
                 "payment_method", "related_document", "reason"]
+# A phase can cite what happened before it: documents of the months before, items closed earlier.
+PRIOR_PHASES = {"live": ["train"], "final": ["train", "live"]}
+PRIOR_ITEM_DAYS = 2 * 366
+PRIOR_DETAIL_MONTHS = 3
+MONTH_IN_NAME = re.compile(r"_(\d{6})(?:_\d+)?\.")
 MASTER_FILES = ("entities", "bank_accounts", "customers", "suppliers", "categories", "payment_terms", "fx_rates")
 
 
@@ -35,6 +42,8 @@ class Phase:
     txns: pl.DataFrame
     items: pl.DataFrame
     open_at_start: pl.DataFrame | None
+    prior: list[Path] = field(default_factory=list)
+    start: str = ""
 
     @property
     def golden_path(self) -> Path | None:
@@ -116,10 +125,25 @@ def _merge_open(issued: pl.DataFrame, opening: pl.DataFrame | None) -> pl.DataFr
 def load_detail(phase: Phase, folder: str) -> pl.DataFrame:
     """All files of a detail folder as text, each row with the relative path of its file."""
     files = sorted((phase.dir / folder).glob("*.csv"))
+    start = getattr(phase, "start", "")
+    if start:
+        first, last = _months_before(start)
+        for prior in getattr(phase, "prior", []):
+            files += [f for f in sorted((prior / folder).glob("*.csv"))
+                      if (m := MONTH_IN_NAME.search(f.name)) and first <= m[1] <= last]
     if not files:
         return pl.DataFrame()
     return pl.concat([load_table(f).with_columns(pl.lit(f"{folder}/{f.name}").alias("file")) for f in files],
                      how="diagonal_relaxed")
+
+
+def _months_before(start: str) -> tuple[str, str]:
+    """YYYYMM of the first and last month of the window of detail files read from earlier phases."""
+    year, month = int(start[:4]), int(start[5:7])
+    index = year * 12 + month - 1
+    first = index - PRIOR_DETAIL_MONTHS
+    last = index - 1
+    return f"{first // 12}{first % 12 + 1:02d}", f"{last // 12}{last % 12 + 1:02d}"
 
 
 def cancelled_item_ids(items: pl.DataFrame) -> set[str]:
@@ -131,6 +155,33 @@ def cancelled_item_ids(items: pl.DataFrame) -> set[str]:
     return set(notes["item_id"].to_list()) | set(invoices["item_id"].to_list())
 
 
+def prior_dirs(folder: Path, name: str) -> list[Path]:
+    """Earlier phases on disk. A built phase declares them in a file prior_phases; an uploaded one may have none."""
+    declared = folder / "prior_phases"
+    names = declared.read_text().split() if declared.exists() else PRIOR_PHASES.get(name, [])
+    found = []
+    for prior in names:
+        try:
+            found.append(phase_dir(prior))
+        except FileNotFoundError:
+            continue
+    return found
+
+
+def _with_prior_items(items: pl.DataFrame, prior: list[Path], start: str) -> pl.DataFrame:
+    """Carried items recover name and terms from their phase; items closed before the phase exist with 0 open."""
+    if not prior or not start:
+        return items
+    since = (date.fromisoformat(start) - timedelta(days=PRIOR_ITEM_DAYS)).isoformat()
+    older = pl.concat([_issued_items(folder) for folder in prior]).filter(pl.col("issue_date") < start).unique(
+        "item_id", keep="last")
+    details = ["party_name", "payment_terms", "customer_po", "payment_method", "related_document", "reason"]
+    filled = items.join(older.select("item_id", *[pl.col(c).alias(f"_{c}") for c in details]), on="item_id", how="left")
+    filled = filled.with_columns([pl.coalesce(c, f"_{c}").alias(c) for c in details]).select(ITEM_COLUMNS)
+    closed = older.filter(pl.col("issue_date") >= since).join(items.select("item_id"), on="item_id", how="anti")
+    return pl.concat([filled, closed.with_columns(pl.lit(0, pl.Int64).alias("open_cents")).select(ITEM_COLUMNS)])
+
+
 def phase_items(name: str) -> pl.DataFrame:
     folder = phase_dir(name)
     return _merge_open(_issued_items(folder), _open_at_start(folder))
@@ -140,5 +191,9 @@ def load_phase(name: str) -> Phase:
     folder = phase_dir(name)
     masters = load_masters(folder)
     opening = _open_at_start(folder)
-    return Phase(name=name, dir=folder, masters=masters, txns=_load_txns(folder, masters["fx_rates"]),
-                 items=_merge_open(_issued_items(folder), opening), open_at_start=opening)
+    txns = _load_txns(folder, masters["fx_rates"])
+    start = txns["booking_date"].min()
+    prior = prior_dirs(folder, name)
+    items = _with_prior_items(_merge_open(_issued_items(folder), opening), prior, start)
+    return Phase(name=name, dir=folder, masters=masters, txns=txns, items=items, open_at_start=opening, prior=prior,
+                 start=start)
