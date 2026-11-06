@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from closebooks.cases import build_cases
 from closebooks.categories import fallback
+from closebooks.model import Row
 from closebooks.policy import decide
 from closebooks.state import OpenBalances
 
@@ -68,3 +70,48 @@ def test_paying_an_item_already_settled_is_a_duplicate_of_what_was_paid_again():
 
 def test_returned_operation_reopens_the_amount_of_the_original_allocation():
     assert line(0, 1000, returned=True) == (1000, "RETURNED")
+
+
+def _row(txn_id="BT-1", item="API-1", exception=None, rule="FILE-PAYMENT-RUN", confidence=1.0):
+    return Row(txn_id, item, 1000, "EUR", None, exception, rule, confidence, party_id="S1")
+
+
+TXNS = {"BT-1": {"bank_txn_id": "BT-1", "entity": "ES01", "booking_date": "2025-01-01", "amount_cents": -1000,
+                 "currency": "EUR", "amount_eur_cents": -1000, "text": "X", "counterparty_name": None}}
+
+
+def _case(rows):
+    return build_cases(rows, TXNS, "now")
+
+
+def test_line_closed_with_no_exception_opens_no_case():
+    assert _case([_row()]) == []
+
+
+def test_supplier_invoice_paid_short_returned_or_twice_is_a_supplier_mismatch_to_write_about():
+    for exception in ("PARTIAL", "RETURNED", "DUPLICATE_PAYMENT"):
+        case = _case([_row(exception=exception)])[0]
+        assert (case["kind"], case["suggestedAction"], case["status"]) == (
+            "supplier_invoice_mismatch", "email_supplier", "auto")
+
+
+def test_customer_exceptions_keep_their_own_kind():
+    kinds = {"PARTIAL": "short_payment", "RETURNED": "returned", "DUPLICATE_PAYMENT": "duplicate_payment"}
+    for exception, kind in kinds.items():
+        assert _case([_row(item="ARI-1", exception=exception)])[0]["kind"] == kind
+
+
+def test_fx_difference_is_shown_but_needs_nobody():
+    case = _case([_row(exception="FX_DIFFERENCE")])[0]
+    assert (case["kind"], case["status"], case["suggestedAction"]) == ("fx_difference", "auto", "none")
+
+
+def test_low_confidence_needs_review_and_the_case_lists_every_item_of_the_line():
+    case = _case([_row(exception="PARTIAL", confidence=0.8), _row(item="API-2")])[0]
+    assert case["status"] == "needs_review"
+    assert case["itemIds"] == ["API-1", "API-2"]
+
+
+def test_amounts_of_a_case_are_magnitudes():
+    case = _case([_row(exception="PARTIAL")])[0]
+    assert (case["amountCents"], case["amountEur"]) == (1000, 1000)
