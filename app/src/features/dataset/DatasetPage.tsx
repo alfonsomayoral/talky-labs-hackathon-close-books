@@ -1,7 +1,8 @@
-// One page per kind of the registry: search, one facet, a virtualized table and the side panel.
+// One page per kind of the registry: title with what the rows are, a search and one facet,
+// and the rows in a virtualized table inside a card. A row opens the object panel.
 import { useMemo, useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
-import { DataTable, FilterBar, FilterChip, Page, PageHeader, Tooltip, type Column } from '@/components'
+import { AlertTriangle, Search, X } from 'lucide-react'
+import { Button, DataTable, FilterChip, Tooltip, type Column } from '@/components'
 import { KIND_OF } from '@/domain'
 import { ALERT_TYPE, refKey, useData, type AnyObject, type DatasetView } from '@/data'
 import { formatNumber } from '@/lib/format'
@@ -28,6 +29,8 @@ export function DatasetPage({ view }: { view: DatasetView }) {
     return entity ? rows.filter((o) => (o.entityId ?? o.id) === entity) : rows
   }, [dataset, view.kind, entity])
 
+  const withAlerts = useMemo(() => scoped.filter((o) => links.alertsOf({ kind, id: o.id }).some((a) => a.subject.id === o.id)).length, [scoped, links, kind])
+
   const facetOptions = useMemo(() => {
     if (!view.facet) return []
     const counts = new Map<string, number>()
@@ -48,7 +51,8 @@ export function DatasetPage({ view }: { view: DatasetView }) {
       {
         id: 'alerts',
         header: '',
-        width: 32,
+        width: 36,
+        align: 'center',
         cell: (o) => {
           const alerts = links.alertsOf({ kind, id: o.id }).filter((a) => a.subject.id === o.id)
           if (!alerts.length) return null
@@ -65,37 +69,40 @@ export function DatasetPage({ view }: { view: DatasetView }) {
   )
 
   const filtered = query.trim() !== '' || facet.length > 0
+  const noun = view.label.toLowerCase()
 
   return (
-    <Page fill>
-      <PageHeader
-        title={view.label}
-        subtitle={`${formatNumber(scoped.length)} en ${entity ? `la sociedad ${entity}` : 'todo el grupo'}`}
-        filters={
-          <FilterBar
-            onClear={filtered ? () => (setQuery(''), setFacet([])) : undefined}
-            end={filtered ? <span className={styles.count}>{formatNumber(rows.length)} de {formatNumber(scoped.length)}</span> : undefined}
-          >
-            <input
-              type="search"
-              className={styles.search}
-              placeholder="Buscar…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label={`Buscar en ${view.label.toLowerCase()}`}
-            />
-            {view.facet && <FilterChip label={view.facet.label} options={facetOptions} selected={facet} onChange={setFacet} />}
-          </FilterBar>
-        }
-      />
-      <DataTable
-        rows={rows}
-        columns={columns}
-        getRowId={(o) => o.id}
-        globalKeys
-        onOpen={(o) => setOpenKey(refKey({ kind, id: o.id }))}
-        aria-label={view.label}
-      />
-    </Page>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>{view.label}</h1>
+        <p className={styles.sub}>
+          {formatNumber(scoped.length)} {noun} en {entity ? `la sociedad ${entity}` : 'todo el grupo'}
+          {withAlerts > 0 && (
+            <>
+              {' · '}
+              <span className={styles.withAlerts}>{formatNumber(withAlerts)} con alertas del agente</span>
+            </>
+          )}
+          {' · '}
+          {view.description}
+        </p>
+      </header>
+      <div className={styles.toolbar}>
+        <label className={styles.search}>
+          <Search aria-hidden className={styles.searchIcon} />
+          <input type="search" placeholder={`Buscar en ${noun}…`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={`Buscar en ${noun}`} />
+        </label>
+        {view.facet && <FilterChip label={view.facet.label} options={facetOptions} selected={facet} onChange={setFacet} />}
+        {filtered && (
+          <Button variant="ghost" size="sm" leadingIcon={<X />} onClick={() => (setQuery(''), setFacet([]))}>
+            Limpiar
+          </Button>
+        )}
+        <span className={styles.count}>{filtered ? `${formatNumber(rows.length)} de ${formatNumber(scoped.length)}` : `${formatNumber(rows.length)} filas`}</span>
+      </div>
+      <div className={styles.tableCard}>
+        <DataTable rows={rows} columns={columns} getRowId={(o) => o.id} globalKeys onOpen={(o) => setOpenKey(refKey({ kind, id: o.id }))} aria-label={view.label} />
+      </div>
+    </div>
   )
 }

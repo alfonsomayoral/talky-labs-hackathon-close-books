@@ -17,11 +17,17 @@ export interface Facet<T> {
 export interface DatasetView<T extends AnyObject = AnyObject> {
   kind: DatasetKind
   label: string
+  /** Sidebar label when `label` is too long for it. */
+  navLabel?: string
   /** Route of its page; null when the kind is only shown inside other objects' panels. */
   path: string | null
   icon: LucideIcon
-  /** One line naming the object (panel title, related lists). */
+  /** What the package holds of this kind, in one sentence. */
+  description: string
+  /** One line naming the object (panel title, related lists, cards). */
   title: (o: T, links: Links) => string
+  /** The object's key figure or date, shown right of its title in cards and related lists. */
+  aside: (o: T) => ReactNode
   columns: (links: Links) => Column<T>[]
   search: (o: T, links: Links) => string
   facet?: Facet<T>
@@ -49,6 +55,11 @@ const idCol = <T extends AnyObject>(header: string, width = 150): Column<T> => (
   sortValue: (o) => o.id,
 })
 
+/** ERP actions in Spanish; unknown actions show as they come. */
+const ERP_ACTION: Record<string, string> = { create: 'Alta', update: 'Cambio', delete: 'Baja' }
+
+export const erpActionLabel = (action: string) => ERP_ACTION[action] ?? action
+
 const money = (cents: number | null, currency: string): ReactNode => <Amount cents={cents} currency={currency} />
 
 const define = <T extends AnyObject>(v: DatasetView<T>) => v as unknown as DatasetView
@@ -56,6 +67,8 @@ const define = <T extends AnyObject>(v: DatasetView<T>) => v as unknown as Datas
 export const VIEWS: DatasetView[] = [
   define<Entity>({
     kind: 'entities',
+    description: 'Las sociedades del grupo, con su país, su moneda y su dominante.',
+    aside: (e) => e.currency,
     label: 'Sociedades',
     path: '/sociedades',
     icon: Building2,
@@ -80,6 +93,8 @@ export const VIEWS: DatasetView[] = [
   }),
   define<Vendor>({
     kind: 'vendors',
+    description: 'La ficha de cada proveedor: NIF, IBAN y plazo de pago.',
+    aside: (v) => <Mono muted>{v.iban ? `${v.iban.slice(0, 2)} ···· ${v.iban.slice(-4)}` : 'Sin IBAN'}</Mono>,
     label: 'Proveedores',
     path: '/proveedores',
     icon: Truck,
@@ -105,6 +120,8 @@ export const VIEWS: DatasetView[] = [
   }),
   define<Contract>({
     kind: 'contracts',
+    description: 'Contratos con proveedores: objeto, vigencia e importe pactado.',
+    aside: (c) => money(c.amountCents, c.currency),
     label: 'Contratos',
     path: '/contratos',
     icon: FileSignature,
@@ -128,7 +145,10 @@ export const VIEWS: DatasetView[] = [
   }),
   define<PurchaseOrder>({
     kind: 'purchaseOrders',
+    description: 'Pedidos emitidos a proveedores, con su contrato y su importe.',
+    aside: (p) => money(p.amountCents, p.currency),
     label: 'Órdenes de compra',
+    navLabel: 'Pedidos',
     path: '/pedidos',
     icon: ShoppingCart,
     title: (p, links) => `${p.id} · ${name(links, { kind: 'vendor', id: p.vendorId })}`,
@@ -155,6 +175,8 @@ export const VIEWS: DatasetView[] = [
   }),
   define<Invoice>({
     kind: 'invoices',
+    description: 'Facturas recibidas: base, impuesto, total, pedido e IBAN de cobro.',
+    aside: (i) => money(i.totalCents, i.currency),
     label: 'Facturas',
     path: '/facturas',
     icon: FileText,
@@ -187,7 +209,10 @@ export const VIEWS: DatasetView[] = [
   }),
   define<BankTransaction>({
     kind: 'bankTransactions',
+    description: 'Movimientos del extracto de cada cuenta, con su conciliación.',
+    aside: (t) => <Amount cents={t.amountCents} currency={t.currency} colorize />,
     label: 'Transacciones bancarias',
+    navLabel: 'Banco',
     path: '/banco',
     icon: Landmark,
     title: (t) => t.description,
@@ -233,6 +258,8 @@ export const VIEWS: DatasetView[] = [
   }),
   define<LedgerEntry>({
     kind: 'ledgerEntries',
+    description: 'Apuntes del libro mayor por sociedad, cuenta y asiento.',
+    aside: (l) => money(l.debitCents || -l.creditCents, l.currency),
     label: 'Libro mayor',
     path: '/libro-mayor',
     icon: BookOpen,
@@ -262,15 +289,17 @@ export const VIEWS: DatasetView[] = [
   }),
   define<ErpEvent>({
     kind: 'erpEvents',
+    description: 'Cambios que registró el ERP, como altas o cambios de IBAN.',
+    aside: (e) => formatDate(e.at.slice(0, 10)),
     label: 'Historial del ERP',
     path: null,
     icon: History,
-    title: (e) => `${e.action}${e.field ? ` · ${e.field}` : ''}`,
+    title: (e) => `${erpActionLabel(e.action)}${e.field ? ` de ${e.field}` : ''} · ${e.subject.id}`,
     columns: () => [
       { id: 'at', header: 'Fecha', width: 170, cell: (e) => formatDateTime(e.at), sortValue: (e) => e.at },
       entityCol(),
       { id: 'subject', header: 'Objeto', width: 160, cell: (e) => <Mono>{e.subject.id}</Mono> },
-      { id: 'action', header: 'Acción', width: 'minmax(160px, 1fr)', cell: (e) => `${e.action}${e.field ? ` · ${e.field}` : ''}` },
+      { id: 'action', header: 'Acción', width: 'minmax(160px, 1fr)', cell: (e) => `${erpActionLabel(e.action)}${e.field ? ` de ${e.field}` : ''}` },
       { id: 'user', header: 'Usuario', width: 160, cell: (e) => e.user ?? '—' },
     ],
     search: (e) => `${e.id} ${e.subject.id} ${e.action} ${e.field ?? ''} ${e.user ?? ''}`,
@@ -278,7 +307,7 @@ export const VIEWS: DatasetView[] = [
       { label: 'Evento', value: e.id, mono: true },
       { label: 'Fecha', value: formatDateTime(e.at) },
       { label: 'Usuario', value: e.user ?? '—' },
-      { label: 'Acción', value: e.action },
+      { label: 'Acción', value: erpActionLabel(e.action) },
       { label: 'Campo', value: e.field ?? '—', mono: true },
       { label: 'Antes', value: e.before ?? '—', mono: true },
       { label: 'Después', value: e.after ?? '—', mono: true },

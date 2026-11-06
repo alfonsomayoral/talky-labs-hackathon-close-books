@@ -2,5 +2,5 @@
 export { useData, type DataState } from './store'
 export { countByKind } from './build'
 export { refKey, parseRefKey, type AnyObject, type Links } from './links'
-export { VIEWS, PAGE_VIEWS, viewOf, viewOfObject, type DatasetView, type Facet } from './registry/views'
+export { VIEWS, PAGE_VIEWS, viewOf, viewOfObject, erpActionLabel, type DatasetView, type Facet } from './registry/views'
 export { SEVERITY, SEVERITY_ORDER, ALERT_TYPE, MATCH_STATUS, OBJECT_LABEL } from './registry/vocabulary'

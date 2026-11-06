@@ -82,7 +82,7 @@ export function samplePackage(): { files: PackageFile[]; run: Run } {
       vendorId: v.id,
       contractId: contracts.find((c) => c.vendorId === v.id)?.id ?? null,
       date: `2026-08-${String(int(1, 28)).padStart(2, '0')}`,
-      status: 'open',
+      status: 'abierto',
       amountCents: int(8, 90) * 100_000 * (v.entityId === '3100' ? 18 : 1),
       currency: entityOf(v.entityId).currency,
     })),
@@ -115,7 +115,7 @@ export function samplePackage(): { files: PackageFile[]; run: Run } {
         totalCents: net + tax,
         currency: e.currency,
         iban: v.iban,
-        status: 'pending',
+        status: 'pendiente',
       })
     }
   })
