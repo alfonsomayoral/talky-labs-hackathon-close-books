@@ -201,26 +201,35 @@
   left: 0;
 }
 
-/* Cards: each row is an independent card with its own edge, on the view's white sheet. */
+/* Cards: every row is its own white card in a well one tone below the sheet (the shell's ground), so
+   rows separate by a step in surface tone rather than by shadows. Hover darkens the edge and lifts it
+   slightly; the selected row carries the brand edge. */
 .cards {
-  background: transparent;
+  border-radius: var(--radius-lg);
+  background: var(--ground);
 }
 
 .cards .header {
-  background: var(--bg);
+  padding: 0 var(--space-2);
+  background: var(--ground);
   border-bottom: 0;
 }
 
 .cards .dataRow {
+  left: var(--space-2);
+  width: calc(100% - 2 * var(--space-2));
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--bg);
-  transition: border-color var(--duration-fast) ease;
+  transition:
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
 }
 
 .cards .dataRow:hover {
-  border-color: var(--ink-4);
+  border-color: var(--line-strong);
   background: var(--bg);
+  box-shadow: var(--shadow-xs);
 }
 
 .cards .selected,
@@ -228,4 +237,8 @@
   border-color: var(--brand-line);
   background: var(--bg);
   box-shadow: inset 3px 0 0 var(--brand);
+}
+
+.cards .body {
+  margin-bottom: var(--space-2);
 }

@@ -42,7 +42,7 @@ const name = (links: Links, ref: ObjectRef): string => {
 const entityCol = <T extends { entityId: string }>(): Column<T> => ({
   id: 'entity',
   header: 'Sociedad',
-  width: 96,
+  width: 84,
   cell: (o) => <Mono muted>{o.entityId}</Mono>,
   sortValue: (o) => o.entityId,
 })
@@ -182,14 +182,14 @@ export const VIEWS: DatasetView[] = [
     icon: FileText,
     title: (i, links) => `${i.number} · ${name(links, { kind: 'vendor', id: i.vendorId })}`,
     columns: (links) => [
-      { id: 'number', header: 'Número', width: 140, cell: (i) => <Mono>{i.number}</Mono>, sortValue: (i) => i.number },
+      { id: 'number', header: 'Número', width: 128, cell: (i) => <Mono>{i.number}</Mono>, sortValue: (i) => i.number },
       entityCol(),
       { id: 'date', header: 'Emisión', width: 110, cell: (i) => formatDate(i.issueDate), sortValue: (i) => i.issueDate },
       { id: 'vendor', header: 'Proveedor', width: 'minmax(200px, 2fr)', cell: (i) => name(links, { kind: 'vendor', id: i.vendorId }) },
-      { id: 'po', header: 'Pedido', width: 140, cell: (i) => <Mono muted>{i.purchaseOrderId ?? '—'}</Mono> },
-      { id: 'net', header: 'Base', width: 130, align: 'right', cell: (i) => money(i.netCents, i.currency), sortValue: (i) => i.netCents },
-      { id: 'tax', header: 'Impuesto', width: 120, align: 'right', cell: (i) => money(i.taxCents, i.currency), sortValue: (i) => i.taxCents },
-      { id: 'total', header: 'Total', width: 140, align: 'right', cell: (i) => money(i.totalCents, i.currency), sortValue: (i) => i.totalCents },
+      { id: 'po', header: 'Pedido', width: 128, cell: (i) => <Mono muted>{i.purchaseOrderId ?? '—'}</Mono> },
+      { id: 'net', header: 'Base', width: 116, align: 'right', cell: (i) => money(i.netCents, i.currency), sortValue: (i) => i.netCents },
+      { id: 'tax', header: 'Impuesto', width: 104, align: 'right', cell: (i) => money(i.taxCents, i.currency), sortValue: (i) => i.taxCents },
+      { id: 'total', header: 'Total', width: 124, align: 'right', cell: (i) => money(i.totalCents, i.currency), sortValue: (i) => i.totalCents },
     ],
     search: (i, links) => `${i.id} ${i.number} ${name(links, { kind: 'vendor', id: i.vendorId })} ${i.purchaseOrderId ?? ''}`,
     facet: { label: 'Estado', value: (i) => i.status },

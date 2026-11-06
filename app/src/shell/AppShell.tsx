@@ -66,9 +66,9 @@ export function AppShell() {
         Saltar al contenido
       </a>
       <div className={styles.shell}>
-        <div className={styles.rail}>
+        <div className={clsx(styles.rail, desktop && expanded && styles.railExpanded)}>
           <div
-            className={clsx(styles.sidebarWrap, desktop && expanded && styles.expanded, drawer && styles.drawerOpen)}
+            className={clsx(styles.sidebarWrap, drawer && styles.drawerOpen)}
             onMouseEnter={() => hoverTo(true)}
             onMouseLeave={() => hoverTo(false)}
             onFocus={(e) => setFocusIn(e.target.matches(':focus-visible'))}

@@ -1,6 +1,7 @@
 /* The window: a collapsed icon rail on the stone ground, and every view inside one white sheet inset 8px
-   (radius 12, 1px edge, no shadow), with its cards on top. Hovering the rail opens the full sidebar over
-   the sheet. Below 900px the rail goes, the sheet fills the window and the sidebar is a drawer. */
+   (radius 12, 1px edge, no shadow), with its cards on top. Hovering the rail widens it and pushes the sheet,
+   which reflows beside it (the rail's width is the one animated property). Below 900px the rail goes,
+   the sheet fills the window and the sidebar is a drawer. */
 .shell {
   display: flex;
   height: 100vh;
@@ -12,23 +13,18 @@
   position: relative;
   flex-shrink: 0;
   width: var(--rail-width);
-  z-index: var(--z-sidebar);
+  transition: width 200ms var(--ease-out);
+}
+
+.railExpanded {
+  width: var(--sidebar-width);
 }
 
 .sidebarWrap {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: var(--rail-width);
+  inset: 0;
   background: var(--ground);
   overflow: hidden;
-  transition:
-    width var(--duration-slow) var(--ease-out),
-    box-shadow var(--duration-slow) var(--ease-out);
-}
-
-.expanded {
-  width: var(--sidebar-width);
-  box-shadow: 12px 0 32px rgb(16 25 56 / 0.08);
 }
 
 .sheet {
@@ -81,14 +77,17 @@
 }
 
 @media (max-width: 900px) {
-  .rail {
+  .rail,
+  .railExpanded {
     position: fixed;
     inset: 0 auto 0 0;
     width: 0;
     z-index: var(--z-overlay);
+    transition: none;
   }
 
   .sidebarWrap {
+    inset: 0 auto 0 0;
     width: var(--sidebar-width);
     transform: translateX(-100%);
     transition: transform var(--duration-slow) var(--ease-out);
@@ -135,6 +134,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rail,
   .sidebarWrap {
     transition: none;
   }
