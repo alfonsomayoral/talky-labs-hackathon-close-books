@@ -40,7 +40,7 @@ export interface DataTableProps<T> {
   renderGroup?: (key: string, rows: T[]) => ReactNode
   /** Group keys in display order; unlisted keys follow alphabetically. */
   groupOrder?: string[]
-  /** Cursor row (brand-soft highlight, moved with j/k/↑/↓). Controlled when passed. */
+  /** Cursor row (brand-soft highlight, moved with j/k/↑/↓). The page's value (the open row) takes over whenever it changes. */
   selectedId?: string | null
   onSelectedChange?: (id: string | null) => void
   /** Click or Enter on a row (e.g. open the peek panel). */
@@ -98,18 +98,24 @@ export function DataTable<T>({
   const uid = useId()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [sortState, setSortState] = useState<SortState | null>(defaultSort)
-  const [selectedState, setSelectedState] = useState<string | null>(null)
+  const [cursor, setCursor] = useState<string | null>(null)
+  const [seenProp, setSeenProp] = useState(selectedProp)
+  // The page's choice (e.g. the open row) wins over an older keyboard cursor.
+  if (seenProp !== selectedProp) {
+    setSeenProp(selectedProp)
+    setCursor(null)
+  }
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
 
   const sort = sortProp !== undefined ? sortProp : sortState
-  const selectedId = selectedProp !== undefined ? selectedProp : selectedState
+  const selectedId = cursor ?? selectedProp ?? null
 
   const setSort = (next: SortState | null) => {
     if (sortProp === undefined) setSortState(next)
     onSortChange?.(next)
   }
   const setSelected = (id: string | null) => {
-    if (selectedProp === undefined) setSelectedState(id)
+    setCursor(id)
     onSelectedChange?.(id)
   }
 

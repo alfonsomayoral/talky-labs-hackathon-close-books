@@ -22,4 +22,18 @@ describe('DataTable', () => {
     await userEvent.keyboard('{Enter}')
     expect(screen.getByRole('columnheader', { name: 'Importe' })).toHaveAttribute('aria-sort', 'ascending')
   })
+
+  it('moves the cursor with j/k when the page only passes the open row as selectedId', async () => {
+    const rows = [{ id: 'a', amount: 1 }, { id: 'b', amount: 2 }, { id: 'c', amount: 3 }]
+    const { rerender } = render(<DataTable aria-label="Partidas" rows={rows} columns={columns} getRowId={(r) => r.id} selectedId={null} height={200} />)
+    const grid = screen.getByRole('grid', { name: 'Partidas' })
+    grid.focus()
+    await userEvent.keyboard('jj')
+    expect(grid.getAttribute('aria-activedescendant')).toMatch(/-r1$/)
+    await userEvent.keyboard('k')
+    expect(grid.getAttribute('aria-activedescendant')).toMatch(/-r0$/)
+    // The page opens another row: its choice wins over the old cursor.
+    rerender(<DataTable aria-label="Partidas" rows={rows} columns={columns} getRowId={(r) => r.id} selectedId="c" height={200} />)
+    expect(grid.getAttribute('aria-activedescendant')).toMatch(/-r2$/)
+  })
 })
