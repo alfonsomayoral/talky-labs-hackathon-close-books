@@ -9,6 +9,19 @@
   overscroll-behavior: contain;
 }
 
+/* On a phone the columns overflow: a shadow at the edge says there is more. The two `local` layers scroll
+   with the content and cover the fixed shadows when an edge is reached. */
+@media (max-width: 900px) {
+  .root {
+    background:
+      linear-gradient(to right, var(--bg) 40%, transparent) left / 32px 100% no-repeat local,
+      linear-gradient(to left, var(--bg) 40%, transparent) right / 32px 100% no-repeat local,
+      linear-gradient(to right, var(--line-strong), transparent) left / 10px 100% no-repeat scroll,
+      linear-gradient(to left, var(--line-strong), transparent) right / 10px 100% no-repeat scroll,
+      var(--bg);
+  }
+}
+
 .root:focus-visible {
   outline: 2px solid var(--brand-line);
   outline-offset: -2px;
