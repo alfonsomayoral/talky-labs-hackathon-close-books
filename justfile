@@ -35,6 +35,10 @@ be-score run *args:
 be-diff run *args:
     cd backend && uv run closebooks diff {{run}} {{args}}
 
+# API de CONTRACT.md §5 en localhost:8000 sobre una ejecución: just be-serve <run>
+be-serve run="":
+    cd backend && uv run closebooks serve {{run}}
+
 # Construye db/holdout/ y db/holdout-drift/ desde TRAIN
 holdout:
     cd backend && uv run closebooks holdout build
