@@ -200,6 +200,12 @@ function aging(entity, kind) {
   return { asOf: data.asOf, totals, openEur: Object.values(totals).reduce((a, b) => a + b, 0), overdueEur: Object.values(totals).reduce((a, b) => a + b, 0) - totals.not_due, parties: parties2 }
 }
 
+const accountsCache = new Map()
+const cached = (cache, key, compute) => {
+  if (!cache.has(key)) cache.set(key, compute())
+  return cache.get(key)
+}
+
 function accountsOf(runId) {
   return masters.accounts.map((a) => {
     const own = txns.filter((t) => t.accountId === a.accountId)
@@ -255,7 +261,7 @@ async function route(method, path, query, readBody) {
 
   if (seg[1] === 'data') {
     const resource = seg[3]
-    if (resource === 'accounts') return accountsOf(query.get('runId'))
+    if (resource === 'accounts') return cached(accountsCache, query.get('runId') ?? '', () => accountsOf(query.get('runId')))
     if (resource === 'items') return list(items, query, { search: (r) => [r.itemId, r.documentNumber, r.partyName], filters: { type: 'itemType', entity: 'entity', partyId: 'partyId' } })
     if (resource === 'parties') return list(parties, query, { search: (r) => [r.partyId, r.name, r.taxId], filters: { kind: 'kind', entity: 'entity' } })
     if (resource === 'detail-files') return list(detailFiles, query, { filters: { kind: 'kind', entity: 'entity' } })
@@ -313,6 +319,7 @@ async function route(method, path, query, readBody) {
       human.decisions.push({ decisionId: decisionId(), caseId: c.caseId, ...body, at: now() })
       if (body.action === 'done') c.status = 'done'
       statsCache.clear()
+      accountsCache.clear()
       return caseDetail(c)
     }
     return caseDetail(c)
@@ -327,6 +334,7 @@ async function route(method, path, query, readBody) {
       const c = caseById.get(q.caseId)
       c.status = 'done'
       statsCache.clear()
+      accountsCache.clear()
       if (body.saveAsRule && q.rulePreview) {
         const { kind, description, ...params } = q.rulePreview
         human.memoryRules.push({ ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, kind, params: { ...params, partyId: itemById.get(body.optionId)?.partyId ?? params.partyId }, description, scope: { entity: q.entity }, createdFrom: { questionId: q.questionId, caseId: q.caseId }, by: body.by, at: now(), active: true })
