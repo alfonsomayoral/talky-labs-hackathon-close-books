@@ -30,6 +30,10 @@ export interface DataTableProps<T> {
   sort?: SortState | null
   defaultSort?: SortState | null
   onSortChange?: (sort: SortState | null) => void
+  /** The rows already come sorted (by the API): headers only report `onSortChange`. */
+  serverSort?: boolean
+  /** Scrolled near the last row: ask for the next page. */
+  onEndReached?: () => void
   /** Groups rows by this key; sorting applies inside each group. */
   groupBy?: (row: T) => string
   /** Group header content (default: the key). The count is added after it. */
@@ -57,6 +61,7 @@ const HEADER_HEIGHT = 32
 const GROUP_HEIGHT = 32
 const FLEX_MIN_WIDTH = 120
 const CARD_GAP = 8
+const END_MARGIN = 40
 
 function track(width: number | string | undefined): string {
   if (width == null) return 'minmax(0, 1fr)'
@@ -74,6 +79,8 @@ export function DataTable<T>({
   sort: sortProp,
   defaultSort = null,
   onSortChange,
+  serverSort = false,
+  onEndReached,
   groupBy,
   renderGroup,
   groupOrder,
@@ -108,8 +115,8 @@ export function DataTable<T>({
 
   const sorted = useMemo(() => {
     const col = sort ? columns.find((c) => c.id === sort.columnId) : undefined
-    return col?.sortValue && sort ? sortRows(rows, col.sortValue, sort.direction) : rows
-  }, [rows, columns, sort])
+    return !serverSort && col?.sortValue && sort ? sortRows(rows, col.sortValue, sort.direction) : rows
+  }, [rows, columns, sort, serverSort])
 
   const items = useMemo(() => buildItems(sorted, groupBy, groupOrder, collapsed), [sorted, groupBy, groupOrder, collapsed])
 
@@ -134,6 +141,13 @@ export function DataTable<T>({
     scrollMargin: HEADER_HEIGHT,
     scrollPaddingStart: HEADER_HEIGHT,
   })
+
+  const lastVisible = virtualizer.getVirtualItems().at(-1)?.index ?? -1
+  useEffect(() => {
+    if (lastVisible >= items.length - END_MARGIN) onEndReached?.()
+    // Only when the scroll position or the row count change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastVisible, items.length])
 
   const move = (delta: 1 | -1) => {
     if (indexById.size === 0) return

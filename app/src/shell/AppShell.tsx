@@ -1,12 +1,11 @@
 // App frame: an icon rail that opens into the full sidebar on hover, and the routed view inside one
-// sheet; plus the object panel and the ⌘K palette. Below 900px the sidebar becomes a drawer.
+// sheet; plus the ⌘K palette. Below 900px the sidebar becomes a drawer.
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import clsx from 'clsx'
 import { Menu as MenuIcon, Search } from 'lucide-react'
 import { IconButton, TalkyMark } from '@/components'
-import { PAGE_VIEWS } from '@/data'
-import { ObjectPanelHost } from '@/features/object/ObjectPanel'
+import { SCREENS } from '@/data'
 import { useGlobalShortcuts } from '@/lib/keyboard'
 import { CommandPalette } from './CommandPalette'
 import { Sidebar } from './Sidebar'
@@ -21,11 +20,7 @@ const subscribeWide = (cb: () => void) => {
 }
 const isWide = () => window.matchMedia(WIDE).matches
 
-const TITLES: Record<string, string> = {
-  '/': 'Resumen',
-  '/importar': 'Importar datos',
-  ...Object.fromEntries(PAGE_VIEWS.map((v) => [v.path!, v.label])),
-}
+const TITLES: Record<string, string> = Object.fromEntries(SCREENS.map((s) => [s.path, s.label]))
 
 export function AppShell() {
   const { pathname } = useLocation()
@@ -92,7 +87,6 @@ export function AppShell() {
           </main>
         </div>
       </div>
-      <ObjectPanelHost />
       <CommandPalette />
     </>
   )
