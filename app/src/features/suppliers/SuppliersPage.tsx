@@ -8,13 +8,12 @@ import { useEntityScope, useListParam, useOpenObject, useTextParam } from '@/lib
 import { TextField } from '@/features/shared'
 import { AgingStrip } from './AgingStrip'
 import { CasePanel } from './CasePanel'
-import { DEFAULT_SORT, SUPPLIER_KINDS, SUPPLIER_STATUSES, ageDays, ageLabel, emailState, listKinds, listStatuses, kindAmountEur, sortFromParam, sortToParam, type EmailState } from './model'
+import { DEFAULT_SORT, SUPPLIER_KINDS, SUPPLIER_STATUSES, ageDays, ageLabel, emailState, listKinds, listStatuses, TOP_CASES, affectedAmount, sortFromParam, sortToParam, type EmailState } from './model'
 import styles from './SuppliersPage.module.css'
 
 const ROW_HEIGHT = 60
 const SEARCH_DEBOUNCE_MS = 300
 const OPEN_STATUSES = listStatuses([])
-const AFFECTED_HINT = 'Importe de todas las incidencias de la ejecución, también las ya gestionadas.'
 
 const KIND_OPTIONS = SUPPLIER_KINDS.map((kind) => ({ value: kind, label: caseKindLabel(kind) }))
 const STATE_OPTIONS = SUPPLIER_STATUSES.map((s) => ({ value: s, label: CASE_STATUS_LABEL[s] }))
@@ -51,10 +50,9 @@ export function SuppliersPage() {
     sort: orden ?? DEFAULT_SORT,
   })
   // Header figures ignore the search and the facets: they are what is open for the scope.
-  const openAll = useCases(runId, { status: OPEN_STATUSES, kind: SUPPLIER_KINDS.join(','), entity, size: 1 })
+  const openAll = useCases(runId, { status: OPEN_STATUSES, kind: SUPPLIER_KINDS.join(','), entity, sort: '-amountEur', size: TOP_CASES })
   const openCredits = useCases(runId, { status: OPEN_STATUSES, kind: 'supplier_credit_pending', entity, size: 1 })
-  const affectedEur = kindAmountEur(stats?.byKind, SUPPLIER_KINDS)
-  const creditsEur = kindAmountEur(stats?.byKind, ['supplier_credit_pending'])
+  const affected = affectedAmount(openAll.rows, openAll.total)
 
   const asOf = stats?.periodTo ?? run.createdAt
   const columns = useMemo<Column<CaseRow>[]>(
@@ -179,17 +177,15 @@ export function SuppliersPage() {
         </Card>
         <Card>
           <Metric
-            label="Importe afectado"
-            value={formatMoney(affectedEur, 'EUR', { compact: true })}
-            loading={affectedEur == null}
-            hint={AFFECTED_HINT}
+            label={affected.label}
+            value={loadingHeader ? '' : formatMoney(affected.cents, 'EUR', { compact: true })}
+            loading={loadingHeader}
           />
         </Card>
         <Card>
           <Metric
             label="Abonos por compensar"
             value={loadingHeader ? '' : formatNumber(openCredits.total)}
-            comparison={creditsEur ? formatMoney(creditsEur, 'EUR', { compact: true }) : undefined}
             loading={loadingHeader}
           />
         </Card>

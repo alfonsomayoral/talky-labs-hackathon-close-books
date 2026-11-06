@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { OpenItem } from '@/domain'
-import { agingSegments, emailState, listKinds, listStatuses, kindAmountEur, orderItems, sortFromParam } from './model'
+import { agingSegments, emailState, listKinds, listStatuses, affectedAmount, orderItems, sortFromParam } from './model'
 
 const item = (itemId: string) => ({ itemId }) as OpenItem
 
@@ -37,16 +37,11 @@ describe('emailState', () => {
   })
 })
 
-describe('kindAmountEur', () => {
-  it('adds the whole run, not what happens to be loaded, only for the kinds asked', () => {
-    const byKind = [
-      { kind: 'supplier_invoice_mismatch', cases: 3049, amountEur: 900 },
-      { kind: 'supplier_credit_pending', cases: 2, amountEur: 100 },
-      { kind: 'dispute', cases: 7, amountEur: 5000 },
-    ]
-    expect(kindAmountEur(byKind, ['supplier_invoice_mismatch', 'supplier_credit_pending'])).toBe(1000)
-    expect(kindAmountEur(byKind, ['supplier_credit_pending'])).toBe(100)
-    expect(kindAmountEur(undefined, ['dispute'])).toBeNull()
+describe('affectedAmount', () => {
+  it('says when it adds only the largest cases and not all of them', () => {
+    const rows = [{ amountEur: 100 }, { amountEur: 250 }]
+    expect(affectedAmount(rows, 2)).toEqual({ cents: 350, label: 'Importe afectado' })
+    expect(affectedAmount(rows, 3049)).toEqual({ cents: 350, label: 'Importe de las 2 mayores' })
   })
 })
 
