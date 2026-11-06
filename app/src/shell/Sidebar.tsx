@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router'
 import clsx from 'clsx'
-import { ChevronsUpDown, LayoutDashboard, Search, Upload } from 'lucide-react'
-import { Kbd, Menu, TalkyLogo, type MenuItem } from '@/components'
+import { Building2, ChevronsUpDown, LayoutDashboard, Search, Upload } from 'lucide-react'
+import { Kbd, Menu, TalkyLogo, TalkyMark, type MenuItem } from '@/components'
 import { PAGE_VIEWS, useData } from '@/data'
 import { formatMonth, formatNumber } from '@/lib/format'
 import { MOD_KEY } from '@/lib/keyboard'
@@ -10,7 +10,7 @@ import { useShellUi } from './uiStore'
 import styles from './Sidebar.module.css'
 
 /** Group, period and entity scope in one control: the scope every screen is filtered by. */
-function Scope() {
+function Scope({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   const dataset = useData((s) => s.dataset)
   const run = useData((s) => s.run)
   const [entity, setEntity] = useEntityScope()
@@ -29,8 +29,10 @@ function Scope() {
       aria-label="Cambiar de sociedad"
       className={styles.menu}
       items={items}
+      onOpenChange={onOpenChange}
       trigger={
-        <button type="button" className={styles.scope}>
+        <button type="button" className={styles.scope} aria-label="Cambiar de sociedad">
+          <Building2 aria-hidden className={styles.entryIcon} />
           <span className={styles.scopeText}>
             <span className={styles.scopeName}>{current?.name ?? holding?.name ?? dataset?.meta.name ?? 'Sin datos'}</span>
             <span className={styles.scopeSub}>
@@ -44,7 +46,14 @@ function Scope() {
   )
 }
 
-export function Sidebar() {
+export interface SidebarProps {
+  /** Labels shown. Collapsed, only the icons of the rail are visible. */
+  expanded: boolean
+  /** The scope menu opened or closed: the shell keeps the sidebar open meanwhile. */
+  onMenuOpenChange: (open: boolean) => void
+}
+
+export function Sidebar({ expanded, onMenuOpenChange }: SidebarProps) {
   const dataset = useData((s) => s.dataset)
   const run = useData((s) => s.run)
   const [entity] = useEntityScope()
@@ -56,14 +65,15 @@ export function Sidebar() {
   const entry = ({ isActive }: { isActive: boolean }) => clsx(styles.entry, isActive && styles.active)
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={styles.sidebar} data-expanded={expanded || undefined}>
       <div className={styles.product}>
-        <TalkyLogo height={30} />
+        <TalkyMark size={24} className={styles.markOnly} title="Talky" />
+        <TalkyLogo height={30} className={styles.logoFull} />
         <span className={styles.productDivider} aria-hidden />
         <span className={styles.productName}>Close the Books</span>
       </div>
       <div className={styles.controls}>
-        <Scope />
+        <Scope onOpenChange={onMenuOpenChange} />
         <button type="button" className={styles.search} onClick={togglePalette}>
           <Search aria-hidden className={styles.entryIcon} />
           <span className={styles.searchLabel}>Buscar</span>
@@ -119,7 +129,7 @@ export function Sidebar() {
         </NavLink>
         <div className={styles.source}>
           <span className={styles.sourceDot} data-source={dataset?.meta.source} aria-hidden />
-          {dataset?.meta.source === 'zip' ? `Paquete: ${dataset.meta.name}` : 'Datos de muestra'}
+          <span className={styles.sourceText}>{dataset?.meta.source === 'zip' ? `Paquete: ${dataset.meta.name}` : 'Datos de muestra'}</span>
         </div>
       </div>
     </aside>

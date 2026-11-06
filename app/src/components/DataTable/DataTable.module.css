@@ -201,13 +201,13 @@
   left: 0;
 }
 
-/* Cards: each row is an independent white card on the page ground. */
+/* Cards: each row is an independent card with its own edge, on the view's white sheet. */
 .cards {
   background: transparent;
 }
 
 .cards .header {
-  background: var(--ground);
+  background: var(--bg);
   border-bottom: 0;
 }
 

@@ -1,6 +1,6 @@
-// App frame: sidebar + routed page on one ground, plus the object panel and the ⌘K palette.
-// Below 900px the sidebar becomes a drawer opened from a 48px top bar.
-import { useEffect, useState } from 'react'
+// App frame: an icon rail that opens into the full sidebar on hover, and the routed view inside one white
+// sheet; plus the object panel and the ⌘K palette. Below 900px the sidebar becomes a drawer.
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import clsx from 'clsx'
 import { Menu as MenuIcon, Search } from 'lucide-react'
@@ -13,6 +13,14 @@ import { Sidebar } from './Sidebar'
 import { useShellUi } from './uiStore'
 import styles from './AppShell.module.css'
 
+const WIDE = '(min-width: 901px)'
+const subscribeWide = (cb: () => void) => {
+  const mq = window.matchMedia(WIDE)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+const isWide = () => window.matchMedia(WIDE).matches
+
 const TITLES: Record<string, string> = {
   '/': 'Resumen',
   '/importar': 'Importar datos',
@@ -23,6 +31,19 @@ export function AppShell() {
   const { pathname } = useLocation()
   const togglePalette = useShellUi((s) => s.togglePalette)
   const [drawer, setDrawer] = useState(false)
+  const [hover, setHover] = useState(false)
+  const [focusIn, setFocusIn] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const desktop = useSyncExternalStore(subscribeWide, isWide)
+  const expanded = drawer || hover || focusIn || menuOpen || !desktop
+
+  // A short delay both ways, so crossing the rail on the way to the page does not open it.
+  const hoverTo = (next: boolean) => {
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setHover(next), next ? 120 : 200)
+  }
+  useEffect(() => () => clearTimeout(timer.current), [])
   const title = TITLES[pathname] ?? 'Página no encontrada'
 
   useEffect(() => {
@@ -45,11 +66,21 @@ export function AppShell() {
         Saltar al contenido
       </a>
       <div className={styles.shell}>
-        <div className={clsx(styles.drawer, drawer && styles.drawerOpen)}>
-          <Sidebar />
+        <div className={styles.rail}>
+          <div
+            className={clsx(styles.sidebarWrap, desktop && expanded && styles.expanded, drawer && styles.drawerOpen)}
+            onMouseEnter={() => hoverTo(true)}
+            onMouseLeave={() => hoverTo(false)}
+            onFocus={(e) => setFocusIn(e.target.matches(':focus-visible'))}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusIn(false)
+            }}
+          >
+            <Sidebar expanded={expanded} onMenuOpenChange={setMenuOpen} />
+          </div>
         </div>
         {drawer && <div className={styles.scrim} onClick={() => setDrawer(false)} aria-hidden />}
-        <div className={styles.main}>
+        <div className={styles.sheet}>
           <header className={styles.mobileBar}>
             <TalkyMark size={20} />
             <span className={styles.mobileTitle}>{title}</span>

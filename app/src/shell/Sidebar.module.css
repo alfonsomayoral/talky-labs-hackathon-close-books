@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   width: var(--sidebar-width);
+  overflow: hidden;
   flex-shrink: 0;
   height: 100%;
   background: var(--ground);
@@ -12,8 +13,9 @@
   align-items: center;
   gap: var(--space-2);
   height: 56px;
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-4) 0 18px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .productName {
@@ -34,7 +36,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 10px var(--space-3);
 }
 
 /* Workspace and scope: one white control. */
@@ -45,7 +47,7 @@
   width: 100%;
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--bg);
   text-align: left;
   transition: border-color var(--duration-fast) ease;
@@ -121,7 +123,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-2) var(--space-3) var(--space-4);
+  padding: var(--space-2) 10px var(--space-4);
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -219,7 +222,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  padding: var(--space-3);
+  padding: 10px;
   border-top: 1px solid var(--line);
 }
 
@@ -227,7 +230,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-3) 0;
+  padding: var(--space-1) var(--space-3) 0 17px;
+  white-space: nowrap;
   color: var(--ink-3);
   font-size: var(--text-12);
 }
@@ -241,4 +245,61 @@
 
 .sourceDot[data-source='zip'] {
   background: var(--ok);
+}
+
+/* Collapsed rail: only the icons, centred in --rail-width; everything else fades out in place
+   so expanding never reflows the labels. */
+.productName,
+.productDivider,
+.scopeText,
+.chevron,
+.searchLabel,
+.keys,
+.sectionTitle,
+.entryLabel,
+.count,
+.alertCount,
+.sourceText {
+  transition: opacity var(--duration) var(--ease-out);
+}
+
+.sidebar:not([data-expanded]) :is(.productName, .productDivider, .scopeText, .chevron, .searchLabel, .keys, .sectionTitle, .entryLabel, .count, .alertCount, .sourceText) {
+  opacity: 0;
+}
+
+.sidebar:not([data-expanded]) .scope {
+  border-color: transparent;
+  background: transparent;
+}
+
+.entry,
+.search,
+.scope {
+  transition:
+    width var(--duration) var(--ease-out),
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.sidebar:not([data-expanded]) :is(.entry, .search, .scope) {
+  width: 40px;
+}
+
+/* Collapsed: Talky's mark alone in the rail; expanded: the full logo. */
+.logoFull {
+  flex-shrink: 0;
+}
+
+.sidebar:not([data-expanded]) .logoFull,
+.sidebar[data-expanded] .markOnly {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry,
+  .search,
+  .scope {
+    transition: none;
+  }
 }

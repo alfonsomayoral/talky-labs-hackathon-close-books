@@ -65,7 +65,7 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 ## 6. Reglas del frontend (`app/`)
 
 - La marca es la de Talky ([usetalky.com](https://usetalky.com)): naranja `#F3572F` para el dato principal, la selección y el foco; marino `#16224F` para la única acción primaria; tinta `#101938`; Newsreader para titulares, Geist para el texto y Chivo Mono para ids (al estilo de rex.inc). Está en `src/design/tokens.css` (ver ARCHITECTURE.md §5.4 y §5.5).
-- Superficies planas: tarjetas blancas con borde de 1 px, sin sombras en reposo. Lo que abre otra cosa es una tarjeta.
+- Cada vista va dentro de la hoja blanca del shell; su contenido son tarjetas planas con borde de 1 px encima, sin sombras en reposo. Lo que abre otra cosa es una tarjeta. La barra lateral es un rail que se despliega al pasar el ratón.
 - Solo los tokens de `src/design/tokens.css`: ningún color, sombra ni radio fuera de ellos. Estilos con CSS Modules, un fichero por componente.
 - Importes con `<Amount>`, ids y códigos con `<Mono>`, fechas y porcentajes con `@/lib/format`. Nunca se formatean a mano.
 - Las vistas importan de `@/data`, `@/domain`, `@/components` y `@/lib`. Nunca de `data/sources`, `data/parsers` ni `data/registry` por dentro.

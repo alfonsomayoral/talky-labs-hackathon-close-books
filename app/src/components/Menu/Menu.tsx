@@ -1,4 +1,4 @@
-import { cloneElement, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactElement, type ReactNode, type Ref } from 'react'
+import { cloneElement, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactElement, type ReactNode, type Ref } from 'react'
 import clsx from 'clsx'
 import { Check } from 'lucide-react'
 import { Popover } from '../Popover/Popover'
@@ -41,12 +41,17 @@ export interface MenuProps {
   'aria-label'?: string
   /** Class for the floating list (e.g. a fixed width). */
   className?: string
+  /** Told when the list opens or closes (e.g. to keep a collapsible container open meanwhile). */
+  onOpenChange?: (open: boolean) => void
 }
 
 /** Dropdown of actions or choices. ↑/↓ to move, Enter to pick, Esc to close, typing jumps by first letter. */
-export function Menu({ trigger, items, side = 'bottom', align = 'start', className, ...aria }: MenuProps) {
+export function Menu({ trigger, items, side = 'bottom', align = 'start', className, onOpenChange, ...aria }: MenuProps) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const [open, setOpen] = useState(false)
+  useEffect(() => {
+    onOpenChange?.(open)
+  }, [open, onOpenChange])
   const listRef = useRef<HTMLDivElement>(null)
   const hasChecks = items.some((i) => (i.type ?? 'item') === 'item' && 'checked' in i && i.checked !== undefined)
 

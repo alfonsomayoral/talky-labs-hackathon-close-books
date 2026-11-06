@@ -1,5 +1,6 @@
-/* Open plane: the sidebar and the canvas share the stone ground; cards are white on it.
-   Below 900px the sidebar folds into a 48px top bar with a menu sheet. */
+/* The window: a collapsed icon rail on the stone ground, and every view inside one white sheet inset 8px
+   (radius 12, 1px edge, no shadow), with its cards on top. Hovering the rail opens the full sidebar over
+   the sheet. Below 900px the rail goes, the sheet fills the window and the sidebar is a drawer. */
 .shell {
   display: flex;
   height: 100vh;
@@ -7,11 +8,39 @@
   background: var(--ground);
 }
 
-.main {
+.rail {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--rail-width);
+  z-index: var(--z-sidebar);
+}
+
+.sidebarWrap {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--rail-width);
+  background: var(--ground);
+  overflow: hidden;
+  transition:
+    width var(--duration-slow) var(--ease-out),
+    box-shadow var(--duration-slow) var(--ease-out);
+}
+
+.expanded {
+  width: var(--sidebar-width);
+  box-shadow: 12px 0 32px rgb(16 25 56 / 0.08);
+}
+
+.sheet {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  margin: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0;
+  border: 1px solid var(--line);
+  border-radius: var(--sheet-radius);
+  background: var(--bg);
+  overflow: hidden;
 }
 
 .content {
@@ -52,6 +81,30 @@
 }
 
 @media (max-width: 900px) {
+  .rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 0;
+    z-index: var(--z-overlay);
+  }
+
+  .sidebarWrap {
+    width: var(--sidebar-width);
+    transform: translateX(-100%);
+    transition: transform var(--duration-slow) var(--ease-out);
+  }
+
+  .drawerOpen {
+    transform: none;
+    box-shadow: var(--shadow-panel);
+  }
+
+  .sheet {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
   .mobileBar {
     display: flex;
     align-items: center;
@@ -59,7 +112,6 @@
     height: var(--topbar-height);
     padding: 0 var(--space-2) 0 var(--space-4);
     border-bottom: 1px solid var(--line);
-    background: var(--ground);
     flex-shrink: 0;
   }
 
@@ -73,19 +125,6 @@
     white-space: nowrap;
   }
 
-  .drawer {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: var(--z-overlay);
-    transform: translateX(-100%);
-    transition: transform var(--duration-slow) var(--ease-out);
-  }
-
-  .drawerOpen {
-    transform: none;
-    box-shadow: var(--shadow-panel);
-  }
-
   .scrim {
     position: fixed;
     inset: 0;
@@ -96,7 +135,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .drawer {
+  .sidebarWrap {
     transition: none;
   }
 }
