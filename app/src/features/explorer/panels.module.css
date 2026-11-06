@@ -1,0 +1,121 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-5);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.kind {
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  font-weight: var(--weight-medium);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-24);
+  font-weight: var(--weight-light);
+  line-height: var(--leading-tight);
+  color: var(--ink-strong);
+  overflow-wrap: anywhere;
+}
+
+.link {
+  color: var(--brand-ink);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-13);
+}
+
+.group li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+}
+
+.none {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-13);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-13);
+}
+
+.factMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.factAmounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  color: var(--ink-2);
+}
+
+.extras {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  overflow-wrap: anywhere;
+}
+
+.text {
+  max-height: 360px;
+  margin: 0;
+  padding: var(--space-3);
+  overflow: auto;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  line-height: var(--leading);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

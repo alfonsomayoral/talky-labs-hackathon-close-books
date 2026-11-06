@@ -77,10 +77,19 @@ export function InboxPage() {
       {
         id: 'amountEur',
         header: 'Importe',
-        width: 120,
+        width: 150,
         align: 'right',
         sortValue: (c) => c.amountEur,
-        cell: (c) => <Amount cents={c.amountEur} currency="EUR" />,
+        cell: (c) => (
+          <span className={styles.amount}>
+            <Amount cents={c.amountCents} currency={c.currency} />
+            {c.currency !== 'EUR' && (
+              <span className={styles.amountEur}>
+                <Amount cents={c.amountEur} currency="EUR" />
+              </span>
+            )}
+          </span>
+        ),
       },
       {
         id: 'bookingDate',

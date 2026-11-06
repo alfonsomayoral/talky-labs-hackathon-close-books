@@ -5,11 +5,11 @@ import type { BankLine, RelatedTxn, TxnDetail } from '@/domain'
 import { CASE_STATUS_LABEL, CASE_STATUS_TONE } from '@/domain'
 import { Amount, Badge, Button, ConfidenceBand, EmptyState, KeyValue, Mono, SidePanel, Skeleton } from '@/components'
 import { useActiveRun, useTransaction } from '@/data'
-import { formatDate, formatPercent } from '@/lib/format'
+import { formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { TxnEvidence } from './TxnEvidence'
 import { TxnRows } from './TxnRows'
-import { decisionOf } from './txnPanelModel'
+import { decisionOf, distinctParties } from './txnPanelModel'
 import styles from './TxnPanel.module.css'
 
 export interface TxnPanelProps {
@@ -97,6 +97,7 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
   const { txn, rows, party, candidates, evidence, related } = detail
   const caseLink = useCaseLink(detail.case?.caseId)
   const decision = decisionOf(rows)
+  const parties = distinctParties(rows)
   return (
     <div className={styles.body}>
       <div className={styles.summary}>
@@ -118,7 +119,7 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
             </Fragment>
           )) : 'Sin regla'}
           {decision.confidence != null && <> con confianza {formatPercent(decision.confidence, { decimals: 0 })}</>}
-          {party ? <> sobre <strong>{party.partyName}</strong></> : ', sin tercero'}
+          {parties > 1 ? <> sobre <strong>{formatNumber(parties)} terceros</strong></> : party ? <> sobre <strong>{party.partyName}</strong></> : ', sin tercero'}
         </p>
         <div className={styles.chips}>
           <ConfidenceBand value={decision.confidence} />
@@ -153,7 +154,9 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
       </PanelSection>
 
       <PanelSection title="Tercero">
-        {party ? (
+        {parties > 1 ? (
+          <p className={styles.none}>Este movimiento paga a {formatNumber(parties)} terceros: cada partida lleva el suyo.</p>
+        ) : party ? (
           <KeyValue
             labelWidth={120}
             items={[
