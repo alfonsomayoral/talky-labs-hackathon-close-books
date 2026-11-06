@@ -179,7 +179,7 @@ Su pregunta: ¿qué queda para cerrar el periodo y qué necesita a una persona?
 
 ### 5.3 Páginas de datos
 
-Todas son la misma `DatasetPage`: título con el recuento y las filas con alertas, buscador y una faceta, y la `DataTable` virtualizada dentro de una tarjeta. Sociedades, con pocas filas y cada una puerta a su alcance, se muestra como tarjetas. El panel lateral tiene las pestañas **Detalle** (alertas y datos) · **Relacionados** (tarjetas agrupadas por tipo) · **Historial** (línea temporal con antes y después). Las alertas del `Run` sobre un objeto se marcan en su fila.
+Todas son la misma `DatasetPage`: título con el recuento y las filas con alertas, buscador y una faceta, y la `DataTable` virtualizada en su variante `cards`, donde cada fila es una tarjeta independiente. Las páginas usan todo el ancho de la pantalla y el panel lateral se abre al 40 % del ancho. Sociedades, con pocas filas y cada una puerta a su alcance, se muestra como tarjetas. El panel lateral tiene las pestañas **Detalle** (alertas y datos) · **Relacionados** (tarjetas agrupadas por tipo) · **Historial** (línea temporal con antes y después). Las alertas del `Run` sobre un objeto se marcan en su fila.
 
 ### 5.4 Marca: Talky
 
@@ -198,15 +198,17 @@ La referencia es [usetalky.com](https://usetalky.com). Los valores siguientes sa
 | `--bg-muted` | `#EEF0F4` | Superficies neutras, cabeceras de tabla |
 | `--info` | `#2E4DB3` | Estado informativo, enlaces |
 
+La tipografía sigue a [rex.inc](https://www.rex.inc/collections), que usa Tiempos Headline (light) para titulares, GD Gaio para el texto y Chivo Mono para códigos. Las dos primeras son comerciales, así que van sus equivalentes libres más cercanos:
+
 | Tipografía | Familia | Uso |
 | --- | --- | --- |
-| Titulares | Outfit (300–500) | Frase de apertura del Resumen, títulos de página |
-| Texto | Manrope (400–600) | Interfaz, tablas |
-| Mono | Martian Mono (400–500) | Ids, cuentas, códigos (`ACC·214`, `VAT·021` en la web de Talky) |
+| Titulares y cifras clave | Newsreader, con tamaño óptico, a peso 300 | Títulos de página, de tarjeta y del panel; las cifras grandes |
+| Texto | Geist (400–600) | Interfaz, tablas, botones |
+| Mono | Chivo Mono (400) | Ids, cuentas, IBAN, reglas |
 
 Se autoalojan con `@fontsource` (sin dependencia de Google Fonts en la demo). Los colores de estado (ok, warn, danger) se mantienen de Kalmora, ajustados para no competir con el naranja.
 
-Logo: el símbolo de Talky junto al nombre del producto, «Close the Books», en la cabecera de la barra lateral.
+Logo: el logo original de Talky (la forma rosa con borde naranja y la palabra «Talky», `public/talky-logo.png`) junto al nombre del producto, «Close the Books», en la cabecera de la barra lateral. La forma sola es el favicon.
 
 ### 5.5 Reglas visuales
 
