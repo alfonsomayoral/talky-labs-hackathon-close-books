@@ -286,7 +286,7 @@ const run = {
   stages: { load: 12000, index: 8000, documents: 90000, rules: 70000, resolve: 30000, output: 31000 }, txns: txns.length, rows: explanations.length,
   byRule: count(explanations, (e) => e.rule), byException: dropNull(count(explanations, (e) => e.exception)), byCategory: dropNull(count(explanations, (e) => e.category)), cases: count(cases, (c) => c.status),
   models: { 'claude-haiku-5-5': { calls: 812, inputTokens: 1200000, outputTokens: 90000, costUsd: 0.4 } }, memoryRulesApplied: 0,
-  score: { score: 71.4, metrics: { pair_f1: 0.78, pair_precision: 0.97, pair_recall: 0.65, txn_accuracy: 0.69, exception_macro_f1: 0.55 }, segments: { ar_1to1: { txns: 320, score: 0.96 }, ar_ref_noise: { txns: 410, score: 0.52 }, ap_payment_multi: { txns: 280, score: 0.91 }, ar_dd_batch: { txns: 230, score: 0.99 }, nonitem_bank_fees: { txns: 160, score: 0.88 } } },
+  score: { score: 71.4, metrics: { allocation_f1: 0.78, precision: 0.97, recall: 0.65, txn_accuracy: 0.69, exception_macro_f1: 0.55, amount_weighted_accuracy: 0.74, rows: 3100, txns_covered: 1400, txns_total: 1400 }, segments: { ar_1to1: { n: 320, accuracy: 0.96 }, ar_ref_noise: { n: 410, accuracy: 0.52 }, ap_payment_multi: { n: 280, accuracy: 0.91 }, ar_dd_batch: { n: 230, accuracy: 0.99 }, nonitem_bank_fees: { n: 160, accuracy: 0.88 } } },
 }
 
 const accounts = ACCOUNTS.map(({ format, changesTo, ...a }) => ({
