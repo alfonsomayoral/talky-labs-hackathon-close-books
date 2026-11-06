@@ -48,9 +48,10 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 2. [paso] -> compruebo: [cómo]
 ```
 
-- **Lógica (`backend/`, `app/src/data/`, `app/src/domain/`):** test primero. «Detecta duplicados» se convierte en «test con una factura duplicada que falla; luego hazlo pasar».
+- **Lógica (`backend/`, `app/src/data/`, `app/src/domain/`):** TDD. Primero el test, y lo ves fallar por la razón correcta; luego el mínimo código que lo pone en verde; luego refactor sin salir del verde. «Detecta duplicados» se convierte en «test con una factura duplicada que falla; luego hazlo pasar».
 - **Pantallas:** se miran en el navegador con los datos cargados, con cero errores en consola.
-- Un test por comportamiento, más los bordes que romperían con datos reales. Ninguno que repita la implementación.
+- **Cada test tiene que poder pillar un bug.** Si rompes la lógica y el test sigue en verde, sobra. Un test por comportamiento, más los bordes que romperían con datos reales (duplicados, varias monedas, datos sucios).
+- Nada de smoke tests («renderiza», «no lanza», «el módulo existe»), snapshots, tests que repiten la implementación ni tests que solo comprueban que se llamó a un mock.
 - Antes de dar algo por hecho, `just fe-check` (o `just be-check` y `just be-test`) en verde, con la salida pegada. Si algo falla o no lo has comprobado, dilo.
 
 ## 5. Reglas del dominio
