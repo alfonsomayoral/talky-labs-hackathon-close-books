@@ -57,10 +57,8 @@
 .group [cmdk-group-heading] {
   padding: var(--space-2) var(--space-2) var(--space-1);
   color: var(--ink-3);
-  font-size: var(--text-11);
+  font-size: var(--text-12);
   font-weight: var(--weight-medium);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .item {

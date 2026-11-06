@@ -1,8 +1,11 @@
-// App frame: sidebar + topbar + routed page, plus the object panel and the ⌘K palette.
-import { useEffect } from 'react'
+// App frame: sidebar + routed page on one ground, plus the object panel and the ⌘K palette.
+// Below 900px the sidebar becomes a drawer opened from a 48px top bar.
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
-import { Badge } from '@/components'
-import { PAGE_VIEWS, useData } from '@/data'
+import clsx from 'clsx'
+import { Menu as MenuIcon, Search } from 'lucide-react'
+import { IconButton, TalkyMark } from '@/components'
+import { PAGE_VIEWS } from '@/data'
 import { ObjectPanelHost } from '@/features/object/ObjectPanel'
 import { useGlobalShortcuts } from '@/lib/keyboard'
 import { CommandPalette } from './CommandPalette'
@@ -18,12 +21,13 @@ const TITLES: Record<string, string> = {
 
 export function AppShell() {
   const { pathname } = useLocation()
-  const source = useData((s) => s.dataset?.meta.source)
   const togglePalette = useShellUi((s) => s.togglePalette)
+  const [drawer, setDrawer] = useState(false)
   const title = TITLES[pathname] ?? 'Página no encontrada'
 
   useEffect(() => {
     document.title = `${title} · Close the Books`
+    setDrawer(false)
   }, [title])
 
   useGlobalShortcuts({ onPalette: togglePalette, onHelp: togglePalette, onGo: () => false })
@@ -41,11 +45,16 @@ export function AppShell() {
         Saltar al contenido
       </a>
       <div className={styles.shell}>
-        <Sidebar />
+        <div className={clsx(styles.drawer, drawer && styles.drawerOpen)}>
+          <Sidebar />
+        </div>
+        {drawer && <div className={styles.scrim} onClick={() => setDrawer(false)} aria-hidden />}
         <div className={styles.main}>
-          <header className={styles.topbar}>
-            <span className={styles.topbarTitle}>{title}</span>
-            <div className={styles.topbarActions}>{source === 'fixtures' && <Badge variant="outline">Datos de muestra</Badge>}</div>
+          <header className={styles.mobileBar}>
+            <TalkyMark size={20} />
+            <span className={styles.mobileTitle}>{title}</span>
+            <IconButton icon={<Search />} label="Buscar" onClick={togglePalette} />
+            <IconButton icon={<MenuIcon />} label="Menú" onClick={() => setDrawer(true)} />
           </header>
           <main id="contenido" tabIndex={-1} className={styles.content}>
             <Outlet />
