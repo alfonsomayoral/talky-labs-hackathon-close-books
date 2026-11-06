@@ -1,0 +1,85 @@
+.box {
+  --cols: 104px minmax(0, 1fr) 76px 92px 92px 112px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.scroll {
+  max-height: 288px;
+  overflow: auto;
+}
+
+.head,
+.row {
+  display: grid;
+  grid-template-columns: var(--cols);
+  align-items: center;
+  column-gap: var(--space-3);
+  padding: 0 var(--space-3);
+}
+
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 28px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  font-weight: var(--weight-medium);
+}
+
+.row {
+  height: 32px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: var(--text-12);
+  /* A movement can have ~1.5 k rows: the browser skips the ones out of view. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 32px;
+}
+
+.row > span,
+.head > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.party,
+.date {
+  color: var(--ink-2);
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.num {
+  text-align: right;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 32px;
+  padding: 0 var(--space-3);
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: var(--text-12);
+}
+
+.totals {
+  display: flex;
+  gap: var(--space-4);
+  color: var(--ink);
+}
