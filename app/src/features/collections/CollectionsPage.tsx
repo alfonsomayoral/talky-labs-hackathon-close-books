@@ -30,20 +30,20 @@ export function CollectionsPage() {
   const columns = useMemo<Column<AgingParty>[]>(
     () => [
       { id: 'partyName', header: 'Cliente', width: 'minmax(180px, 2fr)', sortValue: (p) => p.partyName.toLowerCase(), cell: (p) => <span className={styles.truncate}>{p.partyName}</span> },
-      { id: 'entity', header: 'Sociedad', width: 80, sortValue: (p) => p.entity, cell: (p) => <Mono>{p.entity}</Mono> },
-      { id: 'overdueEur', header: 'Vencido', width: 120, align: 'right', sortValue: (p) => p.overdueEur, cell: (p) => <Amount cents={p.overdueEur} currency="EUR" /> },
-      { id: 'buckets', header: 'Tramos', width: 'minmax(100px, 1fr)', cell: (p) => <AgingBar buckets={p.buckets} label={`${p.partyName}: saldo por tramo de vencimiento`} /> },
-      { id: 'openItems', header: 'Facturas', width: 80, align: 'right', sortValue: (p) => p.openItems, cell: (p) => <span className="tabular">{formatNumber(p.openItems)}</span> },
+      { id: 'entity', header: 'Sociedad', width: 104, sortValue: (p) => p.entity, cell: (p) => <Mono>{p.entity}</Mono> },
+      { id: 'overdueEur', header: 'Vencido', width: 120, align: 'right', sortValue: (p) => p.overdueEur, cell: (p) => <Amount cents={p.overdueEur} currency="EUR" compact /> },
+      { id: 'buckets', header: 'Tramos', width: 'minmax(120px, 1fr)', cell: (p) => <AgingBar buckets={p.buckets} label={`${p.partyName}: saldo por tramo de vencimiento`} /> },
+      { id: 'openItems', header: 'Facturas', width: 96, align: 'right', sortValue: (p) => p.openItems, cell: (p) => <span className="tabular">{formatNumber(p.openItems)}</span> },
       {
         id: 'oldestDaysOverdue',
         header: 'Más antigua',
-        width: 100,
+        width: 124,
         align: 'right',
         sortValue: (p) => p.oldestDaysOverdue,
         cell: (p) => <span className="tabular">{p.oldestDaysOverdue > 0 ? `${formatNumber(p.oldestDaysOverdue)} d` : '—'}</span>,
       },
-      { id: 'disputes', header: 'Disputas', width: 80, align: 'right', sortValue: (p) => p.disputes, cell: (p) => <span className="tabular">{p.disputes || '—'}</span> },
-      { id: 'duplicates', header: 'Duplicados', width: 90, align: 'right', sortValue: (p) => p.duplicates, cell: (p) => <span className="tabular">{p.duplicates || '—'}</span> },
+      { id: 'disputes', header: 'Disputas', width: 100, align: 'right', sortValue: (p) => p.disputes, cell: (p) => <span className="tabular">{p.disputes || '—'}</span> },
+      { id: 'duplicates', header: 'Duplicados', width: 112, align: 'right', sortValue: (p) => p.duplicates, cell: (p) => <span className="tabular">{p.duplicates || '—'}</span> },
       {
         id: 'risk',
         header: (
@@ -51,7 +51,7 @@ export function CollectionsPage() {
             <span>Riesgo</span>
           </Tooltip>
         ),
-        width: 90,
+        width: 100,
         sortValue: (p) => RISK_RANK[riskOf(p)],
         cell: (p) => {
           const risk = riskOf(p)
