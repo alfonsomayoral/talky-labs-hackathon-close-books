@@ -13,8 +13,8 @@ export type PrimaryAction ='answer' | 'email' | 'prepare_email' | 'done' | 'clos
 
 type ActionInput = Pick<CaseDetail, 'suggestedAction'> & {
   status: CaseStatus
-  question: Pick<NonNullable<CaseDetail['question']>, 'status'> | null
-  draft: Pick<NonNullable<CaseDetail['draft']>, 'status'> | null
+  question?: Pick<NonNullable<CaseDetail['question']>, 'status'> | null
+  draft?: Pick<NonNullable<CaseDetail['draft']>, 'status'> | null
 }
 
 /** The one button that leads the case. Marking it handled always exists; it leads when nothing else is left to do. */

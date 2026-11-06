@@ -80,7 +80,7 @@ function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
       <TextField label="Para" value={`${draft.toName} <${draft.to}>`} onChange={() => {}} readOnly />
       <TextField label="Asunto" value={subject} onChange={setSubject} readOnly={closed} />
       <TextField label="Mensaje" value={body} onChange={setBody} rows={10} readOnly={closed} />
-      {draft.attachments.length > 0 && (
+      {draft.attachments && draft.attachments.length > 0 && (
         <ul className={styles.attachments} aria-label="Adjuntos">
           {draft.attachments.map((a) => (
             <li key={a.ref}>
