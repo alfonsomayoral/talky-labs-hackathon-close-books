@@ -1,4 +1,6 @@
-// Response shapes of the API (CONTRACT.md §5.1). When backend/openapi.json exists, it wins.
+// Response shapes of the API (CONTRACT.md §5.1), by hand until backend/openapi.json exists; then it wins:
+// `npm run gen:api` writes api.generated.ts, and each type here becomes an alias of its schema
+// (`export type RunStats = components['schemas']['RunStats']`), so no view has to change.
 import type { Case, CaseStatus, Candidate, Draft, Explanation, Question, Run, Score, SourceRef } from './run'
 
 export interface Paged<T> {
