@@ -1,0 +1,714 @@
+{"bankTxnId":"BT-2025-0200000","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200001","partyId":"SFR01000005","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200004","partyId":"CMX01000008","partyKind":"customer","payerName":"VIVEROS ARROYO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200005","partyId":"CUS01000008","partyKind":"customer","payerName":"AQUATECH NORTE LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200006","partyId":"SES01000006","partyKind":"supplier","payerName":"LOGÍSTICA MARINA LEVANTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200008","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200009","partyId":"CFR01000001","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200010","partyId":"CFR01000017","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200011","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200012","partyId":"CMX01000018","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200013","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200014","partyId":"CFR01000018","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"name","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200015","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200016","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200017","partyId":"SES00000008","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200018","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200020","partyId":"SES01000001","partyKind":"supplier","payerName":"SUMINISTROS VIVEROS ARROYO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200021","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200022","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"file","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200024","partyId":"SUS01000008","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200026","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200028","partyId":"CES01000009","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200029","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200030","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200031","partyId":"SFR01000005","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200032","partyId":"CES00000009","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200033","partyId":"CES01000002","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200034","partyId":"CMX01000011","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200035","partyId":"CES00000005","partyKind":"customer","payerName":"FERRETERÍA NIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200036","partyId":"CFR01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200037","partyId":"SES00000004","partyKind":"supplier","payerName":"SUMINISTROS POOL & SPA DELTA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200038","partyId":"SFR01000008","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200039","partyId":"CES01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200040","partyId":"CMX01000018","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200042","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200043","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"iban","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200044","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200045","partyId":"CFR01000009","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200046","partyId":"CMX01000002","partyKind":"customer","payerName":"CASCADA AZUL S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200047","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200048","partyId":"SMX01000004","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200049","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200050","partyId":"CUS01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200052","partyId":"SFR01000001","partyKind":"supplier","payerName":"SERVICIOS QUÍMICA URRUTIA SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200053","partyId":"CFR01000005","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200054","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200055","partyId":"SFR01000008","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200056","partyId":"SMX01000004","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200057","partyId":"SES01000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200058","partyId":"CFR01000013","partyKind":"customer","payerName":"FILTROS ROLDÁN SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200059","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"file","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200060","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200061","partyId":"CES01000014","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200062","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200063","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200064","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200065","partyId":"CUS01000013","partyKind":"customer","payerName":"VIVEROS ARROYO LLC","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200066","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200067","partyId":"CES00000009","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200068","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200069","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200070","partyId":"CFR01000005","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200071","partyId":"SMX01000001","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200072","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200074","partyId":"CES00000005","partyKind":"customer","payerName":"FERRETERÍA NIETO S.L.","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200075","partyId":"CUS01000011","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200076","partyId":"CES01000016","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200077","partyId":"CES00000006","partyKind":"customer","payerName":"CASCADA AZUL S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200078","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200079","partyId":"CFR01000009","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200080","partyId":"SES00000002","partyKind":"supplier","payerName":"QUÍMICA VIVEROS ARROYO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200081","partyId":"SUS01000005","partyKind":"supplier","payerName":"SERVICIOS LANDSCAPES SANTA LUCÍA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200082","partyId":"CUS01000011","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200083","partyId":"CES01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200084","partyId":"CMX01000016","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200085","partyId":"CMX01000009","partyKind":"customer","payerName":"FERRETERÍA NIETO S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200086","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200087","partyId":"SFR01000004","partyKind":"supplier","payerName":"SUMINISTROS CASCADA AZUL SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200088","partyId":"SUS01000002","partyKind":"supplier","payerName":"SUMINISTROS FILTROS ROLDÁN LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200089","partyId":"SMX01000006","partyKind":"supplier","payerName":"QUÍMICA AGUA CLARA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200090","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200091","partyId":"CFR01000012","partyKind":"customer","payerName":"AGUA CLARA SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200092","partyId":"CUS01000005","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200093","partyId":"CES00000018","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200094","partyId":"CMX01000006","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200095","partyId":"CMX01000013","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200096","partyId":"CES00000004","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200097","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200098","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200099","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200100","partyId":"CES01000012","partyKind":"customer","payerName":"POOL & SPA DELTA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200101","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200102","partyId":"CFR01000016","partyKind":"customer","payerName":"QUÍMICA URRUTIA SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200103","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"file","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200104","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200105","partyId":"CUS01000013","partyKind":"customer","payerName":"VIVEROS ARROYO LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200106","partyId":"CMX01000018","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200107","partyId":"SFR01000003","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200108","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200109","partyId":"SFR01000004","partyKind":"supplier","payerName":"SUMINISTROS CASCADA AZUL SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200110","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200111","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200112","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200113","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200114","partyId":"SMX01000006","partyKind":"supplier","payerName":"QUÍMICA AGUA CLARA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200115","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200116","partyId":"CFR01000010","partyKind":"customer","payerName":"HÔTEL BEAUREGARD SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200117","partyId":"CUS01000014","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200118","partyId":"SUS01000008","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200119","partyId":"CES01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200120","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200121","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200122","partyId":"CMX01000006","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200123","partyId":"SMX01000002","partyKind":"supplier","payerName":"SERVICIOS VIVEROS ARROYO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200125","partyId":"CFR01000002","partyKind":"customer","payerName":"BOMBAS HERRERA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200126","partyId":"CFR01000001","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200127","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200129","partyId":"SMX01000003","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200130","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200131","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200133","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200134","partyId":"SMX01000003","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200135","partyId":"SMX01000008","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200136","partyId":"SES00000003","partyKind":"supplier","payerName":"LOGÍSTICA TALLERES OTERO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200137","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200138","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200139","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200140","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200141","partyId":"SFR01000008","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200142","partyId":"CES00000006","partyKind":"customer","payerName":"CASCADA AZUL S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200143","partyId":"SUS01000003","partyKind":"supplier","payerName":"SUMINISTROS AQUATECH NORTE LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200144","partyId":"SFR01000002","partyKind":"supplier","payerName":"QUÍMICA TALLERES OTERO SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200145","partyId":"SMX01000006","partyKind":"supplier","payerName":"QUÍMICA AGUA CLARA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200146","partyId":"SMX01000002","partyKind":"supplier","payerName":"SERVICIOS VIVEROS ARROYO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200147","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200148","partyId":"CMX01000006","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200149","partyId":"CUS01000014","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200150","partyId":"CFR01000001","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200151","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200152","partyId":"SUS01000003","partyKind":"supplier","payerName":"SUMINISTROS AQUATECH NORTE LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200153","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200155","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200156","partyId":"CMX01000004","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200157","partyId":"CMX01000003","partyKind":"customer","payerName":"WELLNESS LOMASECA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200158","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200159","partyId":"CMX01000008","partyKind":"customer","payerName":"VIVEROS ARROYO S.A. DE C.V.","how":"iban","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200160","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200161","partyId":"CES00000006","partyKind":"customer","payerName":"CASCADA AZUL S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200162","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200163","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200164","partyId":"CES00000003","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200165","partyId":"CUS01000008","partyKind":"customer","payerName":"AQUATECH NORTE LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200166","partyId":"CES01000001","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200167","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200168","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200169","partyId":"CES00000007","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200170","partyId":"CES00000011","partyKind":"customer","payerName":"RIEGOS DEL SUR S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200172","partyId":"SUS01000001","partyKind":"supplier","payerName":"QUÍMICA BOMBAS HERRERA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200173","partyId":"SUS01000002","partyKind":"supplier","payerName":"SUMINISTROS FILTROS ROLDÁN LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200175","partyId":"CES00000001","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200176","partyId":"CES01000014","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200177","partyId":"CES00000002","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200178","partyId":"SES01000006","partyKind":"supplier","payerName":"LOGÍSTICA MARINA LEVANTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200179","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200180","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200181","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200182","partyId":"CES00000003","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200183","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200184","partyId":"CMX01000010","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200185","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200187","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200188","partyId":"CMX01000003","partyKind":"customer","payerName":"WELLNESS LOMASECA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200189","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200190","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200191","partyId":"CES01000012","partyKind":"customer","payerName":"POOL & SPA DELTA S.L.","how":"iban","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200192","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200193","partyId":"CFR01000011","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200194","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200195","partyId":"CFR01000014","partyKind":"customer","payerName":"SPA MONTECILLO SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200196","partyId":"CES01000001","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200198","partyId":"CES01000001","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200199","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200200","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200201","partyId":"CMX01000005","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200202","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200203","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200204","partyId":"SES01000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200205","partyId":"CFR01000005","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"iban","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200207","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200208","partyId":"CMX01000005","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200209","partyId":"CFR01000012","partyKind":"customer","payerName":"AGUA CLARA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200210","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200212","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200213","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200214","partyId":"SES00000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200215","partyId":"CUS01000002","partyKind":"customer","payerName":"HÔTEL BEAUREGARD LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200216","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200218","partyId":"CES00000016","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200219","partyId":"CES01000016","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200220","partyId":"SFR01000006","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200221","partyId":"CES01000012","partyKind":"customer","payerName":"POOL & SPA DELTA S.L.","how":"iban","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200222","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200223","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200225","partyId":"CES01000014","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200226","partyId":"SES00000006","partyKind":"supplier","payerName":"QUÍMICA FERRETERÍA NIETO S.L.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200227","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200229","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200230","partyId":"SFR01000005","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200231","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200234","partyId":"CFR01000002","partyKind":"customer","payerName":"BOMBAS HERRERA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200235","partyId":"SFR01000001","partyKind":"supplier","payerName":"SERVICIOS QUÍMICA URRUTIA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200236","partyId":"SES00000004","partyKind":"supplier","payerName":"SUMINISTROS POOL & SPA DELTA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200237","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200238","partyId":"CUS01000002","partyKind":"customer","payerName":"HÔTEL BEAUREGARD LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200239","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200240","partyId":"SMX01000004","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200241","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200242","partyId":"SMX01000003","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200243","partyId":"CES00000007","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200244","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200245","partyId":"CFR01000013","partyKind":"customer","payerName":"FILTROS ROLDÁN SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200246","partyId":"SES01000002","partyKind":"supplier","payerName":"SERVICIOS FILTROS ROLDÁN S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200247","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200248","partyId":"SMX01000003","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200249","partyId":"CFR01000005","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200250","partyId":"CUS01000005","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"iban","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200251","partyId":"SES00000002","partyKind":"supplier","payerName":"QUÍMICA VIVEROS ARROYO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200252","partyId":"CES00000014","partyKind":"customer","payerName":"MARINA LEVANTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200253","partyId":"CES00000005","partyKind":"customer","payerName":"FERRETERÍA NIETO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200254","partyId":"CFR01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200255","partyId":"SES01000002","partyKind":"supplier","payerName":"SERVICIOS FILTROS ROLDÁN S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200256","partyId":"SUS01000008","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200257","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200258","partyId":"CMX01000015","partyKind":"customer","payerName":"FERRETERÍA NIETO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200259","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200260","partyId":"CES00000005","partyKind":"customer","payerName":"FERRETERÍA NIETO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200261","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200262","partyId":"SES00000003","partyKind":"supplier","payerName":"LOGÍSTICA TALLERES OTERO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200263","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200264","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200266","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200269","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200270","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200271","partyId":"CMX01000018","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200272","partyId":"CFR01000016","partyKind":"customer","payerName":"QUÍMICA URRUTIA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200273","partyId":"SFR01000006","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200274","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200275","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"file","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200276","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200277","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"counterparty","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200278","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200279","partyId":"CFR01000008","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200280","partyId":"SFR01000003","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200281","partyId":"CES01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200282","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200283","partyId":"CMX01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200284","partyId":"CFR01000008","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200285","partyId":"CES00000014","partyKind":"customer","payerName":"MARINA LEVANTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200286","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200287","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200288","partyId":"SES00000006","partyKind":"supplier","payerName":"QUÍMICA FERRETERÍA NIETO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200289","partyId":"CUS01000013","partyKind":"customer","payerName":"VIVEROS ARROYO LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200291","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200292","partyId":"CMX01000006","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200295","partyId":"CES00000003","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200296","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200297","partyId":"CFR01000002","partyKind":"customer","payerName":"BOMBAS HERRERA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200298","partyId":"CES00000003","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200299","partyId":"SUS01000003","partyKind":"supplier","payerName":"SUMINISTROS AQUATECH NORTE LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200300","partyId":"CFR01000001","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200301","partyId":"CUS01000002","partyKind":"customer","payerName":"HÔTEL BEAUREGARD LLC","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200302","partyId":"CFR01000010","partyKind":"customer","payerName":"HÔTEL BEAUREGARD SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200303","partyId":"SES01000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200304","partyId":"CUS01000002","partyKind":"customer","payerName":"HÔTEL BEAUREGARD LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200305","partyId":"SES00000004","partyKind":"supplier","payerName":"SUMINISTROS POOL & SPA DELTA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200306","partyId":"SUS01000008","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200307","partyId":"CFR01000013","partyKind":"customer","payerName":"FILTROS ROLDÁN SARL","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200308","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200310","partyId":"CFR01000012","partyKind":"customer","payerName":"AGUA CLARA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200311","partyId":"SMX01000001","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200312","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200313","partyId":"CUS01000011","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200314","partyId":"SUS01000001","partyKind":"supplier","payerName":"QUÍMICA BOMBAS HERRERA LLC","how":"name","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200315","partyId":"SES01000006","partyKind":"supplier","payerName":"LOGÍSTICA MARINA LEVANTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200316","partyId":"CUS01000014","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200317","partyId":"SUS01000008","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200318","partyId":"CUS01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200319","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200320","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200322","partyId":"CFR01000018","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200324","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200325","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200326","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200328","partyId":"CUS01000013","partyKind":"customer","payerName":"VIVEROS ARROYO LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200329","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200330","partyId":"CMX01000005","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200332","partyId":"CES01000012","partyKind":"customer","payerName":"POOL & SPA DELTA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200333","partyId":"CMX01000005","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"name","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200334","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200335","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200336","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200337","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200338","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200339","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200340","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200341","partyId":"CUS01000005","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200342","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"name","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200343","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200344","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200345","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200346","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200347","partyId":"CMX01000005","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200348","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200349","partyId":"CES01000009","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200350","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200351","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200352","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200353","partyId":"CMX01000007","partyKind":"customer","payerName":"SPA MONTECILLO S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200354","partyId":"CUS01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"name","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200355","partyId":"SUS01000002","partyKind":"supplier","payerName":"SUMINISTROS FILTROS ROLDÁN LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200356","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200357","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200358","partyId":"CMX01000018","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200359","partyId":"CFR01000004","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200360","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200361","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200362","partyId":"SES00000001","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200363","partyId":"CFR01000003","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200365","partyId":"CMX01000018","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200367","partyId":"CES01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200368","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200369","partyId":"CES01000001","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200370","partyId":"CFR01000002","partyKind":"customer","payerName":"BOMBAS HERRERA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200371","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200372","partyId":"CES01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200373","partyId":"CFR01000013","partyKind":"customer","payerName":"FILTROS ROLDÁN SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200375","partyId":"CMX01000008","partyKind":"customer","payerName":"VIVEROS ARROYO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200376","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200377","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200378","partyId":"CMX01000013","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200379","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200380","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200381","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200382","partyId":"SES01000002","partyKind":"supplier","payerName":"SERVICIOS FILTROS ROLDÁN S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200383","partyId":"CFR01000009","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200384","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200385","partyId":"CES01000014","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200386","partyId":"SUS01000008","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200387","partyId":"CFR01000017","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200388","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200390","partyId":"CES01000005","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200391","partyId":"CFR01000011","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200392","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200394","partyId":"SUS01000001","partyKind":"supplier","payerName":"QUÍMICA BOMBAS HERRERA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200395","partyId":"CMX01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200396","partyId":"CFR01000004","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200397","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200398","partyId":"CMX01000010","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200399","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200400","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200401","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200402","partyId":"CES01000009","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200403","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200404","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200405","partyId":"CFR01000002","partyKind":"customer","payerName":"BOMBAS HERRERA SARL","how":"name","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200406","partyId":"CFR01000002","partyKind":"customer","payerName":"BOMBAS HERRERA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200407","partyId":"CES01000009","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200408","partyId":"SMX01000004","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200409","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200410","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200411","partyId":"CMX01000007","partyKind":"customer","payerName":"SPA MONTECILLO S.A. DE C.V.","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200412","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200413","partyId":"CFR01000003","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200414","partyId":"CES00000013","partyKind":"customer","payerName":"RIEGOS DEL SUR S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200416","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200417","partyId":"CES01000014","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200418","partyId":"SES00000003","partyKind":"supplier","payerName":"LOGÍSTICA TALLERES OTERO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200419","partyId":"SUS01000005","partyKind":"supplier","payerName":"SERVICIOS LANDSCAPES SANTA LUCÍA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200420","partyId":"CES01000002","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200421","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200422","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200423","partyId":"CES00000017","partyKind":"customer","payerName":"BOMBAS HERRERA S.L.","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200424","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200425","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200426","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200428","partyId":"CES01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200429","partyId":"CUS01000008","partyKind":"customer","payerName":"AQUATECH NORTE LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200430","partyId":"CES01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200431","partyId":"SES01000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200432","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200433","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200434","partyId":"CFR01000009","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200435","partyId":"CMX01000014","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200436","partyId":"CUS01000014","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200437","partyId":"CUS01000014","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200438","partyId":"SES01000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200439","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200440","partyId":"CUS01000013","partyKind":"customer","payerName":"VIVEROS ARROYO LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200441","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200442","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200444","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200445","partyId":"CES00000016","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200446","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200447","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200448","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200449","partyId":"SMX01000003","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200451","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200452","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200453","partyId":"CES00000011","partyKind":"customer","payerName":"RIEGOS DEL SUR S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200454","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200455","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200457","partyId":"SES00000001","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200460","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200462","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200463","partyId":"CES00000010","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200464","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200465","partyId":"CMX01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200466","partyId":"CUS01000002","partyKind":"customer","payerName":"HÔTEL BEAUREGARD LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200467","partyId":"CFR01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200468","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200469","partyId":"CES01000016","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200471","partyId":"CES00000017","partyKind":"customer","payerName":"BOMBAS HERRERA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200472","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200473","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200474","partyId":"CES00000005","partyKind":"customer","payerName":"FERRETERÍA NIETO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200475","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200476","partyId":"CFR01000018","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200479","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200480","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200481","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200482","partyId":"CMX01000009","partyKind":"customer","payerName":"FERRETERÍA NIETO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200483","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200484","partyId":"SES00000002","partyKind":"supplier","payerName":"QUÍMICA VIVEROS ARROYO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200485","partyId":"CUS01000008","partyKind":"customer","payerName":"AQUATECH NORTE LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200486","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200487","partyId":"CFR01000014","partyKind":"customer","payerName":"SPA MONTECILLO SARL","how":"name","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200488","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200489","partyId":"CMX01000006","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200490","partyId":"CES00000016","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200491","partyId":"SFR01000007","partyKind":"supplier","payerName":"SUMINISTROS BOMBAS HERRERA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200492","partyId":"CFR01000001","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"iban","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200493","partyId":"CES01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200494","partyId":"SMX01000008","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200495","partyId":"CES01000002","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200496","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200497","partyId":"CFR01000012","partyKind":"customer","payerName":"AGUA CLARA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200498","partyId":"CES00000006","partyKind":"customer","payerName":"CASCADA AZUL S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200499","partyId":"CES00000007","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200500","partyId":"CES01000016","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200501","partyId":"CES00000002","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200502","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200503","partyId":"SMX01000008","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200504","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200505","partyId":"SUS01000005","partyKind":"supplier","payerName":"SERVICIOS LANDSCAPES SANTA LUCÍA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200506","partyId":"SES00000003","partyKind":"supplier","payerName":"LOGÍSTICA TALLERES OTERO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200507","partyId":"CMX01000014","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200508","partyId":"CES00000012","partyKind":"customer","payerName":"SPA MONTECILLO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200509","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200510","partyId":"CMX01000014","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200511","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200512","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200514","partyId":"CUS01000005","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200515","partyId":"CFR01000009","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200516","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200517","partyId":"SUS01000008","partyKind":"supplier","payerName":"SERVICIOS FERRETERÍA NIETO LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200518","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200519","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200520","partyId":"CUS01000011","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200521","partyId":"CES00000014","partyKind":"customer","payerName":"MARINA LEVANTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200522","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200523","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200524","partyId":"CUS01000002","partyKind":"customer","payerName":"HÔTEL BEAUREGARD LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200525","partyId":"CMX01000002","partyKind":"customer","payerName":"CASCADA AZUL S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200526","partyId":"CES01000002","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200527","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200529","partyId":"CUS01000014","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"name","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200530","partyId":"SMX01000003","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200531","partyId":"CFR01000018","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200532","partyId":"CES00000004","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200533","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200534","partyId":"SES00000002","partyKind":"supplier","payerName":"QUÍMICA VIVEROS ARROYO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200535","partyId":"CES00000005","partyKind":"customer","payerName":"FERRETERÍA NIETO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200536","partyId":"CES01000014","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200537","partyId":"SUS01000005","partyKind":"supplier","payerName":"SERVICIOS LANDSCAPES SANTA LUCÍA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200538","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200539","partyId":"CFR01000004","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200541","partyId":"SFR01000007","partyKind":"supplier","payerName":"SUMINISTROS BOMBAS HERRERA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200543","partyId":"SFR01000005","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"iban","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200544","partyId":"CMX01000016","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200545","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"iban","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200546","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200547","partyId":"CMX01000015","partyKind":"customer","payerName":"FERRETERÍA NIETO S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200548","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"file","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200549","partyId":"CFR01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200550","partyId":"CUS01000005","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200551","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200552","partyId":"CES01000009","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200553","partyId":"SES00000008","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200554","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200556","partyId":"SES01000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200557","partyId":"CFR01000014","partyKind":"customer","payerName":"SPA MONTECILLO SARL","how":"iban","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200558","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200559","partyId":"CFR01000010","partyKind":"customer","payerName":"HÔTEL BEAUREGARD SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200560","partyId":"CUS01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200561","partyId":"CFR01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200562","partyId":"CMX01000010","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200563","partyId":"CMX01000018","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200564","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200565","partyId":"SMX01000002","partyKind":"supplier","payerName":"SERVICIOS VIVEROS ARROYO S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200566","partyId":"CES00000008","partyKind":"customer","payerName":"RIEGOS DEL SUR S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200567","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200568","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200569","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200570","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200571","partyId":"CES01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200572","partyId":"CFR01000017","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200573","partyId":"CES00000007","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"counterparty","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200574","partyId":"CMX01000004","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200575","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200576","partyId":"SES01000006","partyKind":"supplier","payerName":"LOGÍSTICA MARINA LEVANTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200578","partyId":"CES01000013","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200579","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200581","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200582","partyId":"SFR01000005","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200585","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200586","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200587","partyId":"CUS01000008","partyKind":"customer","payerName":"AQUATECH NORTE LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200588","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200589","partyId":"CMX01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200590","partyId":"SMX01000001","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200591","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200592","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200593","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200594","partyId":"CFR01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200595","partyId":"SES00000001","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200596","partyId":"CES00000018","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200597","partyId":"SFR01000002","partyKind":"supplier","payerName":"QUÍMICA TALLERES OTERO SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200598","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200599","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200600","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200601","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200602","partyId":"CUS01000002","partyKind":"customer","payerName":"HÔTEL BEAUREGARD LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200603","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200605","partyId":"CES00000006","partyKind":"customer","payerName":"CASCADA AZUL S.L.","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200606","partyId":"SUS01000005","partyKind":"supplier","payerName":"SERVICIOS LANDSCAPES SANTA LUCÍA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200607","partyId":"SES01000006","partyKind":"supplier","payerName":"LOGÍSTICA MARINA LEVANTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200610","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200611","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200613","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200614","partyId":"SES01000002","partyKind":"supplier","payerName":"SERVICIOS FILTROS ROLDÁN S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200616","partyId":"CFR01000011","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200617","partyId":"CUS01000011","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200618","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200619","partyId":"SES01000001","partyKind":"supplier","payerName":"SUMINISTROS VIVEROS ARROYO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200620","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200622","partyId":"CFR01000011","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200623","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200624","partyId":"SFR01000004","partyKind":"supplier","payerName":"SUMINISTROS CASCADA AZUL SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200625","partyId":"CES00000012","partyKind":"customer","payerName":"SPA MONTECILLO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200626","partyId":"SMX01000001","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200628","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200629","partyId":"CES00000017","partyKind":"customer","payerName":"BOMBAS HERRERA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200630","partyId":"CFR01000002","partyKind":"customer","payerName":"BOMBAS HERRERA SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200632","partyId":"CES00000004","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200633","partyId":"CES00000016","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200634","partyId":"CFR01000018","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200635","partyId":"CUS01000011","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200636","partyId":"SUS01000003","partyKind":"supplier","payerName":"SUMINISTROS AQUATECH NORTE LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200637","partyId":"SES00000001","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200638","partyId":"CES01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200639","partyId":"CFR01000003","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200640","partyId":"CES01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200641","partyId":"CES01000012","partyKind":"customer","payerName":"POOL & SPA DELTA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200642","partyId":"SFR01000002","partyKind":"supplier","payerName":"QUÍMICA TALLERES OTERO SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200643","partyId":"CFR01000015","partyKind":"customer","payerName":"POOL & SPA DELTA SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200644","partyId":"SES01000005","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200645","partyId":"CFR01000015","partyKind":"customer","payerName":"POOL & SPA DELTA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200646","partyId":"CMX01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200647","partyId":"SMX01000005","partyKind":"supplier","payerName":"SERVICIOS PISCINAS BAILEY S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200648","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200649","partyId":"SUS01000004","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200650","partyId":"CFR01000012","partyKind":"customer","payerName":"AGUA CLARA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200653","partyId":"CES00000001","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200654","partyId":"CFR01000001","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"name","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200655","partyId":"SES01000001","partyKind":"supplier","payerName":"SUMINISTROS VIVEROS ARROYO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200656","partyId":"CFR01000004","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200658","partyId":"CFR01000018","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200660","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200661","partyId":"CFR01000015","partyKind":"customer","payerName":"POOL & SPA DELTA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200662","partyId":"CMX01000003","partyKind":"customer","payerName":"WELLNESS LOMASECA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200663","partyId":"CMX01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200664","partyId":"SUS01000001","partyKind":"supplier","payerName":"QUÍMICA BOMBAS HERRERA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200665","partyId":"SUS01000006","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200666","partyId":"CES00000008","partyKind":"customer","payerName":"RIEGOS DEL SUR S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200667","partyId":"CES01000016","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200668","partyId":"CES00000007","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200669","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200670","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200671","partyId":"SES00000008","partyKind":"supplier","payerName":"SERVICIOS WELLNESS LOMASECA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200672","partyId":"SES01000002","partyKind":"supplier","payerName":"SERVICIOS FILTROS ROLDÁN S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200673","partyId":"CFR01000011","partyKind":"customer","payerName":"TERMAS DEL VALLE SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200674","partyId":"CFR01000005","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200675","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200676","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200677","partyId":"CES01000002","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200678","partyId":"SES01000007","partyKind":"supplier","payerName":"QUÍMICA SPA MONTECILLO S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200679","partyId":"SUS01000003","partyKind":"supplier","payerName":"SUMINISTROS AQUATECH NORTE LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200680","partyId":"SES00000001","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200681","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200683","partyId":"CES01000016","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200684","partyId":"CFR01000005","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200685","partyId":"CES01000011","partyKind":"customer","payerName":"PISCINAS BAILEY S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200686","partyId":"CFR01000017","partyKind":"customer","payerName":"WELLNESS LOMASECA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200687","partyId":"CUS01000013","partyKind":"customer","payerName":"VIVEROS ARROYO LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200688","partyId":"CUS01000008","partyKind":"customer","payerName":"AQUATECH NORTE LLC","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200689","partyId":"CMX01000007","partyKind":"customer","payerName":"SPA MONTECILLO S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200690","partyId":"SFR01000003","partyKind":"supplier","payerName":"QUÍMICA WELLNESS LOMASECA SARL","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200691","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200692","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200694","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200695","partyId":"CES01000012","partyKind":"customer","payerName":"POOL & SPA DELTA S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200696","partyId":"CUS01000004","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200698","partyId":"CES00000005","partyKind":"customer","payerName":"FERRETERÍA NIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200699","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200700","partyId":"SUS01000001","partyKind":"supplier","payerName":"QUÍMICA BOMBAS HERRERA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200701","partyId":"CMX01000003","partyKind":"customer","payerName":"WELLNESS LOMASECA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200702","partyId":"CMX01000002","partyKind":"customer","payerName":"CASCADA AZUL S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200703","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200704","partyId":"SES00000002","partyKind":"supplier","payerName":"QUÍMICA VIVEROS ARROYO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200705","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200706","partyId":"SMX01000003","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200707","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200708","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200709","partyId":"CES01000001","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200710","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200711","partyId":"SMX01000007","partyKind":"supplier","payerName":"QUÍMICA FILTROS ROLDÁN S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200712","partyId":"CUS01000014","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200713","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200714","partyId":"CFR01000004","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"name","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200715","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200716","partyId":"CES01000007","partyKind":"customer","payerName":"WELLNESS LOMASECA S.L.","how":"file","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200717","partyId":"SES01000006","partyKind":"supplier","payerName":"LOGÍSTICA MARINA LEVANTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200718","partyId":"CMX01000014","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200720","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200721","partyId":"CES01000008","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200722","partyId":"CES01000010","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200723","partyId":"CUS01000011","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200724","partyId":"CUS01000017","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200725","partyId":"CES01000015","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200726","partyId":"CUS01000007","partyKind":"customer","payerName":"TERMAS DEL VALLE LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200727","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"file","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200728","partyId":"CFR01000016","partyKind":"customer","payerName":"QUÍMICA URRUTIA SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200729","partyId":"CES01000018","partyKind":"customer","payerName":"HÔTEL BEAUREGARD S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200732","partyId":"CES00000002","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200733","partyId":"SMX01000004","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200734","partyId":"CUS01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"file","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200736","partyId":"CMX01000001","partyKind":"customer","payerName":"FILTROS ROLDÁN S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200738","partyId":"CMX01000011","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"counterparty","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200739","partyId":"SMX01000007","partyKind":"supplier","payerName":"QUÍMICA FILTROS ROLDÁN S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200740","partyId":"CMX01000017","partyKind":"customer","payerName":"AQUATECH NORTE S.A. DE C.V.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200741","partyId":"CMX01000015","partyKind":"customer","payerName":"FERRETERÍA NIETO S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200742","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200743","partyId":"CUS01000005","partyKind":"customer","payerName":"SPA MONTECILLO LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200744","partyId":"SES01000001","partyKind":"supplier","payerName":"SUMINISTROS VIVEROS ARROYO S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200745","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200746","partyId":"CUS01000012","partyKind":"customer","payerName":"AGUA CLARA LLC","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200748","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200749","partyId":"CUS01000015","partyKind":"customer","payerName":"FILTROS ROLDÁN LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200750","partyId":"CFR01000009","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200751","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"file","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200752","partyId":"CES00000002","partyKind":"customer","payerName":"TERMAS DEL VALLE S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200753","partyId":"SES01000003","partyKind":"supplier","payerName":"LOGÍSTICA QUÍMICA URRUTIA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200754","partyId":"CES01000016","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200755","partyId":"SES01000004","partyKind":"supplier","payerName":"QUÍMICA MARINA LEVANTE S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200756","partyId":"SES01000001","partyKind":"supplier","payerName":"SUMINISTROS VIVEROS ARROYO S.L.","how":"name","confidence":0.7,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200757","partyId":"CES01000004","partyKind":"customer","payerName":"SUMINISTROS PRIETO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200758","partyId":"CES00000015","partyKind":"customer","payerName":"FILTROS ROLDÁN S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200759","partyId":"SMX01000005","partyKind":"supplier","payerName":"SERVICIOS PISCINAS BAILEY S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200761","partyId":"CES01000009","partyKind":"customer","payerName":"AQUATECH NORTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200762","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200763","partyId":"CMX01000012","partyKind":"customer","payerName":"MARINA LEVANTE S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200764","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200765","partyId":"CFR01000006","partyKind":"customer","payerName":"SUMINISTROS PRIETO SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200766","partyId":"CUS01000016","partyKind":"customer","payerName":"WELLNESS LOMASECA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200767","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200768","partyId":"CUS01000006","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200769","partyId":"CES00000003","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200770","partyId":"SFR01000001","partyKind":"supplier","payerName":"SERVICIOS QUÍMICA URRUTIA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200771","partyId":"SUS01000007","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL LLC","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200773","partyId":"SES01000008","partyKind":"supplier","payerName":"SUMINISTROS LANDSCAPES SANTA LUCÍA S.L.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200774","partyId":"CFR01000005","partyKind":"customer","payerName":"PISCINAS BAILEY SARL","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200775","partyId":"CUS01000009","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"name","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200777","partyId":"CUS01000003","partyKind":"customer","payerName":"LANDSCAPES SANTA LUCÍA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200778","partyId":"CMX01000002","partyKind":"customer","payerName":"CASCADA AZUL S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200779","partyId":"SMX01000007","partyKind":"supplier","payerName":"QUÍMICA FILTROS ROLDÁN S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200780","partyId":"SUS01000005","partyKind":"supplier","payerName":"SERVICIOS LANDSCAPES SANTA LUCÍA LLC","how":"counterparty","confidence":0.82,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200781","partyId":"CMX01000008","partyKind":"customer","payerName":"VIVEROS ARROYO S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200782","partyId":"CMX01000003","partyKind":"customer","payerName":"WELLNESS LOMASECA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200783","partyId":"CES00000012","partyKind":"customer","payerName":"SPA MONTECILLO S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200784","partyId":"CES01000003","partyKind":"customer","payerName":"JARDINES VICENTE S.L.","how":"file","confidence":0.95,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200785","partyId":"SFR01000008","partyKind":"supplier","payerName":"QUÍMICA QUÍMICA URRUTIA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200786","partyId":"CES01000001","partyKind":"customer","payerName":"QUÍMICA URRUTIA S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200787","partyId":"SMX01000006","partyKind":"supplier","payerName":"QUÍMICA AGUA CLARA S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200788","partyId":"CUS01000018","partyKind":"customer","payerName":"POOL & SPA DELTA LLC","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200789","partyId":"CFR01000008","partyKind":"customer","payerName":"MARINA LEVANTE SARL","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200790","partyId":"SES01000006","partyKind":"supplier","payerName":"LOGÍSTICA MARINA LEVANTE S.L.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200791","partyId":"CUS01000010","partyKind":"customer","payerName":"PISCINAS BAILEY LLC","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200793","partyId":"CES00000006","partyKind":"customer","payerName":"CASCADA AZUL S.L.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200794","partyId":"CFR01000016","partyKind":"customer","payerName":"QUÍMICA URRUTIA SARL","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200795","partyId":"SMX01000008","partyKind":"supplier","payerName":"LOGÍSTICA CASCADA AZUL S.A. DE C.V.","how":"counterparty","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200796","partyId":"CMX01000002","partyKind":"customer","payerName":"CASCADA AZUL S.A. DE C.V.","how":"file","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200797","partyId":"CMX01000004","partyKind":"customer","payerName":"AGUA CLARA S.A. DE C.V.","how":"name","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200798","partyId":"CFR01000012","partyKind":"customer","payerName":"AGUA CLARA SARL","how":"iban","confidence":1,"alternatives":[]}
+{"bankTxnId":"BT-2025-0200799","partyId":"CES00000001","partyKind":"customer","payerName":"AGUA CLARA S.L.","how":"counterparty","confidence":0.7,"alternatives":[]}
