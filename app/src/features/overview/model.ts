@@ -1,12 +1,12 @@
 // Pure calculations of the Resumen screen.
 import type { DayStats, ModelUsage, RunStats, Score } from '@/domain'
 import { autoRate } from '@/domain'
-import { formatPercent } from '@/lib/format'
+import { formatNumber, formatPercent } from '@/lib/format'
 
 export function headline(s: Pick<RunStats, 'txns' | 'txnsAuto' | 'reviewQueue'>): string {
   const rate = autoRate(s)
   if (rate == null) return 'Sin movimientos en este alcance'
-  const waiting = s.reviewQueue === 0 ? 'nada espera a una persona' : `${s.reviewQueue} ${s.reviewQueue === 1 ? 'caso espera' : 'casos esperan'} a una persona`
+  const waiting = s.reviewQueue === 0 ? 'nada espera a una persona' : `${formatNumber(s.reviewQueue)} ${s.reviewQueue === 1 ? 'caso espera' : 'casos esperan'} a una persona`
   return `${formatPercent(rate, { decimals: 0 })} conciliado sin intervención; ${waiting}`
 }
 
