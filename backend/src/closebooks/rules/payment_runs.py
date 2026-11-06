@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from datetime import date, timedelta
 
 import polars as pl
 
 from ..load import Phase, load_detail
 from ..model import Proposal
 
+MAX_DAYS_AFTER_DUE = 4
 RUN_REF = re.compile(r"\b((?:PR|CF)\d{12})(?:-(\d{4}))?\b")
 # A debit in N43 may cut the reference at the end of a 38-character field.
 RUN_REF_CUT = re.compile(r"\b((?:PR|CF)\d{4,11}) \| (\d{1,8})\b")
@@ -41,7 +43,12 @@ def _documents(phase: Phase) -> pl.DataFrame:
         pl.col("total_cents") == pl.col("doc_cents"))
     # The beneficiary may be a factor or a renamed supplier: then number and amount must point to a single item.
     by_amount = rest.filter(pl.len().over("_row") == 1)
-    found = pl.concat([by_name, by_amount]).select("_row", "item_id", "party_id", "due_date")
+    # A partial payment to a factor matches no total: the number must be unique in the entity that pays.
+    settled = pl.concat([by_name.select("_row"), by_amount.select("_row")])
+    in_payer = by_number.join(settled, on="_row", how="anti").filter(
+        pl.col("entity") == pl.col("_payer"), pl.col("total_cents") >= pl.col("doc_cents")
+    ).filter(pl.len().over("_row") == 1)
+    found = pl.concat([by_name, by_amount, in_payer]).select("_row", "item_id", "party_id", "due_date")
     return runs.join(found, on="_row", how="left").sort("_row")
 
 
@@ -72,7 +79,7 @@ def propose(phase: Phase) -> dict[str, Proposal]:
     used: set[tuple[str, str]] = set()
     proposals: dict[str, Proposal] = {}
     txns = phase.txns.select(
-        "bank_txn_id", "account_id", "amount_cents", "orig_cents", "orig_currency",
+        "bank_txn_id", "account_id", "booking_date", "amount_cents", "orig_cents", "orig_currency",
         pl.concat_str(["text", "ref1", "ref2", "end_to_end_id", "remittance_info"], separator=" ", ignore_nulls=True)
         .alias("all_text"), "text")
     for txn in txns.iter_rows(named=True):
@@ -115,13 +122,7 @@ def _rows_of_debit(txn: dict, rows: list[dict], transfers: dict[str, dict], by_t
     if rows[0]["run_type"] == "aggregated" and sum(t["transfer_cents"] for t in transfers.values()) == target:
         return rows
     if rows[0]["run_type"] == "confirming":
-        by_due: dict[str | None, list[dict]] = defaultdict(list)
-        for row in rows:
-            by_due[row["due_date"]].append(row)
-        for group in by_due.values():
-            per_transfer = {r["end_to_end_id"]: r["transfer_cents"] for r in group}
-            if sum(per_transfer.values()) == target or sum(_signed(r) for r in group) == target:
-                return group
+        return _due_group(txn, rows, target, by_transfer, transfers, used)
     text = txn["text"].upper()
     account = txn["account_id"]
     same = [t for e2e, t in transfers.items() if (account, e2e) not in used and _matches(t, txn)]
@@ -134,5 +135,24 @@ def _rows_of_debit(txn: dict, rows: list[dict], transfers: dict[str, dict], by_t
     return by_transfer[key]
 
 
-def _signed(row: dict) -> int:
-    return row["doc_cents"]
+def _due_group(txn: dict, rows: list[dict], target: int, by_transfer: dict, transfers: dict, used: set) -> list[dict]:
+    """Confirming clears one debit per maturity: the transfers whose last document falls due that day.
+
+    The debit can be booked a few days after a non-working due date, so the sum of the group has the final word.
+    """
+    account = txn["account_id"]
+    due_of: dict[str, str] = {}
+    for row in rows:
+        if row["due_date"]:
+            due_of[row["end_to_end_id"]] = max(due_of.get(row["end_to_end_id"], ""), row["due_date"])
+    groups: dict[str, list[str]] = defaultdict(list)
+    for e2e in transfers:
+        if (account, e2e) not in used and e2e in due_of:
+            groups[due_of[e2e]].append(e2e)
+    booked = date.fromisoformat(txn["booking_date"])
+    for days_late in range(MAX_DAYS_AFTER_DUE + 1):
+        group = groups.get((booked - timedelta(days=days_late)).isoformat(), [])
+        if group and sum(transfers[e]["transfer_cents"] for e in group) == target:
+            used.update((account, e) for e in group)
+            return [row for e in group for row in by_transfer[account, e]]
+    return []

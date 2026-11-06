@@ -51,7 +51,8 @@ def _phase_with_a_run(tmp_path, txn_text, amount_cents):
         "party_name": ["ROTULACION TECH S.R.L."], "document_number": ["F-1"], "total_cents": [1368140],
         "due_date": ["2025-05-26"]})
     txns = pl.DataFrame({
-        "bank_txn_id": ["BT-1"], "account_id": ["ES01-PENA-EUR"], "amount_cents": [amount_cents],
+        "bank_txn_id": ["BT-1"], "account_id": ["ES01-PENA-EUR"], "booking_date": ["2025-05-26"],
+        "amount_cents": [amount_cents],
         "orig_cents": [None], "orig_currency": [None],
         "text": [txn_text], "ref1": [None], "ref2": [None], "end_to_end_id": [None], "remittance_info": [None],
     }, schema_overrides={"orig_cents": pl.Int64, "orig_currency": pl.String, "ref1": pl.String, "ref2": pl.String,
@@ -95,3 +96,58 @@ def test_same_transfer_id_in_another_account_is_a_different_payment(tmp_path):
     first = (tmp_path / "payment_runs" / "ES01_202505_1.csv").read_text().splitlines()
     other.write_text("\n".join([first[0], first[1].replace("ES01-PENA-EUR", "MX01-MEZQ-MXN").replace("F-1", "F-2")]))
     assert payment_runs.propose(phase)["BT-1"].lines == [("API-2025-0000001", 1368140)]
+
+
+def _confirming_phase(tmp_path, booking_date, amount_cents):
+    # One debit per maturity: a transfer falls due when its last document does (CF010021091055, TRAIN).
+    folder = tmp_path / "payment_runs"
+    folder.mkdir()
+    header = ("run_id,run_type,execution_date,debtor_account_id,end_to_end_id,beneficiary,beneficiary_iban,currency,"
+              "transfer_amount,document_number,document_type,document_amount,remittance_info\n")
+    row = "CF010021091055,confirming,2021-09-10,ES01-RIBA-EUR,CF010021091055-{e},{b},,EUR,{t},{n},INVOICE,{d},x\n"
+    (folder / "ES01_202109_0.csv").write_text(
+        header
+        + row.format(e="0045", b="A SL", t="151.00", n="A-1", d="100.00")
+        + row.format(e="0045", b="A SL", t="151.00", n="A-2", d="51.00")
+        + row.format(e="0056", b="B SL", t="40.00", n="B-1", d="40.00")
+        + row.format(e="0058", b="C SL", t="29.00", n="C-1", d="29.00"))
+    items = pl.DataFrame({
+        "item_id": ["API-1", "API-2", "API-3", "API-4"], "item_type": ["API"] * 4, "entity": ["ES01"] * 4,
+        "party_id": ["SA", "SA", "SB", "SC"], "party_name": ["A SL", "A SL", "B SL", "C SL"],
+        "document_number": ["A-1", "A-2", "B-1", "C-1"], "total_cents": [10000, 5100, 4000, 2900],
+        "due_date": ["2021-08-18", "2021-09-07", "2021-09-07", "2021-09-20"]})
+    txns = pl.DataFrame({
+        "bank_txn_id": ["BT-1"], "account_id": ["ES01-RIBA-EUR"], "booking_date": [booking_date],
+        "amount_cents": [amount_cents], "orig_cents": [None], "orig_currency": [None],
+        "text": ["PAGO CONFIRMING | REMESA CF010021091055 2 PROVEEDORES"], "ref1": [None], "ref2": [None],
+        "end_to_end_id": [None], "remittance_info": [None],
+    }, schema_overrides={"orig_cents": pl.Int64, "orig_currency": pl.String, "ref1": pl.String, "ref2": pl.String,
+                         "end_to_end_id": pl.String, "remittance_info": pl.String})
+    return SimpleNamespace(dir=tmp_path, items=items, txns=txns)
+
+
+def test_confirming_debit_settles_the_transfers_falling_due_that_day(tmp_path):
+    phase = _confirming_phase(tmp_path, "2021-09-07", -19100)
+    assert {i for i, _ in payment_runs.propose(phase)["BT-1"].lines} == {"API-1", "API-2", "API-3"}
+
+
+def test_confirming_debit_booked_after_a_weekend_still_finds_its_maturity(tmp_path):
+    phase = _confirming_phase(tmp_path, "2021-09-09", -19100)
+    assert {i for i, _ in payment_runs.propose(phase)["BT-1"].lines} == {"API-1", "API-2", "API-3"}
+
+
+def test_confirming_debit_whose_amount_matches_no_maturity_is_not_guessed(tmp_path):
+    phase = _confirming_phase(tmp_path, "2021-09-07", -19101)
+    assert payment_runs.propose(phase) == {}
+
+
+def test_partial_payment_to_a_factor_finds_the_invoice_in_the_entity_that_pays(tmp_path):
+    phase = _phase_with_a_run(tmp_path, "PR010125052693-0302", -9582)
+    file = tmp_path / "payment_runs" / "ES01_202505_1.csv"
+    lines = file.read_text().splitlines()
+    file.write_text("\n".join([lines[0], lines[1].replace("ROTULACION TECH S.R.L.", "CREDIFACIL EFC")
+                               .replace("13681.40", "95.82")]) + "\n")
+    copy = phase.items.with_columns
+    phase.items = pl.concat([copy(pl.lit("ES01").alias("entity"), pl.lit("API-A").alias("item_id")),
+                             copy(pl.lit("FR01").alias("entity"), pl.lit("API-B").alias("item_id"))])
+    assert payment_runs.propose(phase)["BT-1"].lines == [("API-A", 9582)]
