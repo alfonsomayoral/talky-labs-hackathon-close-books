@@ -67,6 +67,7 @@ Un caso es lo que la plataforma enseña y lo que una persona decide. Hay un caso
 | `status` | `auto` (cerrado por el sistema, se enseña), `needs_review` (cerrado con confianza < 0,9), `question` (hay una `questionId`), `fallback` (sin casación), `done` (una persona lo marcó) |
 | `priority` | 1 (alto) .. 3 |
 | `suggestedAction` | `none`, `ask`, `email_customer`, `email_supplier`, `review` |
+| `amountCents`, `amountEur` | **Magnitud positiva** siempre (también en cargos: el signo lo dice `kind` y el movimiento). En `stats`, `reviewQueueEur`, `byKind[].amountEur` e `identifiedEur` son sumas de magnitudes |
 
 ### 2.3 `facts/documents.parquet`
 
