@@ -36,13 +36,16 @@ app/src/
 ├── data/          de dónde vienen los datos y cómo se normalizan
 │   ├── sources/   fixtures · zip   (api, en fase 1)
 │   ├── parsers/   csv · json · jsonl
-│   ├── registry/  un spec por tipo de dato: qué ficheros lee y cómo los mapea   ← punto de adaptación
+│   ├── registry/  mappings.ts: qué ficheros lee cada tipo y cómo los mapea   ← punto de adaptación
+│   │              views.tsx: columnas, búsqueda, faceta y detalle de cada tipo
 │   ├── fixtures/  datos de muestra deterministas, con anomalías sembradas
-│   ├── index.ts   relaciones entre objetos (factura → pedido → contrato → proveedor)
-│   └── store.ts   zustand: dataset cargado, run y alcance (sociedad, periodo)
+│   ├── links.ts   relaciones entre objetos (factura → pedido → contrato → proveedor)
+│   ├── store.ts   zustand: dataset cargado y run
+│   └── index.ts   API pública de la capa
 ├── features/
 │   ├── overview/  Resumen
-│   ├── dataset/   página genérica de tabla + panel lateral, alimentada por el registro
+│   ├── dataset/   página genérica de tabla, alimentada por el registro
+│   ├── object/    panel lateral de cualquier objeto
 │   └── import/    importar el zip y ver los ficheros no reconocidos
 ├── shell/         AppShell, Sidebar, selector de sociedad y periodo, ⌘K, rutas
 ├── components/    primitivas de UI (Amount, DataTable, SidePanel, Tabs, FilterBar…)
@@ -59,6 +62,7 @@ shell ─▶ features ─▶ data (solo su index público) ─▶ domain
 
 - `domain/` no importa nada del proyecto.
 - `features/` solo importa de `@/data` (su `index.ts`), `@/domain`, `@/components` y `@/lib`. Nunca de `data/sources`, `data/parsers` ni `data/registry` por dentro.
+- El alcance (`?sociedad=`) y el objeto abierto (`?ver=`) viven en la URL, con los hooks de `lib/urlState.ts`.
 - `components/` no conoce el dominio: recibe props.
 
 ## 4. Datos
@@ -93,21 +97,28 @@ Convenciones de todos los tipos:
 
 ### 4.2 El registro: el único sitio que conoce el formato
 
+El registro tiene dos mitades, por tipo de dato:
+
 ```ts
-interface DatasetSpec<T> {
+// registry/mappings.ts — depende del formato del paquete. Puro: también corre en el worker de importación.
+interface Mapping<T> {
   kind: DatasetKind                    // 'invoices', 'vendors'…
-  label: string                        // 'Facturas'
-  path: string                         // '/facturas'
-  icon: string                         // nombre de lucide
   files: (path: string) => boolean     // qué ficheros del zip alimentan este tipo
   map: (row: RawRow) => T              // columnas reales → tipo del dominio
-  columns: Column<T>[]                 // columnas de la tabla
-  filters: FilterKey[]                 // 'entity' | 'status' | 'date' | 'amount' | 'counterparty'
+}
+
+// registry/views.tsx — solo depende del tipo del dominio
+interface DatasetView<T> {
+  kind: DatasetKind
+  label: string                        // 'Facturas'
+  path: string | null                  // '/facturas'; null si solo se ve en paneles (historial del ERP)
+  icon: LucideIcon
+  title, columns, search, facet?, detail   // cómo se nombra, se lista, se busca, se filtra y se detalla
 }
 ```
 
 - La barra lateral y las rutas de **DATOS** se generan a partir del registro. Un tipo de dato nuevo es un spec nuevo, no una página nueva.
-- El día del evento, para cada tipo, se tocan `files` y `map`. `columns` y `filters` trabajan sobre el tipo del dominio y no cambian.
+- El día del evento, para cada tipo, se tocan `files` y `map` en `mappings.ts`. `views.tsx` trabaja sobre el tipo del dominio y no cambia.
 - `map` lanza un error claro si falta un campo obligatorio. La fila va a `issues` y la carga sigue.
 
 ### 4.3 Fuentes
@@ -202,9 +213,9 @@ Es código nuestro (`alfonsomayoral/talky-labs-hackathon`). Se copia y se recort
 
 | Se copia | Se reescribe | Se deja fuera |
 | --- | --- | --- |
-| `design/` (estructura de tokens y global; valores de marca y fuentes cambian a los de Talky, §5.4), `lib/format`, `lib/keyboard`, `components/` salvo los acoplados al dominio, `data/parsers/{csv,jsonl}`, `data/sources/{zipSource,dataTransfer}` | `shell/` (más simple), `Badge`/`StatusDot`/`ProgressBar` sin tipos de Kalmora, store, tipos de dominio | Motor de derivación, score, asistente, comparar, observabilidad, ejecuciones, d3-sankey, recharts |
+| `design/` (estructura de tokens y global; valores de marca y fuentes cambian a los de Talky, §5.4), `lib/format`, `lib/keyboard`, `components/` salvo los acoplados al dominio, el parser CSV y `decodeText`/`decimalToCents` | `shell/` (más simple), `Badge`/`StatusDot`/`ProgressBar` sin tipos de Kalmora, store, tipos de dominio | Motor de derivación, score, asistente, comparar, observabilidad, ejecuciones, d3-sankey, recharts |
 
-**Stack:** React 19, Vite 8, TypeScript 6 estricto, react-router, zustand, TanStack Table y Virtual, CSS Modules, lucide-react, fflate, comlink, cmdk. Pruebas con vitest; lint con oxlint.
+**Stack:** React 19, Vite 8, TypeScript 6 estricto, react-router, zustand, TanStack Virtual, CSS Modules, lucide-react, fflate y cmdk. Pruebas con vitest; lint con oxlint.
 
 ## 7. Verificación
 
