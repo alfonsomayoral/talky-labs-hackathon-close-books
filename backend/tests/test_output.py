@@ -23,7 +23,7 @@ def test_sample_run_covers_every_line_and_is_byte_identical(tmp_path, sample):
     assert report["ok"], report["errors"]
 
 
-def test_every_contract_file_is_written_with_one_explanation_per_row(tmp_path):
+def test_every_contract_file_is_written_with_one_explanation_per_row(tmp_path, sample):
     run = run_pipeline("sample", out=tmp_path / "r", score=False)
     for name in ("submission.csv.gz", "explanations.jsonl.gz", "cases.jsonl.gz", "facts/documents.parquet",
                  "facts/parties.parquet", "state/open_items.parquet", "questions.jsonl", "drafts.jsonl", "run.json"):
@@ -34,7 +34,7 @@ def test_every_contract_file_is_written_with_one_explanation_per_row(tmp_path):
     assert csv_rows[0].split(",")[0] in expl[0]
 
 
-def test_run_json_measures_the_uncompressed_csv(tmp_path):
+def test_run_json_measures_the_uncompressed_csv(tmp_path, sample):
     import json
 
     run = run_pipeline("sample", out=tmp_path / "r", score=False)
