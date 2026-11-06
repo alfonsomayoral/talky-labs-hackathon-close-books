@@ -1,0 +1,18 @@
+.panel,
+.list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: var(--space-3);
+}
+
+.tableCard {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.loading {
+  padding: var(--space-4);
+}
