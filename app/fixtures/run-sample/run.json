@@ -65,6 +65,7 @@
   }
  },
  "memoryRulesApplied": 0,
+ "csvBytes": 34120000,
  "score": {
   "score": 71.4,
   "metrics": {
