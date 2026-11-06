@@ -23,6 +23,7 @@ talky-labs-hackathon-close-books/
 ├── app/                 frontend (React)
 ├── backend/             fase 1: el agente de cierre (Python). Hoy solo un README
 ├── data/                paquete del cliente. Ignorado por git, nunca se commitea
+├── db/                  base de datos local. Ignorada por git, nunca se commitea
 └── .github/workflows/   CI: just fe-check
 ```
 

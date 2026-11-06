@@ -3,9 +3,10 @@
 .env.*
 !.env.example
 
-# Client data package and runs: never committed
+# Client data package, runs and local database: never committed
 /data/
 /runs/
+/db/
 
 # Python (backend/)
 .venv/

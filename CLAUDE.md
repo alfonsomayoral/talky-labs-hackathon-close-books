@@ -61,7 +61,7 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 - **Importes en céntimos enteros, siempre con su moneda.** Nunca se suman monedas distintas.
 - **Todo objeto lleva `entityId`.** Ninguna vista ni regla mezcla sociedades sin decirlo.
 - **Nunca se modifican los datos de entrada** para que una regla funcione.
-- **El paquete del cliente vive en `data/` y nunca se commitea.** Tampoco salidas ni ejecuciones con datos reales.
+- **El paquete del cliente vive en `data/` y nunca se commitea.** Tampoco salidas ni ejecuciones con datos reales. La base de datos local vive en `db/` y tampoco se commitea.
 
 ## 6. Reglas del frontend (`app/`)
 
