@@ -89,9 +89,9 @@ def test_a_number_without_prefix_year_or_leading_zeros_finds_our_invoice(tmp_pat
 
 
 def test_without_a_reference_the_payer_name_and_the_dates_pair_a_late_advice_with_its_cash(tmp_path):
-    phase = make_phase(tmp_path, {"RA_a.csv": ("Arenal del Sur S.L.", "2024-03-12", ADVICE)},
+    phase = make_phase(tmp_path, {"RA_a.csv": ("Arénal del Sur S.L.", "2024-03-12", ADVICE)},
                        [("BT-1", 32946, "2024-03-08", "TRANSFERENCIA ARENAL DEL SUR S.L. PAGO FACTURAS")], ITEMS)
-    assert "BT-1" in advices.propose(phase)
+    assert "BT-1" in advices.propose(phase)  # the accent in the advice is not in the bank text
     # The same cash booked a month before the advice reached us is somebody else's.
     early = make_phase(tmp_path / "early", {"RA_a.csv": ("Arenal del Sur S.L.", "2024-04-12", ADVICE)},
                        [("BT-1", 32946, "2024-03-08", "TRANSFERENCIA ARENAL DEL SUR S.L. PAGO FACTURAS")], ITEMS)
@@ -142,3 +142,24 @@ def test_a_line_whose_gross_is_not_the_total_of_the_item_with_that_number_is_not
                        [("BT-1", 32946, "2024-03-11", "AVISO 240308783211")], items)
     proposal = advices.propose(phase)["BT-1"]
     assert proposal.lines == [("ARC-1", 32945)] and proposal.confidence < 0.9
+
+
+def test_numbers_with_a_series_between_prefix_and_sequence_are_found_without_them(tmp_path):
+    # BR01 prints NF0123019416 (prefix, series 01, year 23, sequence); IT01 prints FT23-01-30385.
+    items = [("ARI-1", "ARI", "NF0123019416", 65891), ("ARI-2", "ARI", "FT23-01-30385", 100000)]
+    text = ("payment_ref;7700000001;payment_date;2024-03-08;currency;EUR\n"
+            "document;doc_date;gross;discount_or_deduction;reason;paid;your_order\n"
+            "19416;30/01/2024;658.91;;;658.91;\n30385;30/01/2024;1000.00;;;1000.00;\nTOTAL;;;;;1658.91;\n")
+    phase = make_phase(tmp_path, {"RA_a.csv": ("Arenal", "2024-03-12", text)},
+                       [("BT-1", 165891, "2024-03-11", "AVISO 7700000001 REMESA PAGOS")], items)
+    assert [i for i, _ in advices.propose(phase)["BT-1"].lines] == ["ARI-1", "ARI-2"]
+
+
+def test_a_reference_cut_by_the_bank_still_pairs_when_the_date_fits_but_not_otherwise(tmp_path):
+    cut = "TRANSF. EN DIV. | DCIIHDXX -ARENAL | 24030878"  # N43 keeps 38 characters of 240308783211
+    phase = make_phase(tmp_path, {"RA_a.csv": ("Industrias Zeta", "2024-03-12", ADVICE)},
+                       [("BT-1", 32946, "2024-03-11", cut)], ITEMS)
+    assert "BT-1" in advices.propose(phase)
+    late = make_phase(tmp_path / "late", {"RA_a.csv": ("Industrias Zeta", "2024-03-12", ADVICE)},
+                      [("BT-1", 32946, "2024-04-30", cut)], ITEMS)
+    assert advices.propose(late) == {}

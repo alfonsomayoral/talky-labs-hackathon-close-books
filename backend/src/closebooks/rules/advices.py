@@ -7,6 +7,7 @@ is not proposed: nothing is forced."""
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import Counter, defaultdict
 from datetime import date
 
@@ -22,15 +23,19 @@ NAME_CHARS = 10  # bank texts cut and rename payers: the first characters of the
 
 
 def _flat(text: str | None) -> str:
-    return re.sub(r"[^0-9A-Z]", "", (text or "").upper())
+    """Upper case letters and digits only, accents folded: the bank prints VAZQUEZ for Vázquez."""
+    folded = unicodedata.normalize("NFKD", (text or "").upper()).encode("ascii", "ignore").decode()
+    return re.sub(r"[^0-9A-Z]", "", folded)
 
 
-def _number_keys(column: str) -> tuple[pl.Expr, pl.Expr]:
-    """Our number as customers print it: complete, or without prefix, year and leading zeros."""
+def _number_keys(column: str) -> list[pl.Expr]:
+    """Our number as customers print it: complete, or its sequence only. After the prefix come the year (FA250213397),
+    or a series and the year (NF0123019416, FT23-01-30385): the sequence follows two or four digits, no zeros."""
     norm = pl.col(column).str.to_uppercase().str.replace_all(r"[^0-9A-Z]", "")
     full = pl.when(norm.str.contains(r"^\d+$")).then(norm.str.strip_chars_start("0")).otherwise(norm)
-    tail = norm.str.extract(r"^[A-Z]+\d{2}(\d+)$", 1).str.strip_chars_start("0")
-    return full.alias("k_full"), tail.alias("k_tail")
+    return [full.alias("k_full"),
+            norm.str.extract(r"^[A-Z]+\d{2}(\d+)$", 1).str.strip_chars_start("0").alias("k_tail"),
+            norm.str.extract(r"^[A-Z]+\d{4}(\d+)$", 1).str.strip_chars_start("0").alias("k_tail4")]
 
 
 def _pair_candidates(phase: Phase, advices: list[Advice]) -> dict[str, list[tuple[int, str]]]:
@@ -61,6 +66,8 @@ def _pair_candidates(phase: Phase, advices: list[Advice]) -> dict[str, list[tupl
         flat = _flat(row["all_text"])
         if len(row["ref"]) >= MIN_REF and row["ref"] in flat:
             found[row["bank_txn_id"]].append((row["idx"], "ref"))
+        elif len(row["ref"]) > MIN_REF and row["ref"][:MIN_REF] in flat and in_window:
+            found[row["bank_txn_id"]].append((row["idx"], "ref"))  # the bank cut the reference
         elif row["payer"] and row["payer"] in flat and in_window:
             found[row["bank_txn_id"]].append((row["idx"], "name"))
     return found
@@ -91,13 +98,12 @@ def _line_items(phase: Phase, advices: list[Advice], used: set[int]) -> dict[tup
         schema={"idx": pl.Int64, "line_no": pl.Int64, "entity": pl.String, "key": pl.String, "gross": pl.Int64,
                 "currency": pl.String, "doc_date": pl.String, "po": pl.String}, orient="row")
     entities = lines["entity"].unique().to_list()
-    full, tail = _number_keys("document_number")
     items = phase.items.filter(pl.col("item_type").is_in(["ARI", "ARC"]), pl.col("entity").is_in(entities)).select(
         "item_id", "entity", "currency", pl.col("total_cents").abs().alias("total"), "issue_date",
-        "customer_po", full, tail)
+        "customer_po", *_number_keys("document_number"))
     found = pl.concat([
-        lines.join(items, left_on=["entity", "key"], right_on=["entity", "k_full"], suffix="_item"),
-        lines.join(items, left_on=["entity", "key"], right_on=["entity", "k_tail"], suffix="_item"),
+        lines.join(items, left_on=["entity", "key"], right_on=["entity", name], suffix="_item")
+        for name in ("k_full", "k_tail", "k_tail4")
     ], how="diagonal_relaxed").filter(
         pl.col("gross") == pl.col("total"),
         pl.col("currency").is_null() | (pl.col("currency") == pl.col("currency_item")),
