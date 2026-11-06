@@ -77,7 +77,7 @@ export function MemoryPage() {
           ) : !rules ? (
             <Skeleton height={160} radius="var(--radius-lg)" />
           ) : (
-            <RuleList runId={runId} rules={rules} onNew={() => setCreating(true)} />
+            <RuleList runId={runId} rules={rules} />
           ))}
       </TabPanel>
       <TabPanel idPrefix="memoria" id="politicas">
