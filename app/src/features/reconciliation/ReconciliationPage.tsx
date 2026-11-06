@@ -58,14 +58,16 @@ export function ReconciliationPage() {
 
   const [entities, setEntities] = useListParam(FACETS.entity.param)
   const [accountIds, setAccountIds] = useListParam(FACETS.account.param)
+  const [formats, setFormats] = useListParam(FACETS.format.param)
   const [rules, setRules] = useListParam(FACETS.rule.param)
   const [exceptions, setExceptions] = useListParam(FACETS.exception.param)
   const [categories, setCategories] = useListParam(FACETS.category.param)
   const [statuses, setStatuses] = useListParam(FACETS.status.param)
-  const facets: Facets = { entity: entities, account: accountIds, rule: rules, exception: exceptions, category: categories, status: statuses }
+  const facets: Facets = { entity: entities, account: accountIds, format: formats, rule: rules, exception: exceptions, category: categories, status: statuses }
   const setFacet: Record<FacetKey, (next: string[]) => void> = {
     entity: setEntities,
     account: setAccountIds,
+    format: setFormats,
     rule: setRules,
     exception: setExceptions,
     category: setCategories,
@@ -110,6 +112,7 @@ export function ReconciliationPage() {
             <SearchBox value={q ?? ''} onCommit={(v) => setQ(v.trim() || null)} placeholder="Buscar texto, contraparte, id o factura" aria-label="Buscar movimientos" />
             {!entity && chip('entity', 'Sociedad')}
             {chip('account', 'Cuenta')}
+            {chip('format', 'Formato')}
             {chip('rule', 'Regla')}
             {chip('exception', 'Excepción')}
             {chip('category', 'Categoría')}
