@@ -173,7 +173,7 @@ function Pending({ dataset, run, entity }: { dataset: Dataset; run: Run | null; 
   return (
     <div className={styles.pending}>
       <span className={styles.pendingTitle}>Por revisar · {formatNumber(rows.length)}</span>
-      {rows.slice(0, 3).map(({ m, t }) => (
+      {rows.slice(0, 2).map(({ m, t }) => (
         <button key={t.id} type="button" className={styles.pendingRow} onClick={() => open(refKey({ kind: 'bankTransaction', id: t.id }))}>
           <span className={styles.pendingText}>
             <Badge tone={MATCH_STATUS[m.status].tone} variant="outline" dot>

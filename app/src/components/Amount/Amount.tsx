@@ -12,7 +12,7 @@ export interface AmountProps {
   /** `1,2 M€`; the exact value goes to the tooltip. */
   compact?: boolean
   decimals?: 0 | 2
-  /** Martian Mono instead of Manrope tabular figures. */
+  /** Chivo Mono instead of Geist tabular figures. */
   mono?: boolean
   /** Green positives / red negatives (differences, gaps). */
   colorize?: boolean

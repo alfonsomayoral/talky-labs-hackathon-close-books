@@ -1,11 +1,10 @@
-/* Grid: canvas up to --canvas-max with a 40px gutter; one 16px gap everywhere.
+/* Grid: the full canvas width with a 40px gutter; one 16px gap everywhere.
    Columns 2fr + 1fr; entity cards 4 × 1fr; data cards 4 × 1fr (8 cards = 2 full rows). */
 .page {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
   width: 100%;
-  max-width: var(--canvas-max);
   padding: 32px 40px 56px;
 }
 
@@ -34,7 +33,7 @@
   color: var(--ink-strong);
   font-family: var(--font-display);
   font-size: 30px;
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-light);
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
@@ -110,7 +109,7 @@
 .blockTitle {
   color: var(--ink-strong);
   font-family: var(--font-display);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-light);
   letter-spacing: -0.01em;
 }
 
@@ -275,7 +274,7 @@
   color: var(--ink-strong);
   font-family: var(--font-display);
   font-size: 36px;
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-light);
   line-height: 1.1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
@@ -472,7 +471,7 @@ a.dataCard:hover .dataIcon {
   color: var(--ink-strong);
   font-family: var(--font-display);
   font-size: var(--text-16);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-light);
   font-variant-numeric: tabular-nums;
 }
 

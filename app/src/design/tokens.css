@@ -82,9 +82,10 @@
   --space-16: 64px;
 
   /* Typography */
-  --font-sans: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Outfit Variable', 'Outfit', var(--font-sans);
-  --font-mono: 'Martian Mono Variable', 'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Headlines and headline figures: a light serif, set at --weight-light. */
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-mono: 'Chivo Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
   --text-11: 11px;
   --text-12: 12px;
   --text-13: 13px;
@@ -95,6 +96,7 @@
   --text-32: 32px;
   --leading-tight: 1.25;
   --leading: 1.45;
+  --weight-light: 300;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
@@ -126,7 +128,6 @@
 
   /* Layout */
   --sidebar-width: 248px;
-  --canvas-max: 1320px;
   --topbar-height: 48px;
   --row-height: 40px;
   --control-height-sm: 24px;

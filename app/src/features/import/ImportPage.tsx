@@ -29,7 +29,7 @@ export function ImportPage() {
   }
 
   return (
-    <Page width="narrow">
+    <Page>
       <PageHeader
         title="Importar datos"
         subtitle="El zip del cliente se lee en el navegador; nada sale de este equipo."

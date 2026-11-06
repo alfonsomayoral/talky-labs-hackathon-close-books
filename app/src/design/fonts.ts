@@ -1,4 +1,6 @@
-// Self-hosted Talky fonts (bundled by Vite): Manrope for UI, Outfit for headlines, Martian Mono for ids and codes.
-import '@fontsource-variable/manrope'
-import '@fontsource-variable/outfit'
-import '@fontsource-variable/martian-mono'
+// Self-hosted fonts (bundled by Vite), after rex.inc: a light serif for headlines and figures (Newsreader,
+// in place of Tiempos Headline), a neutral grotesque for the interface (Geist, in place of GD Gaio) and
+// Chivo Mono for ids and codes, as Rex uses it.
+import '@fontsource-variable/newsreader/opsz.css'
+import '@fontsource-variable/geist'
+import '@fontsource-variable/chivo-mono'

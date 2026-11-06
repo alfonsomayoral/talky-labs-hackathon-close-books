@@ -5,7 +5,7 @@ import styles from './KeyValue.module.css'
 export interface KeyValueItem {
   label: ReactNode
   value: ReactNode
-  /** Render the value in Martian Mono (ids, accounts, IBAN). */
+  /** Render the value in Chivo Mono (ids, accounts, IBAN). */
   mono?: boolean
 }
 

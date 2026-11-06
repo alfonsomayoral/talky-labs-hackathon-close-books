@@ -55,7 +55,7 @@
   font-family: var(--font-display);
   font-size: 30px;
   line-height: 1.15;
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-light);
   letter-spacing: -0.015em;
   color: var(--ink-strong);
 }
