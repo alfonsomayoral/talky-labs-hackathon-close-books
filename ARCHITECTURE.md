@@ -2,7 +2,7 @@
 
 Cómo está construido el repo y por qué. El problema está en [PROBLEM.md](PROBLEM.md); cómo se trabaja, en [CLAUDE.md](CLAUDE.md).
 
-> **Estado:** 6 nov 2026. El reto real es **conciliación bancaria a escala** (PROBLEM.md). El backend (§7) es el producto: produce el CSV que se puntúa. Hoy solo existe su diseño. El frontend (§3–§6) está **congelado en la fase 0**: se construyó para el problema supuesto en la v0 (cierre contable con libro mayor e historial del ERP), solo se retoma si sobra tiempo para el vídeo, y sus secciones describen el código tal y como está.
+> **Estado:** 7 nov 2026. El reto es **conciliación bancaria a escala** (PROBLEM.md). El backend (§7) produce el CSV que se puntúa y la carpeta de ejecución de CONTRACT.md v2; la plataforma (`app/`) se reescribe sobre esa carpeta y la API (docs/PLAN.md §2.3): las secciones §3–§6 describen el código de la fase 0 y valen como punto de partida (shell, tokens, componentes, registro), no como destino. Las reglas, el banco de pruebas y las fases están en docs/PLAN.md; las cifras, en docs/ANALYSIS.md.
 
 ## 1. Principios rectores
 
@@ -30,7 +30,7 @@ talky-labs-hackathon-close-books/
 
 ## 3. Frontend por capas
 
-> **Congelado en la fase 0.** Lee un zip en el navegador y muestra un `Dataset` y un `Run` del modelo v0. Con el paquete real (2,3 GB) esa importación no es viable, y el `Run` v0 ya no lo produce nadie (CONTRACT.md). No se amplía sin decidirlo antes.
+> **Punto de partida (fase 0), en reescritura.** Lee un zip en el navegador y muestra un `Dataset` y un `Run` del modelo v0. Con el paquete real (2,3 GB) esa importación no es viable: la capa de datos pasa a la API de CONTRACT.md §5 (TanStack Query, listas paginadas y virtualizadas) y el dominio a los tipos de la carpeta de ejecución. Se conservan `shell/`, `design/`, `lib/`, `components/` y la idea del registro de vistas.
 
 ```
 app/src/
@@ -261,13 +261,17 @@ backend/
 │   ├── cli.py          closebooks run --phase live → runs/live-<fecha>/
 │   ├── load.py         una fase → tablas
 │   ├── normalize.py    números impresos, nombres de terceros, referencias
-│   ├── documents/      avisos de remesa (pdf, csv, xlsx, txt) y PDFs → hechos
-│   ├── rules/          una regla por fichero, agrupadas por familia (PROBLEM.md §10)
+│   ├── documents/      avisos de remesa (pdf, csv, xlsx, txt) y PDFs → hechos; parsers primero, modelo residual con caché en backend/cache/
+│   ├── rules/          una regla por fichero, en pasadas por certeza R1…R7 (docs/PLAN.md §2.2)
 │   ├── state.py        saldo abierto por partida y su historia de liquidaciones
 │   ├── policy.py       importe y excepción de cada fila (POLICIES.md §2–§3)
 │   ├── categories.py   movimientos sin partida (POLICIES.md §4)
-│   ├── resolve.py      prioridad, conflictos y respaldo
-│   └── output.py       CSV, explicaciones y run.json
+│   ├── memory.py       reglas de memoria de human/ (CONTRACT.md §4), prioridad máxima
+│   ├── resolve.py      prioridad, conflictos, estado por fecha y respaldo
+│   ├── cases.py        casos, preguntas y borradores (CONTRACT.md §2.2, §2.6, §2.7)
+│   ├── evaluate.py     evaluador oficial (límite relajado), diff por causa, matriz de excepciones, holdout
+│   ├── output.py       CSV, explicaciones, hechos, estado y run.json
+│   └── api/            FastAPI + DuckDB sobre runs/ y db/ (CONTRACT.md §5)
 └── tests/              casos reales de sample/ y TRAIN, uno por comportamiento
 ```
 

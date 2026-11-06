@@ -2,7 +2,7 @@
 
 Cómo se trabaja en este repo. Es el conciliador bancario de **Close the Books**, el reto del Claude Code Hackathon (Madrid, 7 nov 2026): decir, para cada movimiento bancario de un grupo de 17 sociedades, qué facturas y abonos liquida y por qué importe, o qué es si no liquida ninguno, en un CSV que se puntúa contra un golden oculto.
 
-**Lee antes de tocar nada:** [PROBLEM.md](PROBLEM.md) (qué se resuelve y cómo se evalúa) y [ARCHITECTURE.md](ARCHITECTURE.md) (cómo está construido). Si contradicen al paquete oficial (`db/bankrec-docs-and-masters/`), manda el paquete, y en el etiquetado manda `POLICIES.md`.
+**Lee antes de tocar nada:** [PROBLEM.md](PROBLEM.md) (qué se resuelve y cómo se evalúa), [ARCHITECTURE.md](ARCHITECTURE.md) (cómo está construido), [CONTRACT.md](CONTRACT.md) (la carpeta de ejecución y la API) y [docs/PLAN.md](docs/PLAN.md) (el plan, las fases y el método de tres sesiones). Si contradicen al paquete oficial (`db/bankrec-docs-and-masters/`), manda el paquete, y en el etiquetado manda `POLICIES.md`.
 
 **Compromiso:** estas reglas priman la prudencia sobre la velocidad. En tareas triviales, usa el sentido común.
 
@@ -64,13 +64,15 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 - **Importes en céntimos enteros, siempre con su moneda.** Nunca se suman monedas distintas. El `amount` del CSV va en la divisa de la partida, con dos decimales, y solo se formatea al escribirlo.
 - **Todo objeto lleva su sociedad.** Ninguna regla mezcla sociedades sin decirlo; los cruces legítimos (la fábrica de pagos de ES00, la matriz que paga por sus filiales) se nombran en la regla.
 - **Nunca se modifican los datos de entrada** para que una regla funcione.
-- **El paquete oficial vive en `db/` y las ejecuciones en `runs/`; nada de eso se commitea.**
+- **El paquete oficial vive en `db/` y las ejecuciones en `runs/`; nada de eso se commitea.** La caché de extracción con modelo sí se versiona, en `backend/cache/` (por fase y hash del fichero).
+- **El evaluador oficial no se copia ni se modifica**: se importa de `db/bankrec-docs-and-masters/starter/bankrec_score.py` y solo se relaja `MAX_UNCOMPRESSED` en local, porque el golden de TRAIN pesa 325 MB.
+- **Ninguna lista fija de sociedades, cuentas, divisas ni formatos**: se leen de los maestros de la fase (`masters_final/` si existe) y de los datos. FINAL trae una sociedad, un banco y una divisa nuevos.
 - **El golden solo existe para TRAIN.** No se intenta obtener el de LIVE ni el de FINAL.
 - **Nada se envía a la clasificación sin que lo pida una persona del equipo.** LIVE tiene 20 envíos al día y FINAL uno solo. El token del equipo va en una variable de entorno, nunca en el código ni en un commit.
 
 ## 6. Reglas del frontend (`app/`)
 
-El frontend está congelado en la fase 0 (ARCHITECTURE.md §3): no se amplía sin decidirlo antes. Si se toca, estas reglas siguen valiendo.
+El frontend se **descongeló** el 7 nov 2026 (docs/PLAN.md §2.3): se reescribe como plataforma operativa sobre la carpeta de ejecución y la API de CONTRACT.md §5, conservando el shell, los tokens, los componentes y el registro de vistas. Las pantallas se miran con una ejecución real de LIVE cargada, no con fixtures.
 
 - La marca es la de Talky ([usetalky.com](https://usetalky.com)) en dos temas, claro y oscuro, que se cambian desde la barra lateral: verde bosque para el dato principal, la selección y el foco; una sola acción primaria por vista; Newsreader para titulares, Geist para el texto y Chivo Mono para ids. Los valores viven en `src/design/tokens.css` (ARCHITECTURE.md §5.4 y §5.5).
 - Cada vista va dentro de la hoja del shell; su contenido son tarjetas con borde de 1 px y la sombra suave de `--shadow-card`, que crece al pasar el ratón. Lo que abre otra cosa es una tarjeta. La barra lateral es un rail que se despliega al pasar el ratón y empuja la vista.
@@ -86,8 +88,10 @@ El frontend está congelado en la fase 0 (ARCHITECTURE.md §3): no se amplía si
 | --- | --- |
 | `just fe-dev` | Servidor de desarrollo del frontend |
 | `just fe-check` | Typecheck, lint, test y build del frontend |
-| `just be-check` · `just be-test` | Lint y tests del backend (cuando exista `backend/`) |
-| `just be-run <fase>` · `just be-score` | Ejecutar el backend sobre una fase y puntuarla en local (cuando exista `backend/`) |
+| `just be-check` · `just be-test` | Lint (ruff) y tests (pytest) del backend |
+| `just be-run <fase>` · `just be-score <run>` · `just be-diff <run>` | Ejecutar el backend sobre una fase; puntuarla en local con el evaluador oficial (límite de 60 MB relajado solo en local) por segmento y con la matriz de excepciones; listar los fallos por causa |
+| `just be-serve <run>` | API de CONTRACT.md §5 en `localhost:8000` |
+| `just holdout` | Construir `db/holdout/` y `db/holdout-drift/` desde TRAIN (docs/PLAN.md §4) |
 
 ## 8. Git
 
