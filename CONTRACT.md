@@ -65,6 +65,7 @@ Un caso es lo que la plataforma enseña y lo que una persona decide. Hay un caso
 | --- | --- |
 | `kind` | `unidentified_receipt`, `ambiguous_match`, `dispute` (`SHORT_DISPUTE` pendiente), `short_payment` (`PARTIAL` no explicado), `duplicate_payment`, `overpayment`, `returned` (`RETURNED`), `fx_difference`, `supplier_invoice_mismatch` (AP pagada por otro importe, dos veces, rechazada o cedida), `supplier_credit_pending` (`APC` sin compensar), `unknown_debit` (`FALLBACK-CATEGORY`), `overdue_customer` (agregado por cliente: saldo vencido), `new_bank_details` |
 | `status` | `auto` (cerrado por el sistema, se enseña), `needs_review` (cerrado con confianza < 0,9), `question` (hay una `questionId`), `fallback` (sin casación), `done` (una persona lo marcó) |
+| granularidad | Un caso por movimiento, salvo `supplier_invoice_mismatch`, `dispute` y `overdue_customer`: uno por (tercero, partida) con `partyId`, `itemIds` de esa partida y su importe. `status: auto` con `suggestedAction: email_*` = movimiento cerrado, incidencia viva. Un cargo categorizado sin casación no es `ambiguous_match`: va sin caso o como `unknown_debit` con `suggestedAction: none` |
 | `priority` | 1 (alto) .. 3 |
 | `suggestedAction` | `none`, `ask`, `email_customer`, `email_supplier`, `review` |
 | `amountCents`, `amountEur` | **Magnitud positiva** siempre (también en cargos: el signo lo dice `kind` y el movimiento). En `stats`, `reviewQueueEur`, `byKind[].amountEur` e `identifiedEur` son sumas de magnitudes |
