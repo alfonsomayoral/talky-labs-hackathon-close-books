@@ -93,6 +93,7 @@
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 /* Alert */
@@ -194,12 +195,16 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--bg);
+  box-shadow: var(--shadow-card);
   text-align: left;
-  transition: border-color var(--duration-fast) ease;
+  transition:
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
 }
 
 .relatedCard:hover {
-  border-color: var(--ink-4);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .relatedIcon {

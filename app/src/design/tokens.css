@@ -33,6 +33,9 @@
   --sheet-gap: 8px;
   --sheet-radius: 12px;
   --shadow-sheet: 0 1px 2px rgb(16 25 56 / 0.05), 0 2px 8px rgb(16 25 56 / 0.04);
+  /* Every card at rest, and the lift on hover (as in the Kalmora app): cards read apart from the white sheet. */
+  --shadow-card: 0 1px 2px rgb(16 25 56 / 0.06), 0 2px 6px rgb(16 25 56 / 0.05);
+  --shadow-card-hover: 0 2px 4px rgb(16 25 56 / 0.07), 0 8px 20px rgb(16 25 56 / 0.08);
   --bg: #ffffff;
   --bg-subtle: #f6f7f9;
   --bg-muted: #eef0f4;

@@ -201,26 +201,25 @@
   left: 0;
 }
 
-/* Cards: every row is its own white card in a well one tone below the sheet (the shell's ground), so
-   rows separate by a step in surface tone rather than by shadows. Hover darkens the edge and lifts it
-   slightly; the selected row carries the brand edge. */
+/* Cards: every row is its own white card on the view's sheet, separated by its edge and a soft shadow;
+   hover lifts it, the selected row carries the brand edge. */
 .cards {
-  border-radius: var(--radius-lg);
-  background: var(--ground);
+  background: transparent;
 }
 
 .cards .header {
-  padding: 0 var(--space-2);
-  background: var(--ground);
+  padding: 0 var(--space-1-5);
+  background: var(--bg);
   border-bottom: 0;
 }
 
 .cards .dataRow {
-  left: var(--space-2);
-  width: calc(100% - 2 * var(--space-2));
+  left: var(--space-1-5);
+  width: calc(100% - 2 * var(--space-1-5));
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--bg);
+  box-shadow: var(--shadow-card);
   transition:
     border-color var(--duration-fast) ease,
     box-shadow var(--duration-fast) ease;
@@ -229,16 +228,18 @@
 .cards .dataRow:hover {
   border-color: var(--line-strong);
   background: var(--bg);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .cards .selected,
 .cards .selected:hover {
   border-color: var(--brand-line);
   background: var(--bg);
-  box-shadow: inset 3px 0 0 var(--brand);
+  box-shadow:
+    inset 3px 0 0 var(--brand),
+    var(--shadow-card);
 }
 
 .cards .body {
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
 }

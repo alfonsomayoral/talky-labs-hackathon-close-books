@@ -36,6 +36,7 @@
   border: 1px solid var(--line);
   border-radius: var(--sheet-radius);
   background: var(--bg);
+  box-shadow: var(--shadow-sheet);
   overflow: hidden;
 }
 
