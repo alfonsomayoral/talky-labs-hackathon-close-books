@@ -1,28 +1,30 @@
 // API of CONTRACT.md §5 on :8000 over fixtures/run-sample/. Same routes and shapes as `closebooks serve`,
 // so the app does not know which one it talks to. What a person writes (human/) lives in memory.
+// `node mock/server.mjs --run ../runs/live-<ts>` serves a real run folder instead of the fixtures.
 import { createServer } from 'node:http'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { loadRealRun } from './realRun.mjs'
 
-const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'run-sample')
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const PORT = Number(process.env.PORT ?? 8000)
-const jsonl = (name) => readFileSync(join(DIR, name), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+const runArg = process.argv.indexOf('--run')
 
-const run = JSON.parse(readFileSync(join(DIR, 'run.json'), 'utf8'))
-const masters = JSON.parse(readFileSync(join(DIR, 'masters.json'), 'utf8'))
-const txns = jsonl('transactions.jsonl')
-const explanations = jsonl('explanations.jsonl')
-const cases = jsonl('cases.jsonl')
-const questions = jsonl('questions.jsonl')
-const drafts = jsonl('drafts.jsonl')
-const openItems = jsonl('open_items.jsonl')
-const parties = jsonl('parties.jsonl')
-const partyFacts = jsonl('party_facts.jsonl')
-const items = jsonl('items.jsonl')
-const documents = jsonl('documents.jsonl')
-const documentFacts = jsonl('document_facts.jsonl')
-const detailFiles = jsonl('detail_files.jsonl')
+function loadFixtures() {
+  const dir = join(ROOT, 'fixtures', 'run-sample')
+  const jsonl = (name) => readFileSync(join(dir, name), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+  return {
+    run: JSON.parse(readFileSync(join(dir, 'run.json'), 'utf8')), masters: JSON.parse(readFileSync(join(dir, 'masters.json'), 'utf8')), asOf: '2025-12-31',
+    txns: jsonl('transactions.jsonl'), explanations: jsonl('explanations.jsonl'), cases: jsonl('cases.jsonl'), questions: jsonl('questions.jsonl'), drafts: jsonl('drafts.jsonl'), openItems: jsonl('open_items.jsonl'),
+    parties: jsonl('parties.jsonl'), partyFacts: jsonl('party_facts.jsonl'), items: jsonl('items.jsonl'), documents: jsonl('documents.jsonl'), documentFacts: jsonl('document_facts.jsonl'), detailFiles: jsonl('detail_files.jsonl'),
+    documentText: (path, doc) => doc.text ?? null,
+    detailRows: null,
+  }
+}
+
+const data = runArg > 0 ? await loadRealRun(process.argv[runArg + 1], process.argv[process.argv.indexOf('--db') + 1] ?? join(ROOT, '..', 'db')) : loadFixtures()
+const { run, masters, txns, explanations, cases, questions, drafts, openItems, parties, partyFacts, items, documents, documentFacts, detailFiles } = data
 
 const human = { decisions: [], memoryRules: [], outbox: [] }
 const runs = new Map([[run.runId, { run, status: { runId: run.runId, status: 'done', stage: null, stages: run.stages, startedAt: run.createdAt, finishedAt: run.createdAt, error: null } }]])
@@ -44,6 +46,9 @@ const partyById = new Map(parties.map((p) => [p.partyId, p]))
 const caseByTxn = new Map(cases.filter((c) => c.bankTxnId).map((c) => [c.bankTxnId, c]))
 const caseById = new Map(cases.map((c) => [c.caseId, c]))
 const factByTxn = new Map(partyFacts.map((f) => [f.bankTxnId, f]))
+const txnById = new Map(txns.map((t) => [t.bankTxnId, t]))
+const documentByPath = new Map(documents.map((d) => [d.path, d]))
+const detailFileByPath = new Map(detailFiles.map((f) => [f.path, f]))
 const QUEUE = new Set(['needs_review', 'question', 'fallback'])
 
 const normalize = (s) => String(s ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
@@ -67,7 +72,14 @@ const draftById = (id) => {
 }
 const caseDetail = (c) => ({ ...caseRow(c), question: c.questionId ? questions.find((q) => q.questionId === c.questionId) ?? null : null, draft: c.draftId ? draftById(c.draftId) : null })
 
+const statsCache = new Map()
 function stats(entity) {
+  const key = entity ?? ''
+  if (!statsCache.has(key)) statsCache.set(key, computeStats(entity))
+  return statsCache.get(key)
+}
+
+function computeStats(entity) {
   const scoped = entity ? txns.filter((t) => t.entity === entity) : txns
   const scopedCases = entity ? cases.filter((c) => c.entity === entity) : cases
   const inQueue = (t) => QUEUE.has(caseByTxn.get(t.bankTxnId)?.status)
@@ -75,10 +87,10 @@ function stats(entity) {
   const summary = (list) => ({ txns: list.length, txnsAuto: list.filter((t) => !inQueue(t)).length, reviewQueue: list.filter(inQueue).length, identifiedEur: sum(list.filter((t) => t.identified), (t) => Math.abs(t.amountEur)) })
   const scopedRows = entity ? scoped.flatMap((t) => rowsByTxn.get(t.bankTxnId) ?? []) : explanations
   const queue = scopedCases.filter((c) => QUEUE.has(c.status))
-  const eurOf = (r) => Math.abs(txns.find((t) => t.bankTxnId === r.bankTxnId)?.amountEur ?? 0)
+  const eurOf = (r) => Math.abs(txnById.get(r.bankTxnId)?.amountEur ?? 0)
   const tally = (key) => [...groupBy(scopedRows.filter((r) => r[key]), (r) => r[key])]
   return {
-    runId: run.runId, phase: run.phase, entity: entity ?? null, periodFrom: '2025-07-01', periodTo: '2025-12-31', ...summary(scoped), reviewQueue: queue.length, totalEur: sum(scoped, (t) => Math.abs(t.amountEur)), reviewQueueEur: sum(queue, (c) => c.amountEur),
+    runId: run.runId, phase: run.phase, entity: entity ?? null, periodFrom: txns.reduce((a, t) => (t.bookingDate < a ? t.bookingDate : a), txns[0].bookingDate), periodTo: data.asOf, ...summary(scoped), reviewQueue: queue.length, totalEur: sum(scoped, (t) => Math.abs(t.amountEur)), reviewQueueEur: sum(queue, (c) => c.amountEur),
     byStatus: Object.fromEntries([...groupBy(scopedCases, (c) => c.status)].map(([k, v]) => [k, v.length])),
     byKind: [...groupBy(scopedCases, (c) => c.kind)].map(([kind, v]) => ({ kind, cases: v.length, amountEur: sum(v, (c) => c.amountEur) })).sort((a, b) => b.cases - a.cases),
     byEntity: [...groupBy(txns, (t) => t.entity)].map(([e, v]) => ({ entity: e, name: masters.entities.find((x) => x.entity === e)?.name ?? e, ...summary(v) })).sort((a, b) => b.txns - a.txns),
@@ -90,28 +102,41 @@ function stats(entity) {
   }
 }
 
-function list(all, query, { search, filters = {} } = {}) {
-  let rows = all
-  for (const [param, key] of Object.entries(filters)) {
-    const allowed = values(query.get(param))
-    if (allowed) rows = rows.filter((r) => allowed.includes(String(r[key])))
-  }
-  const q = normalize(query.get('q'))
-  if (q && search) rows = rows.filter((r) => search(r).some((s) => normalize(s).includes(q)))
-  const sort = query.get('sort')
-  if (sort) {
-    const desc = sort.startsWith('-')
-    const key = desc ? sort.slice(1) : sort
-    rows = [...rows].sort((a, b) => {
-      const [x, y] = [a[key], b[key]]
-      if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1
-      const cmp = typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es', { numeric: true })
-      return desc ? -cmp : cmp
-    })
+// Scrolling asks for page after page with the same filters: keep the last filtered and sorted list.
+const lastList = { key: null, source: null, rows: null }
+
+function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r, key) => r[key] } = {}) {
+  const params = new URLSearchParams(query)
+  params.delete('page')
+  params.delete('size')
+  const key = params.toString()
+  let rows
+  if (lastList.source === all && lastList.key === key) rows = lastList.rows
+  else {
+    rows = all
+    for (const [param, field] of Object.entries(filters)) {
+      const allowed = values(query.get(param))
+      if (allowed) rows = rows.filter((r) => allowed.includes(String(r[field])))
+    }
+    const q = normalize(query.get('q'))
+    if (q && search) rows = rows.filter((r) => search(r).some((s) => normalize(s).includes(q)))
+    const sort = query.get('sort')
+    if (sort) {
+      const desc = sort.startsWith('-')
+      const field = desc ? sort.slice(1) : sort
+      const decorated = rows.map((r) => [sortValue(r, field), r])
+      decorated.sort(([x], [y]) => {
+        if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1
+        const cmp = x < y ? -1 : x > y ? 1 : 0
+        return desc ? -cmp : cmp
+      })
+      rows = decorated.map((d) => d[1])
+    }
+    Object.assign(lastList, { key, source: all, rows })
   }
   const page = Math.max(1, Number(query.get('page') ?? 1))
   const size = Math.min(200, Number(query.get('size') ?? 50))
-  return { items: rows.slice((page - 1) * size, page * size), total: rows.length, page, size }
+  return { items: rows.slice((page - 1) * size, page * size).map(map), total: rows.length, page, size }
 }
 
 function txnDetail(t) {
@@ -121,15 +146,18 @@ function txnDetail(t) {
   const party = fact && partyById.get(fact.partyId)
   const sources = [...new Map(rows.flatMap((r) => r.sources).map((s) => [`${s.kind}:${s.ref}`, s])).values()]
   const evidence = sources.map((s) => {
-    const doc = documents.find((d) => d.path === s.ref)
-    if (doc) return { ...s, content: { type: 'document', path: doc.path, text: doc.text, facts: documentFacts.filter((f) => f.docPath === doc.path) } }
-    if (detailFiles.some((f) => f.path === s.ref)) return { ...s, content: { type: 'detailFile', path: s.ref, columns: ['item', 'documento', 'importe', 'moneda'], rows: rows.map((r) => [r.itemId, r.documentNumber, ((r.amountCents ?? 0) / 100).toFixed(2), r.currency]) } }
+    const doc = documentByPath.get(s.ref)
+    if (doc) return { ...s, content: { type: 'document', path: doc.path, text: data.documentText(doc.path, doc), facts: documentFacts.filter((f) => f.docPath === doc.path) } }
+    if (detailFileByPath.has(s.ref)) {
+      const table = data.detailRows?.(s.ref, rows.map((r) => r.documentNumber)) ?? { columns: ['item', 'documento', 'importe', 'moneda'], rows: rows.map((r) => [r.itemId, r.documentNumber, ((r.amountCents ?? 0) / 100).toFixed(2), r.currency]) }
+      return { ...s, content: { type: 'detailFile', path: s.ref, ...table } }
+    }
     const master = partyById.get(s.ref)
     if (master) return { ...s, content: { type: 'record', fields: { Nombre: master.name, Sociedad: master.entity, IBAN: master.iban, Condiciones: master.paymentTerms, Grupo: master.groupId } } }
     return { ...s, content: { type: 'none' } }
   })
   const dup = rows[0]?.rule === 'HISTORY-DUPLICATE' ? rows[0].sources[0]?.ref : null
-  const original = dup && txns.find((x) => x.bankTxnId === dup)
+  const original = dup && txnById.get(dup)
   return {
     txn, party: fact ? { partyId: fact.partyId, partyName: party?.name ?? fact.partyId, partyKind: fact.partyKind, payerName: fact.payerName, how: fact.how, confidence: fact.confidence, alternatives: [] } : null,
     rows: rows.map(({ documentNumber, ...r }) => {
@@ -169,7 +197,7 @@ function aging(entity, kind) {
     if (c.kind === 'duplicate_payment') p.duplicates++
   }
   const parties2 = [...byParty.values()].sort((a, b) => b.overdueEur - a.overdueEur).slice(0, 200)
-  return { asOf: '2025-12-31', totals, openEur: Object.values(totals).reduce((a, b) => a + b, 0), overdueEur: Object.values(totals).reduce((a, b) => a + b, 0) - totals.not_due, parties: parties2 }
+  return { asOf: data.asOf, totals, openEur: Object.values(totals).reduce((a, b) => a + b, 0), overdueEur: Object.values(totals).reduce((a, b) => a + b, 0) - totals.not_due, parties: parties2 }
 }
 
 function accountsOf(runId) {
@@ -232,10 +260,11 @@ async function route(method, path, query, readBody) {
     if (resource === 'parties') return list(parties, query, { search: (r) => [r.partyId, r.name, r.taxId], filters: { kind: 'kind', entity: 'entity' } })
     if (resource === 'detail-files') return list(detailFiles, query, { filters: { kind: 'kind', entity: 'entity' } })
     if (resource === 'documents' && seg.length > 4) {
-      const doc = found(documents.find((d) => d.path === seg.slice(4).join('/')), 'ese documento')
-      return { ...doc, facts: documentFacts.filter((f) => f.docPath === doc.path) }
+      const doc = found(documentByPath.get(seg.slice(4).join('/')), 'ese documento')
+      const { text, ...row } = doc
+      return { ...row, text: data.documentText(doc.path, doc), facts: documentFacts.filter((f) => f.docPath === doc.path) }
     }
-    if (resource === 'documents') return list(documents.map(({ text, ...d }) => d), query, { search: (r) => [r.path, r.partyName], filters: { kind: 'kind', entity: 'entity' } })
+    if (resource === 'documents') return list(documents, query, { map: ({ text, ...d }) => d, search: (r) => [r.path, r.partyName], filters: { kind: 'kind', entity: 'entity' } })
     throw new Problem(404, 'Ruta desconocida')
   }
 
@@ -250,7 +279,7 @@ async function route(method, path, query, readBody) {
   if (resource === 'validate') return { ok: true, errors: [], sizeBytes: 9200000, uncompressedBytes: 34500000, rows: run.rows, txns: run.txns }
 
   if (resource === 'transactions') {
-    if (seg[4]) return txnDetail(found(txns.find((t) => t.bankTxnId === seg[4]), 'ese movimiento'))
+    if (seg[4]) return txnDetail(found(txnById.get(seg[4]), 'ese movimiento'))
     let rows = txns
     const rule = values(query.get('rule'))
     const exception = values(query.get('exception'))
@@ -265,20 +294,25 @@ async function route(method, path, query, readBody) {
     }
     if (from) rows = rows.filter((t) => t.bookingDate >= from)
     if (to) rows = rows.filter((t) => t.bookingDate <= to)
-    const page = list(rows.map(txnRow), query, {
-      search: (r) => [r.bankTxnId, r.text, r.counterpartyName, ...(rowsByTxn.get(r.bankTxnId) ?? []).map((x) => x.documentNumber)],
-      filters: { entity: 'entity', accountId: 'accountId', caseStatus: 'caseStatus' },
+    const statuses = values(query.get('caseStatus'))
+    if (statuses) rows = rows.filter((t) => statuses.includes(String(caseByTxn.get(t.bankTxnId)?.status)))
+    const page = list(rows, query, {
+      map: txnRow,
+      search: (t) => [t.bankTxnId, t.text, t.counterpartyName, ...(rowsByTxn.get(t.bankTxnId) ?? []).map((x) => x.documentNumber)],
+      filters: { entity: 'entity', accountId: 'accountId' },
+      sortValue: (t, key) => (key === 'rowCount' ? rowsByTxn.get(t.bankTxnId)?.length : key === 'rule' ? rowsByTxn.get(t.bankTxnId)?.[0]?.rule : key === 'confidence' ? rowsByTxn.get(t.bankTxnId)?.[0]?.confidence : key === 'caseStatus' ? caseByTxn.get(t.bankTxnId)?.status : t[key]),
     })
     return page
   }
 
   if (resource === 'cases') {
-    if (!seg[4]) return list(cases.map(caseRow), query, { search: (r) => [r.caseId, r.summary, r.partyName], filters: { status: 'status', kind: 'kind', entity: 'entity', priority: 'priority' } })
+    if (!seg[4]) return list(cases, query, { map: caseRow, sortValue: (c, key) => (key === 'partyName' ? partyById.get(c.partyId)?.name : c[key]), search: (c) => [c.caseId, c.summary, partyById.get(c.partyId)?.name], filters: { status: 'status', kind: 'kind', entity: 'entity', priority: 'priority' } })
     const c = found(caseById.get(seg[4]), 'ese caso')
     if (seg[5] === 'decision' && method === 'POST') {
       const body = await readBody()
       human.decisions.push({ decisionId: decisionId(), caseId: c.caseId, ...body, at: now() })
       if (body.action === 'done') c.status = 'done'
+      statsCache.clear()
       return caseDetail(c)
     }
     return caseDetail(c)
@@ -292,6 +326,7 @@ async function route(method, path, query, readBody) {
       q.status = 'answered'
       const c = caseById.get(q.caseId)
       c.status = 'done'
+      statsCache.clear()
       if (body.saveAsRule && q.rulePreview) {
         const { kind, description, ...params } = q.rulePreview
         human.memoryRules.push({ ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, kind, params: { ...params, partyId: itemById.get(body.optionId)?.partyId ?? params.partyId }, description, scope: { entity: q.entity }, createdFrom: { questionId: q.questionId, caseId: q.caseId }, by: body.by, at: now(), active: true })

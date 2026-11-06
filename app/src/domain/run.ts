@@ -162,6 +162,8 @@ export interface Run {
   stages: Record<string, number>
   txns: number
   rows: number
+  /** Uncompressed bytes of submission.csv.gz (the limit is 60 MB). */
+  csvBytes?: number
   byRule: Record<string, number>
   byException: Record<string, number>
   byCategory: Record<string, number>
