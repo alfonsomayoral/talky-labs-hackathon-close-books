@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Cómo se trabaja en este repo. Es el agente de cierre contable de **Close the Books**, el reto del Claude Code Hackathon (Madrid, 7 nov 2026): convertir los datos de un grupo multi-sociedad en un cierre seguro, trazable y listo para auditoría.
+Cómo se trabaja en este repo. Es el conciliador bancario de **Close the Books**, el reto del Claude Code Hackathon (Madrid, 7 nov 2026): decir, para cada movimiento bancario de un grupo de 17 sociedades, qué facturas y abonos liquida y por qué importe, o qué es si no liquida ninguno, en un CSV que se puntúa contra un golden oculto.
 
-**Lee antes de tocar nada:** [PROBLEM.md](PROBLEM.md) (qué se resuelve y cómo se evalúa) y [ARCHITECTURE.md](ARCHITECTURE.md) (cómo está construido). Si contradicen al paquete oficial de los organizadores, manda el paquete.
+**Lee antes de tocar nada:** [PROBLEM.md](PROBLEM.md) (qué se resuelve y cómo se evalúa) y [ARCHITECTURE.md](ARCHITECTURE.md) (cómo está construido). Si contradicen al paquete oficial (`db/bankrec-docs-and-masters/`), manda el paquete, y en el etiquetado manda `POLICIES.md`.
 
 **Compromiso:** estas reglas priman la prudencia sobre la velocidad. En tareas triviales, usa el sentido común.
 
@@ -20,13 +20,13 @@ Cómo se trabaja en este repo. Es el agente de cierre contable de **Close the Bo
 
 **El mínimo código que resuelve el problema. Nada especulativo.**
 
-- Antes de escribir, busca si ya existe: componentes en `app/src/components/`, formato en `app/src/lib/`, tipos en `app/src/domain/`.
+- Antes de escribir, busca si ya existe: en el backend, normalizadores en `normalize.py`, reglas en `rules/` e importe y excepción en `policy.py` (ARCHITECTURE.md §7.2); en el frontend, componentes en `app/src/components/`, formato en `app/src/lib/` y tipos en `app/src/domain/`.
 - Ninguna funcionalidad, parámetro ni abstracción más allá de lo pedido.
 - Ninguna abstracción para un solo uso. Ninguna «flexibilidad» que nadie haya pedido.
 - Ningún manejo de errores para escenarios que no ocurren.
 - Si escribes 200 líneas y caben en 50, reescríbelo.
 
-**Simple no es frágil.** Lo que el caso real ya trae hay que aguantarlo: volumen del libro mayor, datos sucios, varias monedas. Recortar eso es un bug, no simplicidad.
+**Simple no es frágil.** Lo que el caso real ya trae hay que aguantarlo: ~200 k movimientos y ~1 M de partidas por fase (5,6 M en TRAIN), referencias sucias, varias divisas y drift entre fases. Recortar eso es un bug, no simplicidad.
 
 ## 3. Cambios quirúrgicos
 
@@ -48,24 +48,31 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 2. [paso] -> compruebo: [cómo]
 ```
 
-- **Lógica (`backend/`, `app/src/data/`, `app/src/domain/`):** TDD. Primero el test, y lo ves fallar por la razón correcta; luego el mínimo código que lo pone en verde; luego refactor sin salir del verde. «Detecta duplicados» se convierte en «test con una factura duplicada que falla; luego hazlo pasar».
+- **Lógica (`backend/`, `app/src/data/`, `app/src/domain/`):** TDD. Primero el test, y lo ves fallar por la razón correcta; luego el mínimo código que lo pone en verde; luego refactor sin salir del verde. «Detecta pagos duplicados» se convierte en «test con un movimiento real de TRAIN que paga otra vez una factura ya liquidada, que falla; luego hazlo pasar».
+- **Reglas de casación:** además del test, la puntuación local con el evaluador oficial sobre `sample/` o TRAIN, antes y después, por segmento. Una regla que sube un segmento y baja otro no está terminada.
 - **Pantallas:** se miran en el navegador con los datos cargados, con cero errores en consola.
-- **Cada test tiene que poder pillar un bug.** Si rompes la lógica y el test sigue en verde, sobra. Un test por comportamiento, más los bordes que romperían con datos reales (duplicados, varias monedas, datos sucios).
+- **Cada test tiene que poder pillar un bug.** Si rompes la lógica y el test sigue en verde, sobra. Un test por comportamiento, más los bordes que romperían con datos reales (referencias cortadas o con erratas, varias divisas, pagos duplicados, devoluciones).
 - Nada de smoke tests («renderiza», «no lanza», «el módulo existe»), snapshots, tests que repiten la implementación ni tests que solo comprueban que se llamó a un mock.
-- Antes de dar algo por hecho, `just fe-check` (o `just be-check` y `just be-test`) en verde, con la salida pegada. Si algo falla o no lo has comprobado, dilo.
+- Antes de dar algo por hecho, `just be-check` y `just be-test` (o `just fe-check`) en verde, con la salida pegada, y la puntuación local si tocaste una regla. Si algo falla o no lo has comprobado, dilo.
 
 ## 5. Reglas del dominio
 
-- **El backend decide; el frontend enseña.** El frontend nunca calcula una casación, una alerta ni un asiento: los lee del `Run` (ver `CONTRACT.md`).
-- **Cada decisión del agente lleva su evidencia:** la regla que la produjo y los objetos de origen (factura, línea bancaria, pedido, contrato, evento del ERP). Sin evidencia no hay decisión automática; va a revisión humana.
-- **Importes en céntimos enteros, siempre con su moneda.** Nunca se suman monedas distintas.
-- **Todo objeto lleva `entityId`.** Ninguna vista ni regla mezcla sociedades sin decirlo.
+- **Las reglas deciden; los modelos solo extraen.** Un modelo convierte PDFs y avisos de remesa en hechos, con caché; nunca elige una casación.
+- **Cada fila de la entrega lleva su evidencia:** la regla que la produjo y sus fuentes (aviso de remesa, fichero de remesa o liquidación, PDF, maestro, otro movimiento), como dice `CONTRACT.md`.
+- **No se fuerza ninguna casación.** Sin evidencia, la fila sale de una regla `FALLBACK-*`: `UNIDENTIFIED` si es un cobro, o la categoría que digan su código y su texto. Nunca el candidato «más parecido».
+- **Ningún movimiento sin fila.** Un movimiento que falta es un fallo seguro en la puntuación.
+- **Importes en céntimos enteros, siempre con su moneda.** Nunca se suman monedas distintas. El `amount` del CSV va en la divisa de la partida, con dos decimales, y solo se formatea al escribirlo.
+- **Todo objeto lleva su sociedad.** Ninguna regla mezcla sociedades sin decirlo; los cruces legítimos (la fábrica de pagos de ES00, la matriz que paga por sus filiales) se nombran en la regla.
 - **Nunca se modifican los datos de entrada** para que una regla funcione.
-- **El paquete del cliente vive en `data/` y nunca se commitea.** Tampoco salidas ni ejecuciones con datos reales. La base de datos local vive en `db/` y tampoco se commitea.
+- **El paquete oficial vive en `db/` y las ejecuciones en `runs/`; nada de eso se commitea.**
+- **El golden solo existe para TRAIN.** No se intenta obtener el de LIVE ni el de FINAL.
+- **Nada se envía a la clasificación sin que lo pida una persona del equipo.** LIVE tiene 20 envíos al día y FINAL uno solo. El token del equipo va en una variable de entorno, nunca en el código ni en un commit.
 
 ## 6. Reglas del frontend (`app/`)
 
-- La marca es la de Talky ([usetalky.com](https://usetalky.com)): dos temas, claro (por defecto el del sistema) y oscuro sobre la tinta azulada de Talky (fondo `#0A0F24`, hoja `#111936`, texto `#E6E8F0`), que se cambian desde la barra lateral; verde bosque (`#2E9A5C` en claro, `#46A86A` en oscuro) para el dato principal, la selección y el foco; la única acción primaria, marino con texto blanco en claro y relleno claro con texto marino `#16224F` en oscuro; Newsreader para titulares, Geist para el texto y Chivo Mono para ids (al estilo de rex.inc). Está en `src/design/tokens.css` (ver ARCHITECTURE.md §5.4 y §5.5).
+El frontend está congelado en la fase 0 (ARCHITECTURE.md §3): no se amplía sin decidirlo antes. Si se toca, estas reglas siguen valiendo.
+
+- La marca es la de Talky ([usetalky.com](https://usetalky.com)) en dos temas, claro y oscuro, que se cambian desde la barra lateral: verde bosque para el dato principal, la selección y el foco; una sola acción primaria por vista; Newsreader para titulares, Geist para el texto y Chivo Mono para ids. Los valores viven en `src/design/tokens.css` (ARCHITECTURE.md §5.4 y §5.5).
 - Cada vista va dentro de la hoja del shell; su contenido son tarjetas con borde de 1 px y la sombra suave de `--shadow-card`, que crece al pasar el ratón. Lo que abre otra cosa es una tarjeta. La barra lateral es un rail que se despliega al pasar el ratón y empuja la vista.
 - Solo los tokens de `src/design/tokens.css`: ningún color, sombra ni radio fuera de ellos. Estilos con CSS Modules, un fichero por componente.
 - Importes con `<Amount>`, ids y códigos con `<Mono>`, fechas y porcentajes con `@/lib/format`. Nunca se formatean a mano.
@@ -80,6 +87,7 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 | `just fe-dev` | Servidor de desarrollo del frontend |
 | `just fe-check` | Typecheck, lint, test y build del frontend |
 | `just be-check` · `just be-test` | Lint y tests del backend (cuando exista `backend/`) |
+| `just be-run <fase>` · `just be-score` | Ejecutar el backend sobre una fase y puntuarla en local (cuando exista `backend/`) |
 
 ## 8. Git
 

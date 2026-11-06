@@ -2,34 +2,35 @@
 
 Cómo está construido el repo y por qué. El problema está en [PROBLEM.md](PROBLEM.md); cómo se trabaja, en [CLAUDE.md](CLAUDE.md).
 
-> **Estado:** fase 0 (6 nov 2026). Solo existe el frontend en `app/`, con datos de muestra. El backend se monta el día del evento, cuando llegue el paquete real.
+> **Estado:** 6 nov 2026. El reto real es **conciliación bancaria a escala** (PROBLEM.md). El backend (§7) es el producto: produce el CSV que se puntúa. Hoy solo existe su diseño. El frontend (§3–§6) está **congelado en la fase 0**: se construyó para el problema supuesto en la v0 (cierre contable con libro mayor e historial del ERP), solo se retoma si sobra tiempo para el vídeo, y sus secciones describen el código tal y como está.
 
-## 1. Principio rector
+## 1. Principios rectores
 
-**El backend decide; el frontend enseña.** El frontend no toma ninguna decisión contable: muestra las **entradas** del cliente (`Dataset`) y las **decisiones** del agente (`Run`), con su evidencia. Así el frontend no cambia cuando cambian las reglas, y cada cifra que ve el jurado sale de un solo sitio.
-
-El segundo principio es la adaptabilidad: mañana llegan datos reales con un formato que hoy no conocemos. **Todo lo que depende del formato vive en un único fichero, el registro** (§4). Adaptarse al paquete real es editar ese fichero, no las pantallas.
+1. **Las reglas deciden; los modelos solo extraen.** Cada fila de la entrega sale de una regla determinista con nombre, que deja su evidencia (CONTRACT.md). Un modelo de lenguaje solo convierte documentos sucios (PDFs, avisos de remesa) en hechos estructurados, que se guardan en caché. Así la ejecución es reproducible, se explica fila a fila y no paga un modelo por movimiento.
+2. **`POLICIES.md` es la especificación.** El golden la sigue al pie de la letra. Cada regla cita el apartado de la política que implementa; lo que la política no dice se aprende del golden de TRAIN, no se inventa.
+3. **Se mide en local, con el evaluador oficial.** LIVE tiene 20 envíos al día y FINAL uno solo. Cada cambio se puntúa sobre `sample/` (segundos) y TRAIN (minutos) con `bankrec_score.py`, por segmento, antes de gastar un envío.
+4. **No se fuerza ninguna casación.** Lo que ninguna regla respalda sale por una regla de respaldo (`UNIDENTIFIED` o una categoría), nunca como el candidato «más parecido».
 
 ## 2. Estructura del repo
 
 ```
 talky-labs-hackathon-close-books/
 ├── CLAUDE.md            cómo se trabaja en el repo
-├── PROBLEM.md           el problema: qué entra, qué se evalúa, qué no sabemos
+├── PROBLEM.md           el problema: qué entra, qué sale, cómo se puntúa
 ├── ARCHITECTURE.md      este fichero
-├── CONTRACT.md          formato del Run: lo que el backend entrega al frontend
+├── CONTRACT.md          lo que produce cada ejecución: entrega, explicaciones y run.json
 ├── README.md
 ├── justfile             comandos de todo el repo
-├── app/                 frontend (React)
-├── backend/             fase 1: el agente de cierre (Python). Hoy solo un README
-├── data/                paquete del cliente. Ignorado por git, nunca se commitea
-├── db/                  base de datos local. Ignorada por git, nunca se commitea
+├── backend/             el conciliador (Python), §7. Hoy solo un README
+├── app/                 frontend (React), congelado en la fase 0, §3–§6
+├── db/                  paquete oficial: bankrec-docs-and-masters/, train/, live/, final/. Ignorado por git
+├── runs/                ejecuciones del backend (CONTRACT.md). Ignorado por git
 └── .github/workflows/   CI: just fe-check
 ```
 
-Monorepo: frontend y backend comparten `CONTRACT.md` y cambian a la vez en la misma PR cuando el contrato se mueve.
-
 ## 3. Frontend por capas
+
+> **Congelado en la fase 0.** Lee un zip en el navegador y muestra un `Dataset` y un `Run` del modelo v0. Con el paquete real (2,3 GB) esa importación no es viable, y el `Run` v0 ya no lo produce nadie (CONTRACT.md). No se amplía sin decidirlo antes.
 
 ```
 app/src/
@@ -231,21 +232,76 @@ Es código nuestro (`alfonsomayoral/talky-labs-hackathon`). Se copia y se recort
 
 **Stack:** React 19, Vite 8, TypeScript 6 estricto, react-router, zustand, TanStack Virtual, CSS Modules, lucide-react, fflate y cmdk. Pruebas con vitest; lint con oxlint.
 
-## 7. Verificación
+## 7. Backend
+
+Diseño inicial: aún no hay código. Python 3.12 con **Polars** para las tablas, y las librerías de cada formato sucio: pypdf (PDFs), openpyxl (avisos xlsx), rapidfuzz (comparación difusa de nombres y referencias) y el SDK de Anthropic para la extracción con modelo. Lint con ruff y tests con pytest.
+
+### 7.1 Una ejecución
+
+```
+db/<fase>/ + masters ─▶ load ─▶ index ─▶ documents ─▶ rules ─▶ resolve ─▶ output ─▶ score
+```
+
+| Paso | Qué hace |
+| --- | --- |
+| `load` | Lee una fase (`sample`, `train`, `live` o `final`) y sus maestros (en FINAL, los de `final/masters_final/`) a tablas de Polars, con importes en céntimos. No modifica nada |
+| `index` | Índices sobre las partidas por sociedad, tercero, número impreso normalizado, importe y divisa; y sobre los ficheros de detalle por id de remesa, liquidación, ingreso y `end_to_end_id` |
+| `documents` | Convierte avisos de remesa y PDFs en hechos: documentos pagados con importe y deducción, plazos, retención, anticipo, «anula y sustituye», mes del servicio, factor, IBAN nuevo. Primero con parsers; el modelo, solo para lo que no parsean. Caché en `runs/cache/` por hash del fichero |
+| `rules` | Cada regla mira los movimientos aún sin resolver y propone qué partidas liquida cada uno, con su evidencia |
+| `resolve` | Recorre los movimientos por fecha de operación, aplica la propuesta de mayor prioridad, calcula importe y excepción (§7.3) y actualiza el saldo abierto de cada partida |
+| `output` | Escribe la carpeta de la ejecución (CONTRACT.md) y la valida con el evaluador oficial |
+| `score` | En `sample` y `train`, puntúa contra el golden y guarda el desglose por segmento en `run.json` |
+
+### 7.2 Módulos
+
+```
+backend/
+├── pyproject.toml
+├── src/closebooks/
+│   ├── cli.py          closebooks run --phase live → runs/live-<fecha>/
+│   ├── load.py         una fase → tablas
+│   ├── normalize.py    números impresos, nombres de terceros, referencias
+│   ├── documents/      avisos de remesa (pdf, csv, xlsx, txt) y PDFs → hechos
+│   ├── rules/          una regla por fichero, agrupadas por familia (PROBLEM.md §10)
+│   ├── state.py        saldo abierto por partida y su historia de liquidaciones
+│   ├── policy.py       importe y excepción de cada fila (POLICIES.md §2–§3)
+│   ├── categories.py   movimientos sin partida (POLICIES.md §4)
+│   ├── resolve.py      prioridad, conflictos y respaldo
+│   └── output.py       CSV, explicaciones y run.json
+└── tests/              casos reales de sample/ y TRAIN, uno por comportamiento
+```
+
+El evaluador oficial se usa desde `db/bankrec-docs-and-masters/starter/bankrec_score.py`; no se copia al repo.
+
+### 7.3 Reglas, política y estado
+
+- **Una regla responde a una sola pregunta: qué partidas liquida este movimiento.** Devuelve los ids de partida, el dinero aplicado a cada una si el documento lo dice, su nombre y sus fuentes. No decide el importe final ni la excepción.
+- **`policy.py` decide el importe y la excepción en un solo sitio,** con el movimiento, las partidas, su saldo abierto, sus condiciones de pago, los tipos de cambio y los hechos de los documentos. Así `SHORT_DISCOUNT`, `FX_DIFFERENCE` o `PARTIAL` se calculan igual venga la casación de donde venga.
+- **El saldo abierto se lleva en orden de fecha.** Parte de `open_items_at_start` (LIVE y FINAL) más las partidas emitidas en la fase. Es lo que distingue un plazo intermedio (`PARTIAL`) del último (vacío), un pago normal de un `DUPLICATE_PAYMENT`, y lo que deja reabrir una partida con `RETURNED`.
+- **Prioridad de las reglas:** primero las que tienen un fichero que lo dice (agregados, avisos de remesa, `end_to_end_id`), luego las de número impreso, luego tercero más importe, y al final el respaldo. Una partida que ya ha consumido una regla de más prioridad no la vuelve a proponer otra.
+- **Respaldo:** un cobro sin casación es `UNIDENTIFIED`; un cargo sin casación lleva la categoría que digan su código y su texto. Siempre con regla `FALLBACK-*`.
+
+### 7.4 Ensayo de FINAL
+
+FINAL se publica a las 18:00 y los envíos cierran a las 19:30. El sistema tiene que correr con **un solo comando** sobre una fase que no ha visto, con una sociedad, una divisa y una numeración nuevas (ZA01), sin tocar código. Se ensaya sobre LIVE, cronometrado, antes de las 18:00. El envío lo hace una persona del equipo, después de validar el fichero en local.
+
+## 8. Verificación
 
 | Capa | Cómo se comprueba |
 | --- | --- |
-| `data/` (parsers, specs, relaciones, fixtures) | vitest: cada spec mapea una fila de ejemplo y rechaza una fila inválida; las anomalías sembradas están presentes en los fixtures |
-| `features/` y `shell/` | En el navegador con los fixtures: navegación, filtro por sociedad, panel lateral, cero errores en consola |
-| Todo el frontend | `just fe-check` (typecheck, lint, test, build) en verde, también en CI |
+| `normalize`, `documents`, `rules`, `policy`, `state` | pytest, en TDD. Cada comportamiento con un caso real de `sample/` o TRAIN; los 36 ejemplos de la web son el primer lote |
+| Ejecución completa | Puntuación local sobre `sample/` y TRAIN, por segmento. Ningún segmento baja sin explicarlo en la PR |
+| Entrega | `bankrec_score.py` valida el fichero antes de cada envío |
+| Frontend | `just fe-check` (typecheck, lint, test, build) en verde, también en CI |
 
-## 8. Decisiones
+## 9. Decisiones
 
 | # | Decisión | Por qué |
 | --- | --- | --- |
-| 1 | El frontend no decide nada contable | Una sola fuente de verdad; el jurado puntúa las decisiones del agente |
-| 2 | Registro declarativo como único punto de adaptación | El formato real se conoce el día del evento |
-| 3 | `Dataset` (entradas) separado de `Run` (decisiones) | Se pueden ver los datos sin backend, y comparar varias ejecuciones sobre los mismos datos |
-| 4 | Monorepo con `CONTRACT.md` en la raíz | Backend y frontend cambian el contrato en la misma PR |
-| 5 | Sin API ni persistencia en fase 0 | No hay backend todavía; se añaden cuando hagan falta |
-| 6 | El historial del ERP va en el panel de cada objeto | Su valor está en contexto (un cambio de IBAN junto a su proveedor) |
+| 1 | Reglas deterministas; el modelo solo extrae, con caché | Reproducible, explicable fila a fila, sin coste por movimiento |
+| 2 | Python con Polars, no Rust ni C | El volumen es moderado (el starter, en Python puro, procesa TRAIN en minutos) y Polars ya corre en nativo por debajo. Lo que cuesta es iterar sobre ~40 reglas, y el evaluador oficial es Python. Rust solo para un punto caliente medido, como extensión |
+| 3 | Importe y excepción en un solo módulo (`policy.py`) | `POLICIES.md` §2–§3 se aplica igual a todas las reglas |
+| 4 | Saldo abierto en orden de fecha | `PARTIAL`, `DUPLICATE_PAYMENT` y `RETURNED` dependen de la historia de la partida |
+| 5 | Puntuación local con el evaluador oficial | 20 envíos al día en LIVE y uno en FINAL |
+| 6 | Frontend congelado en la fase 0 | Se puntúa el CSV y la escala real no cabe en el navegador |
+| 7 | Datos y ejecuciones en `db/` y `runs/`, fuera de git | El paquete es de la organización y pesa 2,3 GB |

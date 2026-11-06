@@ -1,5 +1,5 @@
 # backend/
 
-El agente de cierre (Python). Se monta el día del evento, cuando llegue el paquete de datos.
+El conciliador bancario (Python). Aún sin código: el diseño está en [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §7.
 
-Produce el `Run` descrito en [`../CONTRACT.md`](../CONTRACT.md) y lo sirve al frontend. Las reglas deciden; los modelos solo extraen y explican (ver [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §1).
+Lee una fase de `db/` y escribe en `runs/` la entrega oficial, sus explicaciones y `run.json`, como describe [`../CONTRACT.md`](../CONTRACT.md). Las reglas deciden; los modelos solo extraen (ver [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §1).
