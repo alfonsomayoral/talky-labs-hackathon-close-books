@@ -1,5 +1,5 @@
 import type { DetailRow } from '@/domain'
-import { exceptionLabel } from '@/domain'
+import { categoryLabel, exceptionLabel } from '@/domain'
 import { Amount, Badge, Mono } from '@/components'
 import { formatDate } from '@/lib/format'
 import { sumByCurrency } from './txnPanelModel'
@@ -42,7 +42,7 @@ export function TxnRows({ rows }: { rows: DetailRow[] }) {
               {r.exception ? (
                 <Badge tone={r.exception === 'UNIDENTIFIED' ? 'danger' : 'warn'}>{exceptionLabel(r.exception)}</Badge>
               ) : r.category ? (
-                <Mono>{r.category}</Mono>
+                <span title={r.category}>{categoryLabel(r.category)}</span>
               ) : null}
             </span>
           </div>
