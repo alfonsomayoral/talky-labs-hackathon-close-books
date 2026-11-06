@@ -1,0 +1,112 @@
+import { useState } from 'react'
+import { FilePlus2, Paperclip } from 'lucide-react'
+import { Badge, Button, Pill, toast } from '@/components'
+import { useDraftActions } from '@/data'
+import type { CaseDetail, Draft } from '@/domain'
+import { TextField } from './TextField'
+import styles from './DraftEditor.module.css'
+
+interface DraftEditorProps {
+  caseDetail: CaseDetail
+  runId: string
+}
+
+const SENT_LABEL: Record<Exclude<Draft['status'], 'draft'>, string> = { sent: 'Enviado', manual: 'Lo lleva una persona' }
+
+/** The email a case suggests: edit it, send it or take it by hand. Without a draft, it offers to prepare one. */
+export function DraftEditor({ caseDetail, runId }: DraftEditorProps) {
+  const { draft } = caseDetail
+  const actions = useDraftActions(runId)
+
+  if (!draft) {
+    const kind = caseDetail.suggestedAction === 'email_supplier' ? 'email_supplier' : 'email_customer'
+    return (
+      <div className={styles.editor}>
+        <Button
+          variant="primary"
+          leadingIcon={<FilePlus2 />}
+          loading={actions.create.isPending}
+          onClick={() =>
+            actions.create.mutate(
+              { caseId: caseDetail.caseId, kind },
+              { onError: (error) => toast.error('No se ha podido preparar el correo', { description: error.message }) },
+            )
+          }
+        >
+          Preparar correo
+        </Button>
+        <p className={styles.note}>Se redacta un borrador con los datos del caso; lo revisas antes de enviarlo.</p>
+      </div>
+    )
+  }
+  return <DraftForm key={draft.draftId} draft={draft} runId={runId} />
+}
+
+function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
+  const [subject, setSubject] = useState(draft.subject)
+  const [body, setBody] = useState(draft.body)
+  const actions = useDraftActions(runId)
+  const closed = draft.status !== 'draft'
+  const dirty = subject !== draft.subject || body !== draft.body
+  const busy = actions.save.isPending || actions.send.isPending || actions.manual.isPending
+
+  const fail = (title: string) => (error: Error) => toast.error(title, { description: error.message })
+
+  const save = () => actions.save.mutate({ draftId: draft.draftId, subject, body }, { onSuccess: () => toast.success('Cambios guardados'), onError: fail('No se han podido guardar los cambios') })
+
+  const send = async () => {
+    try {
+      if (dirty) await actions.save.mutateAsync({ draftId: draft.draftId, subject, body })
+      await actions.send.mutateAsync(draft.draftId)
+      toast.success('Envío registrado', { description: `Para ${draft.toName}. No ha salido ningún correo.` })
+    } catch (error) {
+      fail('No se ha podido enviar')(error as Error)
+    }
+  }
+
+  const takeManually = () =>
+    actions.manual.mutate(draft.draftId, {
+      onSuccess: () => toast.success('Anotado: lo llevas tú'),
+      onError: fail('No se ha podido anotar'),
+    })
+
+  return (
+    <div className={styles.editor}>
+      {closed && (
+        <div>
+          <Badge tone={draft.status === 'sent' ? 'ok' : 'neutral'}>{SENT_LABEL[draft.status as keyof typeof SENT_LABEL]}</Badge>
+        </div>
+      )}
+      <TextField label="Para" value={`${draft.toName} <${draft.to}>`} onChange={() => {}} readOnly />
+      <TextField label="Asunto" value={subject} onChange={setSubject} readOnly={closed} />
+      <TextField label="Mensaje" value={body} onChange={setBody} rows={10} readOnly={closed} />
+      {draft.attachments.length > 0 && (
+        <ul className={styles.attachments} aria-label="Adjuntos">
+          {draft.attachments.map((a) => (
+            <li key={a.ref}>
+              <Pill icon={<Paperclip />}>{a.label ?? a.ref}</Pill>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!closed && (
+        <>
+          <div className={styles.buttons}>
+            <Button variant="primary" onClick={send} loading={actions.send.isPending} disabled={busy && !actions.send.isPending}>
+              Enviar
+            </Button>
+            {dirty && (
+              <Button onClick={save} loading={actions.save.isPending} disabled={busy && !actions.save.isPending}>
+                Guardar cambios
+              </Button>
+            )}
+            <Button variant="ghost" onClick={takeManually} loading={actions.manual.isPending} disabled={busy && !actions.manual.isPending}>
+              Lo llevo yo
+            </Button>
+          </div>
+          <p className={styles.note}>Enviar deja constancia en el sistema; no sale ningún correo.</p>
+        </>
+      )}
+    </div>
+  )
+}
