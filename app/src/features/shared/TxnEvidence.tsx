@@ -1,8 +1,8 @@
-import type { DocumentFact, Evidence, SourceKind } from '@/domain'
+import type { DocumentFact, Evidence } from '@/domain'
 import { Amount, Badge, KeyValue, Mono } from '@/components'
 import styles from './TxnEvidence.module.css'
 
-const KIND_LABEL: Record<SourceKind, string> = {
+const KIND_LABEL: Record<string, string> = {
   remittanceAdvice: 'Aviso de remesa',
   directDebitBatch: 'Remesa de adeudos',
   cardSettlement: 'Liquidación de tarjetas',
