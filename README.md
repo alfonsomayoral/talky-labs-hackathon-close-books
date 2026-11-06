@@ -15,11 +15,50 @@ Agente de cierre contable y conciliación bancaria para el **Claude Code Hackath
 
 ## Puesta en marcha
 
-Requiere Node 22 y [`just`](https://github.com/casey/just).
+Hoy solo hay frontend: arranca solo, sin backend ni ficheros de datos, con los **datos de muestra** que genera el propio código (`app/src/data/fixtures/sample.ts`).
+
+**Necesitas:** acceso al repo (es privado: pide que te añadan como colaborador), Git y Node 22. [`just`](https://github.com/casey/just) es opcional.
 
 ```bash
-just fe-install
-just fe-dev
+git clone https://github.com/alfonsomayoral/talky-labs-hackathon-close-books.git
 ```
 
-`just fe-check` pasa typecheck, lint, tests y build.
+```bash
+cd talky-labs-hackathon-close-books
+```
+
+Mientras no se fusione en `main`, el trabajo está en la rama `KPI-1_phase-0-frontend`:
+
+```bash
+git switch KPI-1_phase-0-frontend
+```
+
+Instala y arranca (con `just`, o con `npm` desde `app/`):
+
+```bash
+just fe-install && just fe-dev
+```
+
+```bash
+cd app && npm ci && npm run dev
+```
+
+Abre la dirección que imprime Vite, normalmente <http://localhost:5173>. Verás el «Grupo Aurelia (muestra)» con sus alertas.
+
+### Con los datos reales
+
+- **El zip del cliente:** en la app, «Importar datos» (abajo en la barra lateral) y arrástralo. Se lee en el navegador; nada se sube a ningún servidor. Recargar la página vuelve a los datos de muestra.
+- **Si no reconoce algún fichero:** aparece en «Ficheros sin reconocer». Se adapta en `app/src/data/registry/mappings.ts` (ver [ARCHITECTURE.md](ARCHITECTURE.md) §4.2).
+- **Dónde guardarlo:** en `data/`, que git ignora. Los datos del cliente nunca se commitean; compártelos por otro canal.
+
+### Comprobaciones
+
+```bash
+just fe-check
+```
+
+Pasa typecheck, lint, tests y build. Sin `just`, desde `app/`: `npm run typecheck`, `npm run lint`, `npm run test` y `npm run build`.
+
+### Backend
+
+`backend/` está vacío: se monta el día del evento y entregará al frontend el formato de [CONTRACT.md](CONTRACT.md).
