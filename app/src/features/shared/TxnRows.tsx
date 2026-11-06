@@ -26,7 +26,7 @@ export function TxnRows({ rows }: { rows: DetailRow[] }) {
         {rows.map((r, i) => (
           <div key={`${r.itemId ?? 'sin'}-${i}`} className={styles.row} role="row">
             <span role="cell">{r.item ? <Mono>{r.item.documentNumber}</Mono> : <span className={styles.muted}>Sin partida</span>}</span>
-            <span role="cell" className={styles.party} title={r.item?.partyName}>
+            <span role="cell" className={styles.party} title={r.item?.partyName ?? undefined}>
               {r.item?.partyName ?? '—'}
             </span>
             <span role="cell" className={styles.date}>
