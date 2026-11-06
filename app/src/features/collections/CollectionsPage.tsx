@@ -87,6 +87,7 @@ export function CollectionsPage() {
         sort={sortFromParam(orden)}
         onSortChange={onSortChange}
         selectedId={open}
+        onSelectedChange={(id) => open && id && setOpen(id)}
         onOpen={(p) => setOpen(p.partyId)}
         globalKeys
         empty={<EmptyState size="sm" icon={<CircleAlert />} title="Ningún cliente coincide con la búsqueda" />}
