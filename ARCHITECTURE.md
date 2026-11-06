@@ -180,24 +180,30 @@ Su pregunta: ¿qué queda para cerrar el periodo y qué necesita a una persona?
 
 ### 5.3 Páginas de datos
 
-Todas son la misma `DatasetPage`: título con el recuento y las filas con alertas, buscador y una faceta, y la `DataTable` virtualizada en su variante `cards`, donde cada fila es una tarjeta blanca independiente sobre la hoja, con borde y sombra suave. Las páginas usan todo el ancho de la pantalla y el panel lateral se abre al 40 % del ancho. Sociedades, con pocas filas y cada una puerta a su alcance, se muestra como tarjetas. El panel lateral tiene las pestañas **Detalle** (alertas y datos) · **Relacionados** (tarjetas agrupadas por tipo) · **Historial** (línea temporal con antes y después). Las alertas del `Run` sobre un objeto se marcan en su fila.
+Todas son la misma `DatasetPage`: título con el recuento y las filas con alertas, buscador y una faceta, y la `DataTable` virtualizada en su variante `cards`, donde cada fila es una tarjeta independiente sobre la hoja, con borde y sombra suave. Las páginas usan todo el ancho de la pantalla y el panel lateral se abre al 40 % del ancho. Sociedades, con pocas filas y cada una puerta a su alcance, se muestra como tarjetas. El panel lateral tiene las pestañas **Detalle** (alertas y datos) · **Relacionados** (tarjetas agrupadas por tipo) · **Historial** (línea temporal con antes y después). Las alertas del `Run` sobre un objeto se marcan en su fila.
 
 ### 5.4 Marca: Talky
 
-La referencia es [usetalky.com](https://usetalky.com). Los valores siguientes salen de su CSS (variables `--naranja`, `--marino`, `--tinta`, `--papel`…, leídas el 6 nov 2026) y sustituyen a los de Kalmora, que usaba un naranja genérico (`#F97316`) e Inter.
+La referencia es [usetalky.com](https://usetalky.com). El marino y la tinta salen de su CSS (variables `--marino`, `--tinta`…, leídas el 6 nov 2026) y sustituyen a los de Kalmora, que usaba un naranja genérico (`#F97316`) e Inter. El color de acento ya no es el naranja de Talky (`#F3572F`) sino un **verde bosque**: el clásico `#228B22` solo llega a 3,9:1 sobre la hoja oscura, así que se mantiene su tono (142°) y se aclara hasta pasar AA.
+
+La app tiene **dos temas**. El claro vive en `:root` (la hoja blanca sobre la piedra de Talky) y el oscuro sobreescribe los colores bajo `[data-theme='dark']`: la tinta azulada de Talky pasa a ser el fondo y el texto es claro. `index.html` pone `data-theme` en `<html>` antes de pintar (la elección guardada en `localStorage`, si no la del sistema) y `src/lib/theme.ts` lo cambia desde la barra lateral. `color-scheme` hace que los controles nativos sigan al tema. El verde bosque mantiene el tono (142°) en los dos: `#2E9A5C` en claro, oscurecido para pasar sobre blanco (texto pequeño `#1F7A45`, 5,4:1), y `#46A86A` en oscuro. Los valores que siguen son los del tema oscuro.
 
 | Token | Valor | Uso |
 | --- | --- | --- |
-| `--brand` | `#F3572F` (naranja Talky) | El dato principal (lo conciliado), la selección y el foco |
-| `--brand-line` | `#E2481F` | Indicadores naranjas sin texto (foco, subrayado de la pestaña activa) |
-| `--brand-soft` | `#FDEDE8` | Fondo de la selección |
-| `--brand-ink` | Variante más oscura de `#F3572F` que llegue a 4,5:1 sobre blanco; se calcula en fase 0 | Texto naranja pequeño. `#F3572F` sobre blanco no llega a AA |
-| `--navy` | `#16224F` (marino) · `#0F1838` (marino hondo) | La acción primaria de cada pantalla, plana |
-| `--ink` | `#101938` (tinta) | Texto principal: tinta azulada, no negro |
-| `--ink-2` · `--ink-3` · `--ink-4` | `#5E6377` · `#646979` · `#A2A5B2` | Texto secundario · terciario (AA sobre el fondo) · solo decorativo |
-| `--ground` | `#F4F3F0` | Fondo de la app: una piedra de baja saturación sacada del papel de Talky (`#FAF5EA` se lee como crema). Las tarjetas son blancas |
-| `--bg-muted` | `#EEF0F4` | Superficies neutras, cabeceras de tabla |
-| `--info` | `#2E4DB3` | Estado informativo, enlaces |
+| `--brand` | `#46A86A` (verde bosque) | El dato principal (lo conciliado), la selección y el foco. Sobre `--bg` llega a 5,8:1 |
+| `--brand-line` | `#46A86A` | Indicadores verdes sin texto (foco, subrayado de la pestaña activa) |
+| `--brand-soft` · `--brand-border` | `#182D3D` · `#254F4A` | Fondo y borde de la selección (el verde al 14 % y al 38 % sobre `--bg`) |
+| `--brand-ink` | `#7CCB95` | Texto verde pequeño: 8,9:1 sobre `--bg` y 7,7:1 sobre `--bg-muted` |
+| `--ink-inverse` | `#16224F` (marino) | Texto sobre rellenos claros: el botón primario y las casillas marcadas (verdes) |
+| `--ink` · `--ink-strong` | `#E6E8F0` · `#F5F6FA` | Texto principal y titulares: blanco teñido de azul, no blanco puro |
+| `--ink-2` · `--ink-3` · `--ink-4` | `#AEB3C7` · `#9499B0` · `#5D6484` | Texto secundario · terciario (AA sobre `--bg-muted`) · solo decorativo |
+| `--ground` | `#0A0F24` | Fondo de la app, de la tinta de Talky (`#101938`) más honda. Rail y lienzo van sobre él |
+| `--bg` | `#111936` | La hoja, las tarjetas, menús y diálogos: un escalón más claro que el fondo |
+| `--bg-subtle` · `--bg-muted` | `#151E3E` · `#1B2547` | Hover y superficies neutras, cabeceras de tabla |
+| `--line` · `--line-strong` | `#263052` · `#344070` | Bordes de 1 px; el fuerte, en hover |
+| `--info` | `#6B8AF0` | Estado informativo, enlaces |
+
+Los colores de estado son los de Kalmora en su variante para fondo oscuro (el `--ok` es un turquesa `#2DD4BF` y no un verde, para que no se confunda con el de marca: 30° de tono más allá, más saturado y más claro): el color base para puntos y barras, un relleno al 14 % y un borde al 38 % sobre `--bg`, y un texto más claro que pasa AA sobre ambos. Las sombras son negras y con más opacidad, porque sobre oscuro casi no se ven; el borde de 1 px hace la mayor parte del trabajo.
 
 La tipografía sigue a [rex.inc](https://www.rex.inc/collections), que usa Tiempos Headline (light) para titulares, GD Gaio para el texto y Chivo Mono para códigos. Las dos primeras son comerciales, así que van sus equivalentes libres más cercanos:
 
@@ -207,13 +213,13 @@ La tipografía sigue a [rex.inc](https://www.rex.inc/collections), que usa Tiemp
 | Texto | Geist (400–600) | Interfaz, tablas, botones |
 | Mono | Chivo Mono (400) | Ids, cuentas, IBAN, reglas |
 
-Se autoalojan con `@fontsource` (sin dependencia de Google Fonts en la demo). Los colores de estado (ok, warn, danger) se mantienen de Kalmora, ajustados para no competir con el naranja.
+Se autoalojan con `@fontsource` (sin dependencia de Google Fonts en la demo).
 
-Logo: el logo original de Talky (la forma rosa con borde naranja y la palabra «Talky», `public/talky-logo.png`) junto al nombre del producto, «Close the Books», en la cabecera de la barra lateral. La forma sola es el favicon.
+Logo: el logo original de Talky, que conserva sus colores (la forma rosa con borde naranja y la palabra «Talky», `public/talky-logo.png` en claro y `public/talky-logo-dark.png`, con la palabra recoloreada a la tinta clara, en oscuro) junto al nombre del producto, «Close the Books», en la cabecera de la barra lateral. La forma sola es el favicon.
 
 ### 5.5 Reglas visuales
 
-Estilo «achromatic ledger» de la skill de diseño, con la marca de Talky: el cromo en tinta, una sola acción primaria en marino y el naranja solo en el dato principal, la selección y el foco. La ventana, a la manera de las apps de macOS: un rail de iconos de 60 px sobre el fondo que, al pasar el ratón (o con el foco del teclado), se ensancha hasta la barra lateral completa y empuja la vista, que se recoloca a su lado (200 ms, solo se anima el ancho del rail); y cada vista dentro de una única hoja blanca separada 8 px del borde, con radio de 12 px y borde de 1 px. Encima de la hoja van las tarjetas de su contenido, con borde de 1 px, una sombra suave en reposo (`--shadow-card`) que crece al pasar el ratón (`--shadow-card-hover`), como en el frontend de Kalmora, y radios de 8 y 6 px. En móvil la hoja ocupa toda la pantalla y la barra lateral es un cajón. Lo que abre otra cosa es una tarjeta (alertas, sociedades, tipos de dato, objetos relacionados), a la manera de rex.inc. Además, de Kalmora: colores de estado solo para estado; sin banners, ilustraciones ni degradados; filas de 36 px; números a la derecha con `tabular-nums`; importes con `<Amount>` e ids con `<Mono>`. El tono es el de la web de Talky: denso, centrado en el producto, con códigos en mono como elemento visual. Interfaz en español; código en inglés.
+Estilo «achromatic ledger» de la skill de diseño, con la marca de Talky: tema oscuro, el cromo en tintas claras sobre la tinta de Talky, una sola acción primaria (relleno claro con texto marino, el único bloque claro de la hoja) y el verde bosque solo en el dato principal, la selección y el foco. La ventana, a la manera de las apps de macOS: un rail de iconos de 60 px sobre el fondo que, al pasar el ratón (o con el foco del teclado), se ensancha hasta la barra lateral completa y empuja la vista, que se recoloca a su lado (200 ms, solo se anima el ancho del rail); y cada vista dentro de una única hoja (`--bg`), un escalón más clara que el fondo, separada 8 px del borde, con radio de 12 px y borde de 1 px. Encima de la hoja van las tarjetas de su contenido, con borde de 1 px, una sombra suave en reposo (`--shadow-card`) que crece al pasar el ratón (`--shadow-card-hover`), como en el frontend de Kalmora, y radios de 8 y 6 px. En móvil la hoja ocupa toda la pantalla y la barra lateral es un cajón. Lo que abre otra cosa es una tarjeta (alertas, sociedades, tipos de dato, objetos relacionados), a la manera de rex.inc. Además, de Kalmora: colores de estado solo para estado; sin banners, ilustraciones ni degradados; filas de 36 px; números a la derecha con `tabular-nums`; importes con `<Amount>` e ids con `<Mono>`. El tono es el de la web de Talky: denso, centrado en el producto, con códigos en mono como elemento visual. Interfaz en español; código en inglés.
 
 ## 6. Qué se reutiliza del repo de Kalmora
 

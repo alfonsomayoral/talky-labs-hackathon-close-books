@@ -22,7 +22,7 @@
   height: 8px;
 }
 
-/* 1px white gap between stacked segments */
+/* 1px gap in the surface colour between stacked segments */
 .segment + .segment {
   border-left: 1px solid var(--bg);
 }

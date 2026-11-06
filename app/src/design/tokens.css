@@ -1,18 +1,19 @@
-/* Design tokens — Talky brand (ARCHITECTURE.md §5.4). Light theme only. */
+/* Design tokens — Talky brand (ARCHITECTURE.md §5.4). Light theme in :root; the dark theme overrides the
+   colours under [data-theme='dark'] on <html>, set before first paint by index.html and switched by lib/theme.ts. */
 :root {
-  /* Brand: Talky (usetalky.com CSS: --naranja, --marino, --tinta, --papel). */
-  --brand: #f3572f;
-  --brand-hover: #e2481f;
-  --brand-soft: #fdede8;
-  --brand-border: #fbc9b9;
-  /* Orange for small text on white: #f3572f only reaches 3.4:1, this reaches 5.0:1. */
-  --brand-ink: #c93d18;
-  /* Orange for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
-  --brand-line: #e2481f;
-  /* Hover and active of the primary button, whose fill is --brand-ink so white text reaches 5:1. */
-  --brand-strong: #a8341a;
-  --navy: #16224f;
-  --navy-deep: #0f1838;
+  color-scheme: light;
+
+  /* Brand: forest green as the accent; navy and ink from Talky (usetalky.com CSS: --marino, --tinta). */
+  /* Same hue (142°) as the dark theme, darkened for white: --brand reaches 3.6:1 (large areas, icons). */
+  --brand: #2e9a5c;
+  --brand-hover: #278a50;
+  --brand-soft: #e8f5ed;
+  --brand-border: #b7e0c5;
+  /* Green for small text: 5.4:1 on --bg, 4.7:1 on --bg-muted. */
+  --brand-ink: #1f7a45;
+  /* Green for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
+  --brand-line: #278a50;
+  --brand-strong: #1b6b3d;
 
   /* Ink: Talky's blue-black, not neutral black */
   --ink: #101938;
@@ -42,10 +43,11 @@
   --bg-overlay: rgb(15 24 56 / 0.32);
 
   /* Status: base (dots, bars, icons), bg (soft fills), border, ink (text on bg / white, AA). */
-  --ok: #059669;
-  --ok-bg: #ecfdf5;
-  --ok-border: #a7f3d0;
-  --ok-ink: #047857;
+  /* ok is teal, not green, so it never reads as the brand green (as in the dark theme). */
+  --ok: #0d9488;
+  --ok-bg: #f0fdfa;
+  --ok-border: #99f6e4;
+  --ok-ink: #0f766e;
   --warn: #d97706;
   --warn-bg: #fffbeb;
   --warn-border: #fde68a;
@@ -62,6 +64,7 @@
   --neutral-bg: #f4f4f5;
   --neutral-border: #e4e4e7;
   --neutral-ink: #4b5563;
+
 
   /* Radii */
   --radius-xs: 4px;
@@ -138,6 +141,81 @@
   --control-height-md: 34px;
   --page-padding: 32px 40px 48px;
   --icon-size: 16px;
+}
+
+:root[data-theme='dark'] {
+  /* Native controls, scrollbars and form widgets render dark too. */
+  color-scheme: dark;
+
+  /* Brand: forest green as the accent; navy and ink from Talky (usetalky.com CSS: --marino, --tinta).
+     Classic forest green (#228b22) only reaches 3.9:1 on --bg, so the hue (142°) is kept and lightened. */
+  --brand: #46a86a;
+  --brand-hover: #52b476;
+  --brand-soft: #182d3d;
+  --brand-border: #254f4a;
+  /* Green for small text on the dark surfaces: 8.9:1 on --bg, 7.7:1 on --bg-muted (--brand reaches 5.8:1). */
+  --brand-ink: #7ccb95;
+  /* Green for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
+  --brand-line: #46a86a;
+  --brand-strong: #8fd5a6;
+
+  /* Ink: light text tinted towards Talky's blue, not neutral white. --ink-inverse is Talky's navy (marino),
+     the text on light fills: the primary button and green checks. */
+  --ink: #e6e8f0;
+  --ink-strong: #f5f6fa;
+  --ink-2: #aeb3c7;
+  --ink-3: #9499b0;
+  --ink-4: #5d6484;
+  --ink-inverse: #16224f;
+
+  /* Lines and surfaces: Talky's blue-black (tinta) as the ground; the sheet and its cards sit one step lighter. */
+  --line: #263052;
+  --line-soft: #1c2545;
+  --line-strong: #344070;
+  --ground: #0a0f24;
+  --ground-hover: rgb(255 255 255 / 0.05);
+  --ground-active: rgb(255 255 255 / 0.08);
+  --sheet-gap: 8px;
+  --sheet-radius: 12px;
+  --shadow-sheet: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.25);
+  /* Every card at rest, and the lift on hover (as in the Kalmora app): on dark the edge does most of the work. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.2);
+  --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.35), 0 8px 20px rgb(0 0 0 / 0.4);
+  --bg: #111936;
+  --bg-subtle: #151e3e;
+  --bg-muted: #1b2547;
+  --bg-overlay: rgb(3 6 18 / 0.6);
+
+  /* Status: base (dots, bars, icons), bg (soft fills, 14 % of base over --bg), border (38 %), ink (text on
+     bg / --bg, AA). */
+  /* ok is teal, not green, so it never reads as the brand green: 30° of hue apart, more saturated and lighter. */
+  --ok: #2dd4bf;
+  --ok-bg: #153349;
+  --ok-border: #1c606a;
+  --ok-ink: #5eead4;
+  --warn: #f59e0b;
+  --warn-bg: #312c30;
+  --warn-border: #684c26;
+  --warn-ink: #fbbf24;
+  --danger: #ef4444;
+  --danger-bg: #301f38;
+  --danger-border: #65293b;
+  --danger-ink: #f87171;
+  --info: #6b8af0;
+  --info-bg: #1e2950;
+  --info-border: #33447d;
+  --info-ink: #9db1f7;
+  --neutral: #8b93a8;
+  --neutral-bg: #222a46;
+  --neutral-border: #3f4761;
+  --neutral-ink: #b4bacb;
+
+  /* Elevation — hairlines first; on dark, shadows need more weight to read at all */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.3), 0 1px 2px rgb(0 0 0 / 0.2);
+  --shadow-popover: 0 8px 24px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+  --shadow-panel: -12px 0 32px rgb(0 0 0 / 0.4);
+  --shadow-dialog: 0 24px 64px rgb(0 0 0 / 0.55), 0 4px 12px rgb(0 0 0 / 0.3);
 }
 
 /* Reduced motion keeps the durations: colour and opacity changes still confirm state. Each component that

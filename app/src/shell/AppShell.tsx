@@ -1,4 +1,4 @@
-// App frame: an icon rail that opens into the full sidebar on hover, and the routed view inside one white
+// App frame: an icon rail that opens into the full sidebar on hover, and the routed view inside one
 // sheet; plus the object panel and the ⌘K palette. Below 900px the sidebar becomes a drawer.
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Outlet, useLocation } from 'react-router'

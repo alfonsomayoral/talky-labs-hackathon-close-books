@@ -60,7 +60,7 @@
   color: var(--info-ink);
 }
 
-/* Outline: white with hairline, text stays ink; colour lives in the dot/icon */
+/* Outline: the surface with hairline, text stays ink; colour lives in the dot/icon */
 .outline {
   background: var(--bg);
   border-color: var(--line);
