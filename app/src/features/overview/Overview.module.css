@@ -1,0 +1,220 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 1280px;
+}
+
+/* Opener */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+.dateLine {
+  color: var(--ink-3);
+  font-weight: var(--weight-medium);
+}
+
+/* Outfit, Talky's headline face, only for the opener and panel titles. */
+.headline {
+  max-width: 32em;
+  color: var(--ink-3);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.headlineKey {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.runLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--text-12);
+}
+
+/* Criteria */
+.criteria {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.vitals {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+
+.vitals > * + * {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--line-soft);
+}
+
+@media (max-width: 1100px) {
+  .vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vitals > * + * {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+.note {
+  color: var(--ink-3);
+  font-size: var(--text-12);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+
+@media (max-width: 1100px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Needs you */
+.alerts,
+.entities,
+.inventory {
+  padding: 0;
+  list-style: none;
+}
+
+.alertRow,
+.entityRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--line-soft);
+  text-align: left;
+  transition: background-color var(--duration-fast) ease;
+}
+
+.alertRow:hover,
+.entityRow:hover {
+  background: var(--bg-subtle);
+}
+
+.alertIcon {
+  color: var(--ink-4);
+}
+
+.alertIcon[data-tone='danger'] {
+  color: var(--danger);
+}
+
+.alertIcon[data-tone='warn'] {
+  color: var(--warn);
+}
+
+.alertIcon[data-tone='info'] {
+  color: var(--info);
+}
+
+.alertText,
+.entityName {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.alertTitle {
+  color: var(--ink-strong);
+  font-weight: var(--weight-medium);
+}
+
+.alertSub,
+.entityMeta {
+  color: var(--ink-3);
+  font-size: var(--text-12);
+}
+
+.entityName {
+  color: var(--ink-strong);
+  font-weight: var(--weight-medium);
+}
+
+.entityMeta {
+  font-weight: var(--weight-regular);
+}
+
+/* Inventory */
+.inventory {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 48px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--ink-2);
+}
+
+a.tile:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.tileIcon {
+  color: var(--ink-3);
+}
+
+.tileLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tileCount {
+  color: var(--ink-strong);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tileArrow {
+  color: var(--ink-4);
+}
+
+.warnLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--warn-ink);
+  font-size: var(--text-12);
+}
