@@ -148,6 +148,7 @@ export function SuppliersPage() {
         onSortChange={onSortChange}
         onEndReached={cases.loadMore}
         selectedId={open}
+        onSelectedChange={(id) => open && id && setOpen(id)}
         onOpen={(c) => setOpen(c.caseId)}
         globalKeys
         empty={<EmptyState size="sm" icon={<CircleAlert />} title="Ninguna incidencia coincide con los filtros" />}
