@@ -1,0 +1,30 @@
+.muted {
+  color: var(--ink-2);
+}
+
+.text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rows {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.extra {
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  font-variant-numeric: tabular-nums;
+}
+
+.count {
+  color: var(--ink-2);
+  font-size: var(--text-13);
+  font-variant-numeric: tabular-nums;
+}
