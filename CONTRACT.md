@@ -195,7 +195,7 @@ Definiciones: **cola de revisión** = casos `needs_review`, `question` o `fallba
 | `GET /api/data/{phase}/accounts` | `Account[]` |
 | `GET /api/data/{phase}/items` · `parties` · `documents` · `documents/{path}` · `detail-files` | `Paged<DataItem>` · `Paged<Party>` · `Paged<DocumentRow>` · `DocumentDetail` · `Paged<DetailFileRow>` |
 
-`sort` en las listas: `campo` o `-campo` (descendente), con `campo` una clave de la fila. `q` busca sin distinguir mayúsculas ni acentos: en movimientos, en `bankTxnId`, `text`, `counterpartyName` y los números de partida; en casos, en `caseId`, `summary` y `partyName`.
+Los filtros de las listas (`entity`, `accountId`, `rule`, `exception`, `category`, `caseStatus`, `status`, `kind`, `priority`, `type`…) aceptan varios valores separados por coma. `sort` en las listas: `campo` o `-campo` (descendente), con `campo` una clave de la fila. `q` busca sin distinguir mayúsculas ni acentos: en movimientos, en `bankTxnId`, `text`, `counterpartyName` y los números de partida; en casos, en `caseId`, `summary` y `partyName`.
 
 ```ts
 export interface Paged<T> {
