@@ -122,13 +122,17 @@ function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r
     if (q && search) rows = rows.filter((r) => search(r).some((s) => normalize(s).includes(q)))
     const sort = query.get('sort')
     if (sort) {
-      const desc = sort.startsWith('-')
-      const field = desc ? sort.slice(1) : sort
-      const decorated = rows.map((r) => [sortValue(r, field), r])
-      decorated.sort(([x], [y]) => {
-        if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1
-        const cmp = x < y ? -1 : x > y ? 1 : 0
-        return desc ? -cmp : cmp
+      // `sort=priority,-amountEur`: each key breaks the ties of the one before.
+      const keys = sort.split(',').map((k) => (k.startsWith('-') ? [k.slice(1), -1] : [k, 1]))
+      const decorated = rows.map((r) => [keys.map(([field]) => sortValue(r, field)), r])
+      decorated.sort(([a], [b]) => {
+        for (let i = 0; i < keys.length; i++) {
+          const [x, y] = [a[i], b[i]]
+          if (x === y) continue
+          if (x == null || y == null) return x == null ? 1 : -1
+          return (x < y ? -1 : 1) * keys[i][1]
+        }
+        return 0
       })
       rows = decorated.map((d) => d[1])
     }
@@ -305,7 +309,7 @@ async function route(method, path, query, readBody) {
     const page = list(rows, query, {
       map: txnRow,
       search: (t) => [t.bankTxnId, t.text, t.counterpartyName, ...(rowsByTxn.get(t.bankTxnId) ?? []).map((x) => x.documentNumber)],
-      filters: { entity: 'entity', accountId: 'accountId' },
+      filters: { entity: 'entity', accountId: 'accountId', statementFormat: 'statementFormat' },
       sortValue: (t, key) => (key === 'rowCount' ? rowsByTxn.get(t.bankTxnId)?.length : key === 'rule' ? rowsByTxn.get(t.bankTxnId)?.[0]?.rule : key === 'confidence' ? rowsByTxn.get(t.bankTxnId)?.[0]?.confidence : key === 'caseStatus' ? caseByTxn.get(t.bankTxnId)?.status : t[key]),
     })
     return page
