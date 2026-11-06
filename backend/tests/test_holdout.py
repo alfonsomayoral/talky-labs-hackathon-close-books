@@ -3,7 +3,7 @@ from __future__ import annotations
 import polars as pl
 from conftest import require_phase
 
-from closebooks.holdout import open_items_at
+from closebooks.holdout import bank_to_camt, clone_entity, open_items_at
 from closebooks.load import cancelled_item_ids, load_table, phase_items
 from closebooks.paths import phase_dir
 
@@ -84,3 +84,66 @@ def test_opening_balances_reproduce_the_official_file_of_live():
     assert joined.filter(pl.col("open_cents").is_null()).height <= 4000
     assert joined.filter(pl.col("open_cents") != pl.col("official")).height <= 100
     assert mine.join(official, on="item_id", how="anti").height <= 500
+
+
+def test_n43_bank_moves_to_camt_from_a_date_and_keeps_its_code_in_the_subcode():
+    txns = pl.DataFrame({
+        "bank": ["RIBA", "RIBA", "OTHR"], "booking_date": ["2025-03-31", "2025-04-01", "2025-04-01"],
+        "statement_format": ["n43", "n43", "mt940"], "bank_code": ["04", "04", "NTRF"],
+        "bank_subcode": ["532", "532", None], "amount_cents": [100, -100, 100],
+        "text": ["T1", "T2", "T3"], "remittance_info": [None, None, None],
+    })
+    out = bank_to_camt(txns, "RIBA", "2025-04-01")
+    assert out["statement_format"].to_list() == ["n43", "camt053", "mt940"]
+    assert out["bank_subcode"].to_list() == ["532", "04532", None]
+    assert out["bank_code"].to_list() == ["04", "PMNT/ICDT/ESCT", "NTRF"]
+    assert out["remittance_info"].to_list() == [None, "T2", None]
+
+
+def test_new_entity_doubles_only_amounts_in_the_old_currency_and_renumbers_items():
+    items = pl.DataFrame({
+        "item_id": ["ARI-1", "ARI-2", "ARI-3"], "entity": ["MA01", "MA01", "ES01"], "currency": ["MAD", "EUR", "EUR"],
+        "total_amount": ["10.50", "20.00", "30.00"], "document_number": ["FA210100025", "FA210100026", "FA210100027"],
+        "customer_id": ["CMA01000300", "CMA01000301", "CES01000301"],
+    })
+    out = clone_entity(items, amount_cols=["total_amount"], number_cols=["document_number"])
+    assert out["entity"].to_list() == ["ZA01", "ZA01", "ES01"]
+    assert out["currency"].to_list() == ["ZAR", "EUR", "EUR"]
+    assert out["total_amount"].to_list() == ["21.00", "20.00", "30.00"]
+    assert out["document_number"].to_list() == ["KWI210100025", "KWI210100026", "FA210100027"]
+    assert out["customer_id"].to_list() == ["CZA01000300", "CZA01000301", "CES01000301"]
+
+
+def test_built_holdout_has_the_shape_of_final():
+    require_phase("holdout")
+    txns = load_table(phase_dir("holdout") / "bank_transactions.csv.gz")
+    assert txns["booking_date"].min() >= "2025-01-01"
+    assert txns["booking_date"].max() == "2025-06-30"
+    train = load_table(phase_dir("train") / "bank_transactions.csv.gz")
+    assert txns.height == train.filter(pl.col("booking_date") >= "2025-01-01").height
+    opening = load_table(phase_dir("holdout") / "open_items_at_start.csv.gz")
+    assert set(opening.columns) == {"item_id", "item_type", "entity", "party_id", "document_number", "issue_date",
+                                    "due_date", "currency", "total_amount", "open_amount"}
+    assert (opening["open_amount"].cast(pl.Float64) > 0).all()
+    g = load_table(phase_dir("holdout") / "golden_allocations.csv.gz")
+    assert set(g["bank_txn_id"]) == set(txns["bank_txn_id"])
+    assert (phase_dir("holdout") / "payment_runs" / "ES01_202501_0.csv").exists()
+    assert not (phase_dir("holdout") / "payment_runs" / "ES01_202412_0.csv").exists()
+
+
+def test_built_drift_holdout_is_consistent_and_keeps_new_entity_out_of_the_package_masters():
+    require_phase("holdout-drift")
+    folder = phase_dir("holdout-drift")
+    txns = load_table(folder / "bank_transactions.csv.gz")
+    assert "MA01" not in set(txns["entity"])
+    assert txns.filter(pl.col("entity") == "ZA01", pl.col("currency") == "ZAR").height > 0
+    assert (folder / "masters_final" / "entities.csv").exists()
+    masters = load_table(folder / "masters_final" / "entities.csv")
+    assert "ZA01" in set(masters["entity"])
+    golden = load_table(folder / "golden_allocations.csv.gz").select("bank_txn_id", "item_id", "amount", "category",
+                                                                     "exception")
+    assert set(golden["bank_txn_id"]) == set(txns["bank_txn_id"])
+    items = phase_items("holdout-drift")
+    missing = golden.filter(pl.col("item_id").is_not_null()).join(items, on="item_id", how="anti").select("item_id")
+    # Items closed before the cut and paid again (duplicates, returns) are in no item table of the phase.
+    assert missing.n_unique() / golden["item_id"].n_unique() < 0.02
