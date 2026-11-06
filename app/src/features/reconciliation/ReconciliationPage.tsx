@@ -15,15 +15,14 @@ import styles from './ReconciliationPage.module.css'
 const getRowId = (t: TxnRow) => t.bankTxnId
 
 const COLUMNS: Column<TxnRow>[] = [
-  { id: 'bookingDate', header: 'Fecha', width: 96, cell: (t) => <span className={styles.muted}>{formatDate(t.bookingDate)}</span>, sortValue: (t) => t.bookingDate },
-  { id: 'entity', header: 'Sociedad', width: 88, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
-  { id: 'accountId', header: 'Cuenta', width: 140, cell: (t) => <Mono>{t.accountId}</Mono>, sortValue: (t) => t.accountId },
-  { id: 'text', header: 'Texto del banco', width: 'minmax(240px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
-  { id: 'amountEur', header: 'Importe', width: 132, align: 'right', cell: (t) => <Amount cents={t.amountCents} currency={t.currency} signed colorize />, sortValue: (t) => t.amountEur },
+  { id: 'bookingDate', header: 'Fecha', width: 92, cell: (t) => <span className={styles.muted}>{formatDate(t.bookingDate)}</span>, sortValue: (t) => t.bookingDate },
+  { id: 'entity', header: 'Sociedad', width: 104, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
+  { id: 'text', header: 'Texto del banco', width: 'minmax(180px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
+  { id: 'amountEur', header: 'Importe', width: 152, align: 'right', cell: (t) => <Amount cents={t.amountCents} currency={t.currency} signed colorize />, sortValue: (t) => t.amountEur },
   {
     id: 'rowCount',
     header: 'Partidas',
-    width: 150,
+    width: 148,
     cell: (t) => {
       const { first, mono, extra } = rowsCell(t)
       if (first == null) return <span className={styles.muted}>—</span>
@@ -36,15 +35,17 @@ const COLUMNS: Column<TxnRow>[] = [
     },
     sortValue: (t) => t.rowCount,
   },
-  { id: 'rule', header: 'Regla', width: 168, cell: (t) => <Mono>{t.rule}</Mono>, sortValue: (t) => t.rule },
+  { id: 'rule', header: 'Regla', width: 176, cell: (t) => <Mono>{t.rule}</Mono>, sortValue: (t) => t.rule },
   { id: 'confidence', header: 'Confianza', width: 96, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
   {
     id: 'caseStatus',
     header: 'Caso',
-    width: 112,
+    width: 136,
     cell: (t) => (t.caseStatus ? <Badge tone={CASE_STATUS_TONE[t.caseStatus]}>{CASE_STATUS_LABEL[t.caseStatus]}</Badge> : <span className={styles.muted}>—</span>),
     sortValue: (t) => t.caseStatus,
   },
+  // Last: the account is also a filter and the panel's header, so it is what falls off a narrow screen, not the rule.
+  { id: 'accountId', header: 'Cuenta', width: 140, cell: (t) => <Mono>{t.accountId}</Mono>, sortValue: (t) => t.accountId },
 ]
 
 export function ReconciliationPage() {

@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Amount, ButtonLink, Card, EmptyState, Metric, Mono, Page, PageHeader, Section, Skeleton } from '@/components'
 import { useActiveRun, useRun, useRunStats } from '@/data'
-import { autoRate, exceptionLabel } from '@/domain'
+import { autoRate, categoryLabel, exceptionLabel } from '@/domain'
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { DayChart } from './DayChart'
@@ -146,7 +146,7 @@ export function OverviewPage() {
         <Section title="Categorías" description="Movimientos sin factura, por categoría.">
           <Card padding="none">
             {stats.byCategory.length ? (
-              <RankList rows={stats.byCategory.slice(0, TOP).map((c) => ({ key: c.category, label: <Mono>{c.category}</Mono>, value: c.txns, detail: <Amount cents={c.amountEur} compact /> }))} />
+              <RankList rows={stats.byCategory.slice(0, TOP).map((c) => ({ key: c.category, label: categoryLabel(c.category), value: c.txns, detail: <Amount cents={c.amountEur} compact /> }))} />
             ) : (
               <EmptyState size="sm" title="Sin categorías" />
             )}

@@ -92,7 +92,7 @@ function computeStats(entity) {
   return {
     runId: run.runId, phase: run.phase, entity: entity ?? null, periodFrom: txns.reduce((a, t) => (t.bookingDate < a ? t.bookingDate : a), txns[0].bookingDate), periodTo: data.asOf, ...summary(scoped), reviewQueue: queue.length, totalEur: sum(scoped, (t) => Math.abs(t.amountEur)), reviewQueueEur: sum(queue, (c) => c.amountEur),
     byStatus: Object.fromEntries([...groupBy(scopedCases, (c) => c.status)].map(([k, v]) => [k, v.length])),
-    byKind: [...groupBy(scopedCases, (c) => c.kind)].map(([kind, v]) => ({ kind, cases: v.length, amountEur: sum(v, (c) => c.amountEur) })).sort((a, b) => b.cases - a.cases),
+    byKind: [...groupBy(queue, (c) => c.kind)].map(([kind, v]) => ({ kind, cases: v.length, amountEur: sum(v, (c) => c.amountEur) })).sort((a, b) => b.cases - a.cases),
     byEntity: [...groupBy(txns, (t) => t.entity)].map(([e, v]) => ({ entity: e, name: masters.entities.find((x) => x.entity === e)?.name ?? e, ...summary(v) })).sort((a, b) => b.txns - a.txns),
     byRule: [...groupBy(scopedRows, (r) => r.rule)].map(([rule, v]) => ({ rule, rows: v.length, txns: new Set(v.map((r) => r.bankTxnId)).size })).sort((a, b) => b.rows - a.rows),
     byException: tally('exception').map(([exception, v]) => ({ exception, rows: v.length, amountEur: sum(v, (r) => r.amountCents ?? eurOf(r)) })).sort((a, b) => b.rows - a.rows),
@@ -371,7 +371,7 @@ async function route(method, path, query, readBody) {
   }
 
   if (resource === 'memory-rules') {
-    if (method === 'GET') return human.memoryRules.filter((r) => r.active)
+    if (method === 'GET') return human.memoryRules.filter((r) => r.active).map((r) => ({ ...r, affectedTxns: new Set(explanations.filter((e) => e.sources.some((x) => x.kind === 'memoryRule' && x.ref === r.ruleId)).map((e) => e.bankTxnId)).size }))
     if (method === 'POST') {
       const rule = { ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, active: true, at: now(), ...(await readBody()) }
       human.memoryRules.push(rule)

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import polars as pl
 import pytest
 
-from closebooks.load import load_masters, to_cents
-from closebooks.paths import masters_dir
+from closebooks.load import load_detail, load_masters, to_cents
+from closebooks.paths import masters_dir, phase_dir
 
 
 def test_amounts_are_exact_integer_cents():
@@ -54,7 +56,8 @@ def test_open_item_with_partial_balance_starts_at_its_open_amount(live):
 
 def test_every_item_of_live_is_issued_in_the_phase_or_open_at_start(live):
     assert live.items["item_id"].n_unique() == live.items.height
-    assert live.items.height == 487243 + 199414 + 19500 + 325419
+    in_phase_or_open = live.items.filter(pl.col("issue_date") >= "2025-07-01").height + live.open_at_start.height
+    assert in_phase_or_open == 487243 + 199414 + 19500 + 325419
 
 
 def test_masters_final_win_over_the_package_masters(tmp_path):
@@ -64,3 +67,27 @@ def test_masters_final_win_over_the_package_masters(tmp_path):
     (phase / "masters_final" / "entities.csv").write_text("entity,legal_name\nZA01,Umvoti Pools\n")
     with pytest.raises(FileNotFoundError):
         load_masters(phase)  # the other masters are missing: fails loud instead of mixing folders silently
+
+
+def test_item_carried_over_from_the_previous_phase_keeps_its_name_and_terms(live):
+    carried = live.open_at_start.join(pl.read_csv(
+        phase_dir("live") / "ar_invoices.csv.gz", infer_schema_length=0).select("item_id"), on="item_id", how="anti")
+    row = live.items.filter(pl.col("item_id").is_in(carried.filter(pl.col("item_type") == "ARI")["item_id"].head(50)
+                                                    .to_list()))
+    assert row["party_name"].null_count() == 0
+    assert row["payment_terms"].null_count() == 0
+
+
+def test_item_closed_in_the_previous_phase_exists_with_nothing_open(live):
+    closed = live.items.filter(pl.col("issue_date") < "2025-07-01", pl.col("open_cents") == 0)
+    assert closed.height > 100_000
+    assert closed["item_id"].n_unique() == closed.height
+
+
+def test_detail_file_of_the_previous_month_is_read_but_not_older_ones(tmp_path):
+    (tmp_path / "train" / "payment_runs").mkdir(parents=True)
+    (tmp_path / "live" / "payment_runs").mkdir(parents=True)
+    for name, folder in (("ES01_202506_0.csv", "train"), ("ES01_202412_0.csv", "train"), ("ES01_202507_0.csv", "live")):
+        (tmp_path / folder / "payment_runs" / name).write_text(f"run_id\n{name}\n")
+    phase = SimpleNamespace(dir=tmp_path / "live", prior=[tmp_path / "train"], start="2025-07-01")
+    assert sorted(load_detail(phase, "payment_runs")["run_id"]) == ["ES01_202506_0.csv", "ES01_202507_0.csv"]

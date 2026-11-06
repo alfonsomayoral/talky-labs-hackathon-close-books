@@ -15,10 +15,18 @@
 }
 
 .hint {
+  position: relative;
   display: inline-flex;
   color: var(--ink-3);
   border-radius: var(--radius-pill);
   cursor: help;
+}
+
+/* The icon stays small; the hit area reaches 25px. */
+.hint::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
 }
 
 .hint svg {

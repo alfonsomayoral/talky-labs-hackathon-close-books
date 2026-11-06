@@ -86,56 +86,14 @@ export interface Case {
   createdAt: string
 }
 
-export interface QuestionOption {
-  id: string
-  label: string
-}
-
 export interface RulePreview {
   kind: MemoryRuleKind
   description: string
   [param: string]: unknown
 }
 
-/** §2.6 */
-export interface Question {
-  questionId: string
-  caseId: string
-  bankTxnId: string | null
-  entity: string
-  question: string
-  options: QuestionOption[]
-  defaultOption: string
-  rulePreview: RulePreview | null
-  status: 'open' | 'answered'
-  createdAt: string
-}
 
-export interface DraftAttachment {
-  kind: string
-  ref: string
-  label?: string
-}
 
-export type DraftKind = 'email_customer' | 'email_supplier'
-export type DraftStatus = 'draft' | 'sent' | 'manual'
-
-/** §2.7 */
-export interface Draft {
-  draftId: string
-  caseId: string
-  kind: DraftKind
-  to: string
-  toName: string
-  partyId: string | null
-  language: string
-  subject: string
-  body: string
-  attachments: DraftAttachment[]
-  generatedBy: string | null
-  status: DraftStatus
-  createdAt: string
-}
 
 export interface ModelUsage {
   calls: number
@@ -193,6 +151,8 @@ export interface MemoryRule {
   by: string
   at: string
   active: boolean
+  /** Movements of this run resolved by this rule; 0 until a run has used it. */
+  affectedTxns: number
 }
 
 export type CaseDecisionAction = 'done' | 'review' | 'manual'
