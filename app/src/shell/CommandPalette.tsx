@@ -1,17 +1,17 @@
-// ⌘K: go to a page, or find any object of the package by id, name or number and open it in the panel.
-import { useMemo, useState, type ReactNode } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+// ⌘K: go to a screen, or find a movement or a case by id, text or document number and open it.
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Command as Cmdk } from 'cmdk'
-import { LayoutDashboard, Search, Upload } from 'lucide-react'
+import { Inbox, ListChecks, Search } from 'lucide-react'
 import { Dialog, Kbd } from '@/components'
-import { KIND_OF } from '@/domain'
-import { PAGE_VIEWS, VIEWS, refKey, useData, type AnyObject } from '@/data'
+import { SCREENS, useCases, useCurrentRun, useTransactions } from '@/data'
 import { MOD_KEY } from '@/lib/keyboard'
 import { useScopedTo } from '@/lib/urlState'
 import { useShellUi } from './uiStore'
 import styles from './CommandPalette.module.css'
 
-const MAX_RESULTS = 12
+const MAX_RESULTS = 8
+const DEBOUNCE_MS = 200
 
 const normalize = (s: string) =>
   s
@@ -22,48 +22,33 @@ const normalize = (s: string) =>
 export function CommandPalette() {
   const open = useShellUi((s) => s.paletteOpen)
   const setOpen = useShellUi((s) => s.setPaletteOpen)
-  const dataset = useData((s) => s.dataset)
-  const links = useData((s) => s.links)
   const navigate = useNavigate()
-  const { pathname } = useLocation()
   const to = useScopedTo()
+  const { runId } = useCurrentRun()
   const [query, setQuery] = useState('')
+  const [debounced, setDebounced] = useState('')
 
-  const pages = useMemo(
-    () => [
-      { id: '/', label: 'Resumen', icon: <LayoutDashboard /> },
-      ...PAGE_VIEWS.map((v) => ({ id: v.path!, label: v.label, icon: <v.icon /> })),
-      { id: '/importar', label: 'Importar datos', icon: <Upload /> },
-    ],
-    [],
-  )
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), DEBOUNCE_MS)
+    return () => clearTimeout(t)
+  }, [query])
 
-  const results = useMemo(() => {
-    const q = normalize(query.trim())
-    if (q.length < 2 || !dataset || !links) return []
-    const out: { key: string; label: string; hint: string; icon: ReactNode }[] = []
-    for (const v of VIEWS) {
-      for (const o of dataset[v.kind] as AnyObject[]) {
-        if (!normalize(v.search(o, links)).includes(q)) continue
-        out.push({ key: refKey({ kind: KIND_OF[v.kind], id: o.id }), label: v.title(o, links), hint: o.id, icon: <v.icon /> })
-        if (out.length >= MAX_RESULTS) return out
-      }
-    }
-    return out
-  }, [query, dataset, links])
-
-  const visiblePages = pages.filter((p) => normalize(p.label).includes(normalize(query.trim())))
+  const searching = open && debounced.length >= 2
+  const txns = useTransactions(searching ? runId : null, { q: debounced, size: MAX_RESULTS })
+  const cases = useCases(searching ? runId : null, { q: debounced, size: MAX_RESULTS })
+  const visibleScreens = SCREENS.filter((s) => normalize(s.label).includes(normalize(query.trim())))
 
   const close = () => {
     setOpen(false)
     setQuery('')
+    setDebounced('')
   }
 
-  const go = (target: string, open?: string) => {
+  const go = (path: string, ver?: string) => {
     close()
-    const scoped = to(target)
+    const scoped = to(path)
     const params = new URLSearchParams(scoped.search)
-    if (open) params.set('ver', open)
+    if (ver) params.set('ver', ver)
     navigate({ pathname: scoped.pathname, search: params.size ? `?${params}` : '' })
   }
 
@@ -72,28 +57,45 @@ export function CommandPalette() {
       <Cmdk shouldFilter={false} loop label="Paleta de comandos" className={styles.root}>
         <div className={styles.inputRow}>
           <Search aria-hidden className={styles.searchIcon} />
-          <Cmdk.Input value={query} onValueChange={setQuery} placeholder="Busca una página, un proveedor, una factura, un IBAN…" className={styles.input} />
+          <Cmdk.Input value={query} onValueChange={setQuery} placeholder="Busca una pantalla, un movimiento, una factura, un caso…" className={styles.input} />
           <Kbd>Esc</Kbd>
         </div>
         <Cmdk.List className={styles.list}>
           <Cmdk.Empty className={styles.empty}>Sin resultados para «{query}»</Cmdk.Empty>
-          {results.length > 0 && (
-            <Cmdk.Group heading="Objetos" className={styles.group}>
-              {results.map((r) => (
-                <Cmdk.Item key={r.key} value={r.key} onSelect={() => go(pathname, r.key)} className={styles.item}>
-                  <span className={styles.icon}>{r.icon}</span>
-                  <span className={styles.label}>{r.label}</span>
-                  <span className={styles.hint}>{r.hint}</span>
+          {searching && txns.rows.length > 0 && (
+            <Cmdk.Group heading="Movimientos" className={styles.group}>
+              {txns.rows.slice(0, MAX_RESULTS).map((t) => (
+                <Cmdk.Item key={t.bankTxnId} value={t.bankTxnId} onSelect={() => go('/conciliacion', t.bankTxnId)} className={styles.item}>
+                  <span className={styles.icon}>
+                    <ListChecks />
+                  </span>
+                  <span className={styles.label}>{t.text}</span>
+                  <span className={styles.hint}>{t.bankTxnId}</span>
                 </Cmdk.Item>
               ))}
             </Cmdk.Group>
           )}
-          {visiblePages.length > 0 && (
+          {searching && cases.rows.length > 0 && (
+            <Cmdk.Group heading="Casos" className={styles.group}>
+              {cases.rows.slice(0, MAX_RESULTS).map((c) => (
+                <Cmdk.Item key={c.caseId} value={c.caseId} onSelect={() => go('/bandeja', c.caseId)} className={styles.item}>
+                  <span className={styles.icon}>
+                    <Inbox />
+                  </span>
+                  <span className={styles.label}>{c.summary}</span>
+                  <span className={styles.hint}>{c.caseId}</span>
+                </Cmdk.Item>
+              ))}
+            </Cmdk.Group>
+          )}
+          {visibleScreens.length > 0 && (
             <Cmdk.Group heading="Ir a" className={styles.group}>
-              {visiblePages.map((p) => (
-                <Cmdk.Item key={p.id} value={p.id} onSelect={() => go(p.id)} className={styles.item}>
-                  <span className={styles.icon}>{p.icon}</span>
-                  <span className={styles.label}>{p.label}</span>
+              {visibleScreens.map((s) => (
+                <Cmdk.Item key={s.id} value={s.path} onSelect={() => go(s.path)} className={styles.item}>
+                  <span className={styles.icon}>
+                    <s.icon />
+                  </span>
+                  <span className={styles.label}>{s.label}</span>
                 </Cmdk.Item>
               ))}
             </Cmdk.Group>

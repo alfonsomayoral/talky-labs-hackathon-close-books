@@ -243,7 +243,7 @@
   background: var(--warn);
 }
 
-.sourceDot[data-source='zip'] {
+.sourceDot[data-live] {
   background: var(--ok);
 }
 

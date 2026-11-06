@@ -1,0 +1,100 @@
+{
+ "runId": "sample-20261107-010000",
+ "phase": "sample",
+ "dataDir": "fixtures/run-sample",
+ "createdAt": "2026-11-07T01:00:00+01:00",
+ "gitCommit": "a286f42",
+ "durationMs": 241000,
+ "stages": {
+  "load": 12000,
+  "index": 8000,
+  "documents": 90000,
+  "rules": 70000,
+  "resolve": 30000,
+  "output": 31000
+ },
+ "txns": 800,
+ "rows": 2249,
+ "byRule": {
+  "REF-EXACT": 110,
+  "FILE-PAYMENT-RUN": 600,
+  "CAT-CODE": 52,
+  "FILE-CARD": 177,
+  "FALLBACK-UNIDENTIFIED": 25,
+  "FILE-DD-BATCH": 785,
+  "PARTY-AMOUNT": 88,
+  "ADVICE-CSV": 373,
+  "FALLBACK-CATEGORY": 9,
+  "REF-NOPREFIX": 24,
+  "HISTORY-DUPLICATE": 6
+ },
+ "byException": {
+  "PARTIAL": 34,
+  "UNIDENTIFIED": 25,
+  "FX_DIFFERENCE": 20,
+  "SHORT_BANK_CHARGES": 15,
+  "RETURNED": 18,
+  "OVERPAYMENT": 24,
+  "SHORT_WITHHOLDING": 22,
+  "SHORT_DISPUTE": 21,
+  "SHORT_DISCOUNT": 15,
+  "DUPLICATE_PAYMENT": 6
+ },
+ "byCategory": {
+  "BANK_FEES": 7,
+  "LOAN_REPAYMENT": 9,
+  "UNIDENTIFIED": 25,
+  "CASH_POOL": 11,
+  "PAYROLL": 8,
+  "INSURANCE": 8,
+  "TAX_PAYMENT": 9,
+  "INTEREST_INCOME": 9
+ },
+ "cases": {
+  "needs_review": 171,
+  "question": 25,
+  "auto": 20,
+  "fallback": 9
+ },
+ "models": {
+  "claude-haiku-5-5": {
+   "calls": 812,
+   "inputTokens": 1200000,
+   "outputTokens": 90000,
+   "costUsd": 0.4
+  }
+ },
+ "memoryRulesApplied": 0,
+ "score": {
+  "score": 71.4,
+  "metrics": {
+   "pair_f1": 0.78,
+   "pair_precision": 0.97,
+   "pair_recall": 0.65,
+   "txn_accuracy": 0.69,
+   "exception_macro_f1": 0.55
+  },
+  "segments": {
+   "ar_1to1": {
+    "txns": 320,
+    "score": 0.96
+   },
+   "ar_ref_noise": {
+    "txns": 410,
+    "score": 0.52
+   },
+   "ap_payment_multi": {
+    "txns": 280,
+    "score": 0.91
+   },
+   "ar_dd_batch": {
+    "txns": 230,
+    "score": 0.99
+   },
+   "nonitem_bank_fees": {
+    "txns": 160,
+    "score": 0.88
+   }
+  }
+ }
+}
