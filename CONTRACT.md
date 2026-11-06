@@ -136,7 +136,7 @@ Una fila por partida con movimiento en la fase o abierta al inicio: `itemId`, `i
 | Fichero | Línea |
 | --- | --- |
 | `decisions.jsonl` | `{"decisionId", "questionId", "caseId", "optionId", "note", "saveAsRule": true, "by", "at"}` o `{"decisionId", "caseId", "action": "done" \| "review" \| "manual", "note", "by", "at"}` |
-| `memory_rules.jsonl` | `{"ruleId": "MR-0001", "kind", "params", "description", "scope": {"entity"?}, "createdFrom": {"questionId"?, "caseId"?}, "by", "at", "active": true}`. `kind` ∈ `payer_is_customer` (`payerName` o `iban` → `partyId`), `reference_alias` (`pattern` → `documentNumber` o `partyId`), `supplier_nets_credit_notes` (`partyId`), `always_category` (`bank`, `bankCode`, `bankSubcode`, `textPattern` → `category`), `ignore_suffix` (`partyId`, `regex`), `parent_pays` (`payerPartyId` → `forPartyId`) |
+| `memory_rules.jsonl` | `{"ruleId": "MR-0001", "kind", "params", "description", "scope": {"entity"?}, "createdFrom": {"questionId"?, "caseId"?}, "by", "at", "active": true}`. La API devuelve cada regla con `affectedTxns` (movimientos de la ejecución resueltos por `MEMORY-RULE` con ese `ruleId`; 0 si aún no se ha ejecutado con ella). `kind` ∈ `payer_is_customer` (`payerName` o `iban` → `partyId`), `reference_alias` (`pattern` → `documentNumber` o `partyId`), `supplier_nets_credit_notes` (`partyId`), `always_category` (`bank`, `bankCode`, `bankSubcode`, `textPattern` → `category`), `ignore_suffix` (`partyId`, `regex`), `parent_pays` (`payerPartyId` → `forPartyId`) |
 | `outbox.jsonl` | `{"draftId", "status": "sent" \| "manual", "subject", "body", "to", "attachments", "by", "at"}`. «Enviado» es un registro: no sale ningún correo |
 
 `closebooks run --memory runs/<id>/human/` carga las reglas activas y las aplica como `MEMORY-RULE` con `sources: [{"kind": "memoryRule", "ref": "MR-0001"}]`.
@@ -195,7 +195,7 @@ Definiciones: **cola de revisión** = casos `needs_review`, `question` o `fallba
 | `GET /api/data/{phase}/accounts` | `Account[]` |
 | `GET /api/data/{phase}/items` · `parties` · `documents` · `documents/{path}` · `detail-files` | `Paged<DataItem>` · `Paged<Party>` · `Paged<DocumentRow>` · `DocumentDetail` · `Paged<DetailFileRow>` |
 
-Los filtros de las listas (`entity`, `accountId`, `rule`, `exception`, `category`, `caseStatus`, `status`, `kind`, `priority`, `type`…) aceptan varios valores separados por coma. `sort` en las listas: `campo` o `-campo` (descendente), con `campo` una clave de la fila. `q` busca sin distinguir mayúsculas ni acentos: en movimientos, en `bankTxnId`, `text`, `counterpartyName` y los números de partida; en casos, en `caseId`, `summary` y `partyName`.
+Los filtros de las listas (`entity`, `accountId`, `rule`, `exception`, `category`, `caseStatus`, `status`, `kind`, `priority`, `type`…) aceptan varios valores separados por coma. `sort` en las listas: `campo` o `-campo` (descendente), con `campo` una clave de la fila; admite varios criterios separados por coma (`sort=priority,-amountEur`). `GET …/transactions` admite además `statementFormat=` (n43, mt940, camt053; varios con coma). `q` busca sin distinguir mayúsculas ni acentos: en movimientos, en `bankTxnId`, `text`, `counterpartyName` y los números de partida; en casos, en `caseId`, `summary` y `partyName`.
 
 ```ts
 export interface Paged<T> {
