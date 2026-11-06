@@ -202,7 +202,7 @@ La app es **solo tema oscuro**: la tinta azulada de Talky pasa a ser el fondo y 
 | `--line` · `--line-strong` | `#263052` · `#344070` | Bordes de 1 px; el fuerte, en hover |
 | `--info` | `#6B8AF0` | Estado informativo, enlaces |
 
-Los colores de estado son los de Kalmora en su variante para fondo oscuro (el `--ok` es un esmeralda `#10B981`, más saturado y más azul que el verde de marca, para que no se confundan): el color base para puntos y barras, un relleno al 14 % y un borde al 38 % sobre `--bg`, y un texto más claro que pasa AA sobre ambos. Las sombras son negras y con más opacidad, porque sobre oscuro casi no se ven; el borde de 1 px hace la mayor parte del trabajo.
+Los colores de estado son los de Kalmora en su variante para fondo oscuro (el `--ok` es un turquesa `#2DD4BF` y no un verde, para que no se confunda con el de marca: 30° de tono más allá, más saturado y más claro): el color base para puntos y barras, un relleno al 14 % y un borde al 38 % sobre `--bg`, y un texto más claro que pasa AA sobre ambos. Las sombras son negras y con más opacidad, porque sobre oscuro casi no se ven; el borde de 1 px hace la mayor parte del trabajo.
 
 La tipografía sigue a [rex.inc](https://www.rex.inc/collections), que usa Tiempos Headline (light) para titulares, GD Gaio para el texto y Chivo Mono para códigos. Las dos primeras son comerciales, así que van sus equivalentes libres más cercanos:
 

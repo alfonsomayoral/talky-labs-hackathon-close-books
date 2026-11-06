@@ -44,10 +44,11 @@
 
   /* Status: base (dots, bars, icons), bg (soft fills, 14 % of base over --bg), border (38 %), ink (text on
      bg / --bg, AA). */
-  --ok: #10b981;
-  --ok-bg: #112f40;
-  --ok-border: #115652;
-  --ok-ink: #34d399;
+  /* ok is teal, not green, so it never reads as the brand green: 30° of hue apart, more saturated and lighter. */
+  --ok: #2dd4bf;
+  --ok-bg: #153349;
+  --ok-border: #1c606a;
+  --ok-ink: #5eead4;
   --warn: #f59e0b;
   --warn-bg: #312c30;
   --warn-border: #684c26;
