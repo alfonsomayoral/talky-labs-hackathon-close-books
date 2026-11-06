@@ -31,6 +31,10 @@ be-run phase:
 be-score run *args:
     cd backend && uv run closebooks score {{run}} {{args}}
 
+# Lista los fallos de una ejecución por segmento y causa: just be-diff <run> [--segment S]
+be-diff run *args:
+    cd backend && uv run closebooks diff {{run}} {{args}}
+
 # Construye db/holdout/ y db/holdout-drift/ desde TRAIN
 holdout:
     cd backend && uv run closebooks holdout build

@@ -24,7 +24,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     size = meta["csvBytes"] / 1e6
     print(f"{run}\n{meta['txns']} txns, {meta['rows']} rows, {size:.1f} MB, {meta['durationMs'] / 1000:.0f} s")
     if meta["score"]:
-        print(f"score {meta['score']['score']}  {meta['score']['metrics']}")
+        print(f"score {meta['score']['score']}  {meta['score']['metrics']}  {meta['score']['errors'][:3]}")
     return 0
 
 
@@ -45,6 +45,14 @@ def _cmd_score(args: argparse.Namespace) -> int:
     else:
         for seg, info in sorted(result["segments"].items(), key=lambda kv: -kv[1]["n"]):
             print(f"{seg:34}{info['n']:>9}{info['accuracy']:>9.4f}")
+    return 0
+
+
+def _cmd_diff(args: argparse.Namespace) -> int:
+    from .diff import report
+
+    run = _run_dir(args.run)
+    print(report(run, json.loads((run / "run.json").read_text())["phase"], args.segment))
     return 0
 
 
@@ -74,6 +82,11 @@ def main(argv: list[str] | None = None) -> int:
     score.add_argument("run")
     score.add_argument("--compare")
     score.set_defaults(func=_cmd_score)
+
+    diff = sub.add_parser("diff")
+    diff.add_argument("run")
+    diff.add_argument("--segment")
+    diff.set_defaults(func=_cmd_diff)
 
     validate = sub.add_parser("validate")
     validate.add_argument("csv")

@@ -15,6 +15,7 @@ class Proposal:
     reference: str | None = None
     sources: list[dict] = field(default_factory=list)
     candidates: list[dict] = field(default_factory=list)
+    returned: bool = False  # the bank line reverses an earlier settlement of these items
 
 
 @dataclass(slots=True)
