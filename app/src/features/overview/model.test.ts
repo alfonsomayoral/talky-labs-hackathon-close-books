@@ -7,6 +7,9 @@ const day = (date: string, txns: number, txnsAuto: number): DayStats => ({ date,
 const plain = (text: string) => text.replace(/\s/g, ' ')
 
 describe('headline', () => {
+  it('groups thousands in the number of waiting cases', () => {
+    expect(plain(headline({ txns: 203083, txnsAuto: 0, reviewQueue: 203083 }))).toContain('203.083 casos esperan')
+  })
   it('states the auto rate and how many cases wait for a person', () => {
     expect(plain(headline({ txns: 800, txnsAuto: 600, reviewQueue: 40 }))).toBe('75 % conciliado sin intervención; 40 casos esperan a una persona')
   })

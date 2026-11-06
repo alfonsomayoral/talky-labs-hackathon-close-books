@@ -1,0 +1,60 @@
+.table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  font-size: var(--text-13);
+  overflow: hidden;
+}
+
+.body {
+  max-height: 324px;
+  overflow: auto;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--mt-cols);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.body .row:last-child {
+  border-bottom: 0;
+}
+
+.header {
+  min-height: 32px;
+  background: var(--bg-subtle);
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  font-weight: var(--weight-medium);
+}
+
+.cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.right {
+  justify-self: end;
+  text-align: right;
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:hover {
+  background: var(--ground-hover);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: -2px;
+}

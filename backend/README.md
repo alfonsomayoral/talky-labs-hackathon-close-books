@@ -1,5 +1,10 @@
 # backend/
 
-El conciliador bancario (Python). Aún sin código: el diseño está en [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §7.
+El conciliador bancario. Lee una fase de `db/` y escribe en `runs/` la carpeta de [`../CONTRACT.md`](../CONTRACT.md). Las reglas deciden; los modelos solo extraen ([`../ARCHITECTURE.md`](../ARCHITECTURE.md) §7).
 
-Lee una fase de `db/` y escribe en `runs/` la entrega oficial, sus explicaciones y `run.json`, como describe [`../CONTRACT.md`](../CONTRACT.md). Las reglas deciden; los modelos solo extraen (ver [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §1).
+```bash
+just be-run sample        # ejecuta una fase: sample, train, live, holdout, holdout-drift, final
+just be-score <run>       # puntúa con el evaluador oficial, por segmento; --compare <run> enseña qué baja
+just holdout              # construye db/holdout/ y db/holdout-drift/ desde TRAIN
+just be-check && just be-test
+```

@@ -18,3 +18,6 @@ export function decisionOf(rows: Pick<DetailRow, 'rule' | 'confidence'>[]): { ru
     confidence: rows.length ? Math.min(...rows.map((r) => r.confidence)) : null,
   }
 }
+
+/** Parties settled by the movement's rows. More than one in a payment run or a batch. */
+export const distinctParties = (rows: Pick<DetailRow, 'item'>[]) => new Set(rows.flatMap((r) => r.item?.partyId ?? [])).size
