@@ -4,7 +4,7 @@ Import everything from `@/components`. Tokens: `src/design/tokens.css` (Talky br
 
 ## Rules
 
-- **Colour carries meaning only.** Forest green (`--brand`) = main data, selection, focus. Status colours = status. Everything else is light ink on the dark surfaces with hairline borders (`--line`). Dark theme only.
+- **Colour carries meaning only.** Forest green (`--brand`) = main data, selection, focus. Status colours = status. Everything else is ink on the surfaces with hairline borders (`--line`). Light and dark themes (`data-theme` on `<html>`, `@/lib/theme`); the values below are the dark theme's.
 - **One primary button per view** (light fill, navy text). The rest: `secondary` (bordered) or `ghost`.
 - **Small green text** uses `--brand-ink` (#7CCB95, 8.9:1 on `--bg`). Status text on tinted fills uses `--ok-ink`, `--warn-ink`, `--danger-ink`, `--info-ink`.
 - **Green indicators** (selected border or underline, focus ring, check) use `--brand-line` (#46A86A, ≥ 3:1). Green fills take `--ink-inverse` (navy) text, as the checked filter box does. `--brand` stays for large areas and icons next to a label.

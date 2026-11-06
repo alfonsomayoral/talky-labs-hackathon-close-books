@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router'
 import clsx from 'clsx'
-import { Building2, ChevronsUpDown, LayoutDashboard, Search, Upload } from 'lucide-react'
+import { Building2, ChevronsUpDown, LayoutDashboard, Moon, Search, Sun, Upload } from 'lucide-react'
 import { Kbd, Menu, TalkyLogo, TalkyMark, type MenuItem } from '@/components'
 import { PAGE_VIEWS, useData } from '@/data'
 import { formatMonth, formatNumber } from '@/lib/format'
 import { MOD_KEY } from '@/lib/keyboard'
+import { useTheme } from '@/lib/theme'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { useShellUi } from './uiStore'
 import styles from './Sidebar.module.css'
@@ -59,6 +60,8 @@ export function Sidebar({ expanded, onMenuOpenChange }: SidebarProps) {
   const [entity] = useEntityScope()
   const to = useScopedTo()
   const togglePalette = useShellUi((s) => s.togglePalette)
+  const [theme, setTheme] = useTheme()
+  const ThemeIcon = theme === 'dark' ? Sun : Moon
   const alerts = (run?.alerts ?? []).filter((a) => !entity || a.entityId === entity).length
 
   const count = (rows: { entityId?: string; id: string }[]) => (entity ? rows.filter((r) => (r.entityId ?? r.id) === entity).length : rows.length)
@@ -127,6 +130,10 @@ export function Sidebar({ expanded, onMenuOpenChange }: SidebarProps) {
           <Upload aria-hidden className={styles.entryIcon} />
           <span className={styles.entryLabel}>Importar datos</span>
         </NavLink>
+        <button type="button" className={styles.entry} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+          <ThemeIcon aria-hidden className={styles.entryIcon} />
+          <span className={styles.entryLabel}>{theme === 'dark' ? 'Tema claro' : 'Tema oscuro'}</span>
+        </button>
         <div className={styles.source}>
           <span className={styles.sourceDot} data-source={dataset?.meta.source} aria-hidden />
           <span className={styles.sourceText}>{dataset?.meta.source === 'zip' ? `Paquete: ${dataset.meta.name}` : 'Datos de muestra'}</span>

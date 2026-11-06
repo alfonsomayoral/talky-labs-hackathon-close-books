@@ -185,7 +185,7 @@ Todas son la misma `DatasetPage`: título con el recuento y las filas con alerta
 
 La referencia es [usetalky.com](https://usetalky.com). El marino y la tinta salen de su CSS (variables `--marino`, `--tinta`…, leídas el 6 nov 2026) y sustituyen a los de Kalmora, que usaba un naranja genérico (`#F97316`) e Inter. El color de acento ya no es el naranja de Talky (`#F3572F`) sino un **verde bosque**: el clásico `#228B22` solo llega a 3,9:1 sobre la hoja oscura, así que se mantiene su tono (142°) y se aclara hasta pasar AA.
 
-La app es **solo tema oscuro**: la tinta azulada de Talky pasa a ser el fondo y el texto es claro. `color-scheme: dark` hace que los controles nativos (barras de desplazamiento, campos) también salgan oscuros.
+La app tiene **dos temas**. El claro vive en `:root` (la hoja blanca sobre la piedra de Talky) y el oscuro sobreescribe los colores bajo `[data-theme='dark']`: la tinta azulada de Talky pasa a ser el fondo y el texto es claro. `index.html` pone `data-theme` en `<html>` antes de pintar (la elección guardada en `localStorage`, si no la del sistema) y `src/lib/theme.ts` lo cambia desde la barra lateral. `color-scheme` hace que los controles nativos sigan al tema. El verde bosque mantiene el tono (142°) en los dos: `#2E9A5C` en claro, oscurecido para pasar sobre blanco (texto pequeño `#1F7A45`, 5,4:1), y `#46A86A` en oscuro. Los valores que siguen son los del tema oscuro.
 
 | Token | Valor | Uso |
 | --- | --- | --- |
@@ -214,7 +214,7 @@ La tipografía sigue a [rex.inc](https://www.rex.inc/collections), que usa Tiemp
 
 Se autoalojan con `@fontsource` (sin dependencia de Google Fonts en la demo).
 
-Logo: el logo original de Talky, que conserva sus colores (la forma rosa con borde naranja y la palabra «Talky», `public/talky-logo.png`, con la palabra recoloreada a la tinta clara para que se lea sobre el fondo oscuro) junto al nombre del producto, «Close the Books», en la cabecera de la barra lateral. La forma sola es el favicon.
+Logo: el logo original de Talky, que conserva sus colores (la forma rosa con borde naranja y la palabra «Talky», `public/talky-logo.png` en claro y `public/talky-logo-dark.png`, con la palabra recoloreada a la tinta clara, en oscuro) junto al nombre del producto, «Close the Books», en la cabecera de la barra lateral. La forma sola es el favicon.
 
 ### 5.5 Reglas visuales
 

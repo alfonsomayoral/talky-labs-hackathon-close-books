@@ -65,7 +65,7 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 
 ## 6. Reglas del frontend (`app/`)
 
-- La marca es la de Talky ([usetalky.com](https://usetalky.com)): tema oscuro sobre la tinta azulada de Talky (fondo `#0A0F24`, hoja `#111936`, texto `#E6E8F0`); verde bosque `#46A86A` para el dato principal, la selección y el foco; la única acción primaria, relleno claro con texto marino `#16224F`; Newsreader para titulares, Geist para el texto y Chivo Mono para ids (al estilo de rex.inc). Está en `src/design/tokens.css` (ver ARCHITECTURE.md §5.4 y §5.5).
+- La marca es la de Talky ([usetalky.com](https://usetalky.com)): dos temas, claro (por defecto el del sistema) y oscuro sobre la tinta azulada de Talky (fondo `#0A0F24`, hoja `#111936`, texto `#E6E8F0`), que se cambian desde la barra lateral; verde bosque (`#2E9A5C` en claro, `#46A86A` en oscuro) para el dato principal, la selección y el foco; la única acción primaria, marino con texto blanco en claro y relleno claro con texto marino `#16224F` en oscuro; Newsreader para titulares, Geist para el texto y Chivo Mono para ids (al estilo de rex.inc). Está en `src/design/tokens.css` (ver ARCHITECTURE.md §5.4 y §5.5).
 - Cada vista va dentro de la hoja del shell; su contenido son tarjetas con borde de 1 px y la sombra suave de `--shadow-card`, que crece al pasar el ratón. Lo que abre otra cosa es una tarjeta. La barra lateral es un rail que se despliega al pasar el ratón y empuja la vista.
 - Solo los tokens de `src/design/tokens.css`: ningún color, sombra ni radio fuera de ellos. Estilos con CSS Modules, un fichero por componente.
 - Importes con `<Amount>`, ids y códigos con `<Mono>`, fechas y porcentajes con `@/lib/format`. Nunca se formatean a mano.
