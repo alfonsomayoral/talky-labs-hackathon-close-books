@@ -1,17 +1,20 @@
-// Pure logic of Proveedores: which cases belong, sort in the URL, age, email state, partial sums and the open items to show.
+// Pure logic of Proveedores: which cases belong, sort in the URL, age, email state, amounts and the open items to show.
 import { AGING_BUCKETS, AGING_LABEL, INBOX_STATUSES, type AgingBucket, type CaseRow, type CaseStatus, type OpenItem } from '@/domain'
 import type { ProgressSegment, SortState } from '@/components'
 
 /** Supplier cases the API can filter by kind. Duplicate payments to suppliers are left out: the API cannot filter by party kind. */
 export const SUPPLIER_KINDS = ['supplier_invoice_mismatch', 'supplier_credit_pending']
 
+/** An incident stays open though the system closed the movement (`auto`): the supplier still has to answer. */
+const OPEN_STATUSES: CaseStatus[] = ['auto', ...INBOX_STATUSES]
+
 /** Open states plus handled, so a person can look back at what was already sent. */
-export const SUPPLIER_STATUSES: CaseStatus[] = [...INBOX_STATUSES, 'done']
+export const SUPPLIER_STATUSES: CaseStatus[] = [...OPEN_STATUSES, 'done']
 
 /** The default list is what is still open; choosing «Gestionado» opens the rest. */
 export function listStatuses(chosen: string[]): string {
   const valid = SUPPLIER_STATUSES.filter((s) => chosen.includes(s))
-  return (valid.length ? valid : INBOX_STATUSES).join(',')
+  return (valid.length ? valid : OPEN_STATUSES).join(',')
 }
 
 /** Kinds to ask for: the chosen ones that are supplier kinds, or both. */
@@ -57,9 +60,9 @@ export function emailState(c: Pick<CaseRow, 'status' | 'draftId' | 'suggestedAct
   return c.draftId ? 'draft' : 'none'
 }
 
-/** Sum of the EUR amounts loaded; `complete` is false while more rows remain on the server. */
-export function loadedSum(rows: Pick<CaseRow, 'amountEur'>[], total: number | null): { cents: number; complete: boolean } {
-  return { cents: rows.reduce((acc, r) => acc + r.amountEur, 0), complete: total != null && rows.length >= total }
+/** EUR of those kinds in the whole run, from its aggregates; null until they arrive. */
+export function kindAmountEur(byKind: { kind: string; amountEur: number }[] | undefined, kinds: string[]): number | null {
+  return byKind ? byKind.filter((k) => kinds.includes(k.kind)).reduce((acc, k) => acc + k.amountEur, 0) : null
 }
 
 /** Items of the supplier with those of the case first, each group in the order received. */

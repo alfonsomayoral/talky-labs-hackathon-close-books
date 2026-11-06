@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { OpenItem } from '@/domain'
-import { agingSegments, emailState, listKinds, listStatuses, loadedSum, orderItems, sortFromParam } from './model'
+import { agingSegments, emailState, listKinds, listStatuses, kindAmountEur, orderItems, sortFromParam } from './model'
 
 const item = (itemId: string) => ({ itemId }) as OpenItem
 
 describe('listStatuses', () => {
   it('is the open queue by default and never includes handled cases', () => {
-    expect(listStatuses([])).toBe('needs_review,question,fallback')
+    expect(listStatuses([])).toBe('auto,needs_review,question,fallback')
   })
 
   it('adds handled cases only when asked for, ignoring states that are not cases to work', () => {
-    expect(listStatuses(['done', 'auto'])).toBe('done')
+    expect(listStatuses(['done', 'auto'])).toBe('auto,done')
   })
 })
 
@@ -37,12 +37,16 @@ describe('emailState', () => {
   })
 })
 
-describe('loadedSum', () => {
-  it('is complete only when every row of the server is loaded', () => {
-    const rows = [{ amountEur: 100 }, { amountEur: 250 }]
-    expect(loadedSum(rows, 2)).toEqual({ cents: 350, complete: true })
-    expect(loadedSum(rows, 900)).toEqual({ cents: 350, complete: false })
-    expect(loadedSum(rows, null).complete).toBe(false)
+describe('kindAmountEur', () => {
+  it('adds the whole run, not what happens to be loaded, only for the kinds asked', () => {
+    const byKind = [
+      { kind: 'supplier_invoice_mismatch', cases: 3049, amountEur: 900 },
+      { kind: 'supplier_credit_pending', cases: 2, amountEur: 100 },
+      { kind: 'dispute', cases: 7, amountEur: 5000 },
+    ]
+    expect(kindAmountEur(byKind, ['supplier_invoice_mismatch', 'supplier_credit_pending'])).toBe(1000)
+    expect(kindAmountEur(byKind, ['supplier_credit_pending'])).toBe(100)
+    expect(kindAmountEur(undefined, ['dispute'])).toBeNull()
   })
 })
 

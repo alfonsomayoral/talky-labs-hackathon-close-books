@@ -8,12 +8,13 @@ import { useEntityScope, useListParam, useOpenObject, useTextParam } from '@/lib
 import { TextField } from '@/features/shared'
 import { AgingStrip } from './AgingStrip'
 import { CasePanel } from './CasePanel'
-import { DEFAULT_SORT, SUPPLIER_KINDS, SUPPLIER_STATUSES, ageDays, ageLabel, emailState, listKinds, listStatuses, loadedSum, sortFromParam, sortToParam, type EmailState } from './model'
+import { DEFAULT_SORT, SUPPLIER_KINDS, SUPPLIER_STATUSES, ageDays, ageLabel, emailState, listKinds, listStatuses, kindAmountEur, sortFromParam, sortToParam, type EmailState } from './model'
 import styles from './SuppliersPage.module.css'
 
 const ROW_HEIGHT = 60
 const SEARCH_DEBOUNCE_MS = 300
 const OPEN_STATUSES = listStatuses([])
+const AFFECTED_HINT = 'Importe de todas las incidencias de la ejecución, también las ya gestionadas.'
 
 const KIND_OPTIONS = SUPPLIER_KINDS.map((kind) => ({ value: kind, label: caseKindLabel(kind) }))
 const STATE_OPTIONS = SUPPLIER_STATUSES.map((s) => ({ value: s, label: CASE_STATUS_LABEL[s] }))
@@ -50,10 +51,10 @@ export function SuppliersPage() {
     sort: orden ?? DEFAULT_SORT,
   })
   // Header figures ignore the search and the facets: they are what is open for the scope.
-  const openAll = useCases(runId, { status: OPEN_STATUSES, kind: SUPPLIER_KINDS.join(','), entity })
-  const openCredits = useCases(runId, { status: OPEN_STATUSES, kind: 'supplier_credit_pending', entity })
-  const affected = loadedSum(openAll.rows, openAll.total)
-  const credits = loadedSum(openCredits.rows, openCredits.total)
+  const openAll = useCases(runId, { status: OPEN_STATUSES, kind: SUPPLIER_KINDS.join(','), entity, size: 1 })
+  const openCredits = useCases(runId, { status: OPEN_STATUSES, kind: 'supplier_credit_pending', entity, size: 1 })
+  const affectedEur = kindAmountEur(stats?.byKind, SUPPLIER_KINDS)
+  const creditsEur = kindAmountEur(stats?.byKind, ['supplier_credit_pending'])
 
   const asOf = stats?.periodTo ?? run.createdAt
   const columns = useMemo<Column<CaseRow>[]>(
@@ -157,7 +158,6 @@ export function SuppliersPage() {
   }
 
   const loadingHeader = openAll.loading || openCredits.loading
-  const partial = (complete: boolean) => (complete ? undefined : 'Suma de las incidencias cargadas: aún hay más en el servidor.')
 
   return (
     <Page fill>
@@ -180,18 +180,17 @@ export function SuppliersPage() {
         <Card>
           <Metric
             label="Importe afectado"
-            value={loadingHeader ? '' : formatMoney(affected.cents, 'EUR', { compact: true })}
-            loading={loadingHeader}
-            hint={partial(affected.complete)}
+            value={formatMoney(affectedEur, 'EUR', { compact: true })}
+            loading={affectedEur == null}
+            hint={AFFECTED_HINT}
           />
         </Card>
         <Card>
           <Metric
             label="Abonos por compensar"
             value={loadingHeader ? '' : formatNumber(openCredits.total)}
-            comparison={credits.cents > 0 ? formatMoney(credits.cents, 'EUR', { compact: true }) : undefined}
+            comparison={creditsEur ? formatMoney(creditsEur, 'EUR', { compact: true }) : undefined}
             loading={loadingHeader}
-            hint={partial(credits.complete)}
           />
         </Card>
         </div>
