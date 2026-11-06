@@ -12,7 +12,6 @@ from fastapi import APIRouter, Query, Request
 from ..paths import masters_dir
 from .documents import facts_for, read_text
 from .errors import not_found
-from .fsafe import safe_join
 from .query import Paging, Where, fetch, order_by, page_of
 from .run_data import RunData, lit, read_csv
 from .schemas import Paged, TxnDetail, TxnRow
@@ -123,7 +122,7 @@ def _party_resolution(run: RunData, cur, txn_id: str) -> dict | None:
                              for a in alternatives]}
 
 
-ID_COLUMNS = ("batch_id", "settlement_id", "deposit_id", "run_id")
+ID_COLUMNS = ("batch_id", "settlement_id", "deposit_id", "run_id", "end_to_end_id")
 ACCOUNT_COLUMNS = ("account_id", "debtor_account_id")
 
 
@@ -139,8 +138,8 @@ def _belongs(header: list[str], row: list[str], keys: set[str], account_id: str)
 
 
 def _detail_file(run: RunData, ref: str, bank: dict, references: set[str]) -> dict:
-    path = safe_join(run.phase_dir, ref)
-    if path is None or not path.is_file():
+    path = run.phase_file(ref)
+    if path is None:
         return {"type": "none"}
     keys = {t for f in ("text", "ref1", "ref2", "endToEndId", "remittanceInfo") for t in (bank[f] or "").split()}
     keys |= references
@@ -163,7 +162,8 @@ def _master_row(run: RunData, filename: str, key: str, value: str) -> dict | Non
 
 def _evidence_content(run: RunData, cur, kind: str, ref: str, bank: dict, references: set[str]) -> dict:
     if kind in ("remittanceAdvice", "pdf"):
-        text, facts = read_text(run.phase_dir, ref), facts_for(run.dir, ref)
+        found = run.phase_file(ref)
+        text, facts = read_text(found.parent, found.name) if found else None, facts_for(run.dir, ref)
         return {"type": "document", "path": ref, "text": text, "facts": facts} if text is not None or facts \
             else {"type": "none"}
     if kind in ("directDebitBatch", "cardSettlement", "chequeDeposit", "paymentRun"):

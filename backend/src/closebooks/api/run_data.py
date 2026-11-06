@@ -11,7 +11,9 @@ from pathlib import Path
 import duckdb
 import orjson
 
+from ..load import prior_dirs
 from ..paths import masters_dir, phase_dir
+from .fsafe import safe_join
 from .human import HumanFiles, answered_questions, apply_outbox, case_statuses, read_jsonl
 from .sqlutil import create_party, lit, read_csv
 
@@ -56,6 +58,14 @@ class RunData:
 
     def cursor(self) -> duckdb.DuckDBPyConnection:
         return self.con.cursor()
+
+    def phase_file(self, relative: str) -> Path | None:
+        """A document of the phase or of an earlier one: rules cite files of the months before the phase starts."""
+        for folder in (self.phase_dir, *prior_dirs(self.phase_dir, self.phase)):
+            path = safe_join(folder, relative)
+            if path is not None and path.is_file():
+                return path
+        return None
 
     # ── build ────────────────────────────────────────────────────────────────
 

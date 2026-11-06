@@ -14,6 +14,8 @@ from fastapi.testclient import TestClient
 
 from closebooks import paths
 from closebooks.api.app import create_app
+from closebooks.api.routes_txns import _belongs
+from closebooks.api.run_data import RunData
 from closebooks.api.store import Store
 
 RUN = "p-20261107-021000"
@@ -436,3 +438,28 @@ def test_openapi_json_is_up_to_date(tmp_path):
 
     committed = json.loads((Path(__file__).parents[1] / "openapi.json").read_text())
     assert create_app(store=Store(tmp_path)).openapi() == committed, "regenerate backend/openapi.json (see README)"
+
+
+def test_payment_evidence_cited_by_transfer_shows_only_that_transfer_on_that_account():
+    header = ["run_id", "debtor_account_id", "end_to_end_id", "document_number"]
+    keys = {"PR1-0002"}
+    assert _belongs(header, ["PR1", "A-EUR", "PR1-0002", "F-2"], keys, "A-EUR")
+    assert not _belongs(header, ["PR1", "A-EUR", "PR1-0001", "F-1"], keys, "A-EUR")
+    assert not _belongs(header, ["PR1", "B-EUR", "PR1-0002", "F-9"], keys, "A-EUR")
+
+
+def test_evidence_of_a_file_from_an_earlier_phase_is_found_and_stays_inside_it(tmp_path, monkeypatch):
+    # A debit of July cites a run of June, whose file lives in the previous phase.
+    monkeypatch.setattr(paths, "DB", tmp_path)
+    monkeypatch.setattr(paths, "PKG", tmp_path / "pkg")
+    for name in ("old", "new"):
+        (tmp_path / name / "payment_runs").mkdir(parents=True)
+        (tmp_path / name / "bank_transactions.csv.gz").write_bytes(b"")
+    (tmp_path / "new" / "prior_phases").write_text("old\n")
+    (tmp_path / "old" / "payment_runs" / "X_202506_0.csv").write_text("run_id\nPR1\n")
+    (tmp_path / "secret.txt").write_text("no")
+    run = RunData.__new__(RunData)
+    run.phase, run.phase_dir = "new", tmp_path / "new"
+    assert run.phase_file("payment_runs/X_202506_0.csv") == tmp_path / "old" / "payment_runs" / "X_202506_0.csv"
+    assert run.phase_file("payment_runs/none.csv") is None
+    assert run.phase_file("../secret.txt") is None
