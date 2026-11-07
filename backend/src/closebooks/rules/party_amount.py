@@ -14,8 +14,6 @@ from ..policy import (
     FEE_LIMIT_EUR_CENTS,
     FEE_LIMIT_RATIO,
     SEPA_COUNTRIES,
-    WITHHOLDING_COUNTRIES,
-    WITHHOLDING_RATES,
     Terms,
     _in_terms,
     cross_border,
@@ -337,7 +335,7 @@ class PartyAmount:
         run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
         if run:
             return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
-        net = self._net_of_terms(free, cash, party, txn["booking_date"])
+        net = self._net_of_terms(free, cash, txn["booking_date"])
         if net:
             return self._proposal("PARTY-NET-SUBSET", party, net, by_cash=True, confidence=0.85)
         # Last: what open documents can explain is more certain than a second payment of a closed one.
@@ -480,39 +478,26 @@ class PartyAmount:
     def _is_month(clause: dict | None, month: int, year: int | None) -> bool:
         return bool(clause) and clause["month"] == month and (year is None or clause["year"] == year)
 
-    def _net_of_terms(self, free: list, cash: int, party: str, booked: str) -> list[str] | None:
-        """Several invoices, each net of what POLICIES §3 lets the customer keep: its early-payment discount within
-        terms, or a rate withheld where they withhold. One unique set under one explanation; two explanations tie."""
-        credit = sum(o for i, o in free if i[0][:3] in CREDIT_NOTES)
-        found = []
-        for paid in self._ways_of_paying(free, party, booked):
-            signed = [(i[0], -o if i[0][:3] in CREDIT_NOTES else paid(i, o)) for i, o in free]
-            signed = [(i, v) for i, v in signed if v <= cash + credit]
-            if not 2 <= len(signed) <= MAX_FULL_SEARCH or (
-                    _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE):
-                continue
-            subset = _unique_subset(signed, cash, 2)
-            if subset:
-                found.append(subset)
-        return found[0] if len(found) == 1 else None
+    def _net_of_terms(self, free: list, cash: int, booked: str) -> list[str] | None:
+        """Several invoices, each net of its early-payment discount within terms (POLICIES §3). One unique set. Net of a
+        withheld rate it took SHORT_WITHHOLDING below its gate in the drift holdout: left out."""
 
-    def _ways_of_paying(self, free: list, party: str, booked: str) -> list:
-        """What each invoice would pay under each explanation the terms and the country allow."""
-
-        def discounted(item: tuple, open_cents: int) -> int:
+        def paid(item: tuple, open_cents: int) -> int:
             pct = self.terms_pct.get(item[0])
             terms = Terms(pct, self.discount_days.get(item[0]), item[2], item[4])
             if open_cents != item[4] or not _in_terms(terms, booked):
                 return open_cents
             return open_cents - round(item[4] * pct / 100)
 
-        def withheld(rate: float):
-            return lambda item, open_cents: open_cents - round(item[4] * rate)
-
-        ways = [discounted] if any(discounted(i, o) != o for i, o in free) else []
-        if self.countries.get(party) in WITHHOLDING_COUNTRIES:
-            ways += [withheld(rate) for rate in WITHHOLDING_RATES]
-        return ways
+        credit = sum(o for i, o in free if i[0][:3] in CREDIT_NOTES)
+        signed = [(i[0], -o if i[0][:3] in CREDIT_NOTES else paid(i, o)) for i, o in free]
+        if all(v == o or i[0][:3] in CREDIT_NOTES for (i, o), (_, v) in zip(free, signed, strict=True)):
+            return None
+        signed = [(i, v) for i, v in signed if v <= cash + credit]
+        if not 2 <= len(signed) <= MAX_FULL_SEARCH or (
+                _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE):
+            return None
+        return _unique_subset(signed, cash, 2)
 
     def _paid_again(self, mine: list, open_now: dict, cash: int, party: str, balances) -> Proposal | None:
         """A whole party, nothing open that the cash explains, and one invoice with exactly that total that a line of

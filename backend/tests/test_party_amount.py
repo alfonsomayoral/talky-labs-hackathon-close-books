@@ -647,14 +647,3 @@ def test_invoices_out_of_terms_are_not_net_of_their_discount():
     rule, balances = discounted(item("ARI-1", "C1", "F1", 100003, issued="2024-01-01"),
                                 item("ARI-2", "C1", "F2", 50011, issued="2024-01-01"))
     assert rule(txn(98003 + 49011, NAME), balances) is None
-
-
-def test_several_invoices_net_of_a_rate_withheld_in_a_country_that_withholds():
-    rule, balances = engine([item("ARI-1", "C1", "F1", 100000), item("ARI-2", "C1", "F2", 50000),
-                             item("ARI-3", "C1", "F3", 700013)])
-    rule.countries = {"C1": "MX"}
-    found = rule(txn(90000 + 45000, NAME), balances)
-    assert found.rule == "PARTY-NET-SUBSET" and lines(found) == {"ARI-1", "ARI-2"}
-    rule, balances = engine([item("ARI-1", "C1", "F1", 100000), item("ARI-2", "C1", "F2", 50000)])
-    rule.countries = {"C1": "ES"}
-    assert rule(txn(90000 + 45000, NAME), balances) is None
