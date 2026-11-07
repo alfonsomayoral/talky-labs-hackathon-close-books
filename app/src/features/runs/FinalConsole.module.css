@@ -220,3 +220,7 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.event {
+  margin-bottom: var(--space-4);
+}

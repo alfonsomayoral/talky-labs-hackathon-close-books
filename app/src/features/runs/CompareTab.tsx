@@ -2,7 +2,7 @@ import { useId, useMemo, type ReactNode } from 'react'
 import { ArrowRight, GitCompare } from 'lucide-react'
 import { Badge, Card, EmptyState, Mono, Skeleton } from '@/components'
 import { useRun, useRuns } from '@/data'
-import type { Run, RunSummary } from '@/domain'
+import { segmentLabel, type Run, type RunSummary } from '@/domain'
 import { formatNumber, formatPercent } from '@/lib/format'
 import { useTextParam } from '@/lib/urlState'
 import { DeltaTable } from './DeltaTable'
@@ -64,25 +64,25 @@ function Result({ a, b }: { a: Run; b: Run }) {
             />
           </Card>
           <Card
-            title="Segmentos"
+            title="Tipos de movimiento"
             description="Acierto por tipo de movimiento. Los que bajan van primero."
             actions={
               <>
-                {rises > 0 && <Badge tone="ok">{rises === 1 ? '1 segmento sube' : `${rises} segmentos suben`}</Badge>}
-                {drops > 0 ? <Badge tone="danger">{drops === 1 ? '1 segmento baja' : `${drops} segmentos bajan`}</Badge> : <Badge tone="ok">Ninguno baja</Badge>}
+                {rises > 0 && <Badge tone="ok">{rises === 1 ? '1 tipo sube' : `${rises} tipos suben`}</Badge>}
+                {drops > 0 ? <Badge tone="danger">{drops === 1 ? '1 tipo baja' : `${drops} tipos bajan`}</Badge> : <Badge tone="ok">Ninguno baja</Badge>}
               </>
             }
             padding="none"
           >
             <DeltaTable
-              caption="Acierto por segmento"
-              head="Segmento"
+              caption="Acierto por tipo de movimiento"
+              head="Tipo de movimiento"
               a="Base"
               b="Nueva"
               rows={segments}
               label={(r) => (
                 <span className={styles.segment}>
-                  <Mono>{r.key}</Mono>
+                  <span title={r.key}>{segmentLabel(r.key)}</span>
                   {r.n != null && <span className={styles.n}>{formatNumber(r.n)} mov.</span>}
                 </span>
               )}
