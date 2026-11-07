@@ -858,3 +858,46 @@ def test_a_round_fraction_needs_a_party_known_for_certain_not_a_name_the_bank_cu
     rule, balances = engine([item("ARI-1", "C1", "NF0125000182", 198144)])
     assert lines(rule(txn(59443, "TRANSFERENCIA DE WELLNESS GARRIDO S.L."), balances)) == {"ARI-1"}
     assert rule(txn(59443, "ACH CREDIT WELLNESS GARR"), balances) is None
+
+
+def test_invoices_cited_less_the_credit_note_that_is_the_gap_goes_before_a_subset_of_them():
+    # BT-2025-0001276: F3 has the amount of the credit note, and a subset of the cited numbers also makes the cash.
+    rule, balances = engine([item("ARI-1", "C1", "FV24-0000001", 50000), item("ARI-2", "C1", "FV24-0000002", 30000),
+                             item("ARI-3", "C1", "FV24-0000003", 20000), item("ARC-1", "C1", "CN24-0000001", 20000)])
+    found = rule(txn(80000, NAME, remit="FRA FV24-0000001 FV24-0000002 FV24-0000003"), balances)
+    assert lines(found) == {"ARI-1", "ARI-2", "ARI-3", "ARC-1"}
+
+
+def test_two_credit_notes_of_the_gap_the_one_of_a_cited_invoice_settles():
+    rule, balances = engine([item("ARI-1", "C1", "FV24-0000001", 50000),
+                             item("ARC-1", "C1", "CN24-0000001", 2000, related="FV24-0000009"),
+                             item("ARC-2", "C1", "CN24-0000002", 2000, related="FV24-0000001")])
+    found = rule(txn(48000, NAME, remit="FRA FV24-0000001"), balances)
+    assert lines(found) == {"ARI-1", "ARC-2"}
+
+
+def test_several_credit_notes_of_a_cited_invoice_that_are_the_gap_settle_with_it():
+    rule, balances = engine([item("ARI-1", "C1", "FV24-0000001", 50000),
+                             item("ARC-1", "C1", "CN24-0000001", 2000, related="FV24-0000001"),
+                             item("ARC-2", "C1", "CN24-0000002", 3000, related="FV24-0000001"),
+                             item("ARC-3", "C1", "CN24-0000003", 3000)])
+    found = rule(txn(45000, NAME, remit="FRA FV24-0000001"), balances)
+    assert lines(found) == {"ARI-1", "ARC-1", "ARC-2"}
+
+
+def test_with_no_citation_the_only_invoice_less_its_own_credit_note_settles():
+    # POLICIES §5.9: the credit note names its invoice; with other invoices open too many subsets would fit.
+    rows = [item(f"ARI-{n:02d}", "C1", f"FV24-1{n:05d}", 100000 + n * 1000) for n in range(30)]
+    rows += [item("ARI-X", "C1", "FV24-0000001", 71939),
+             item("ARC-X", "C1", "CN24-0000001", 12000, related="FV24-0000001")]
+    rule, balances = engine(rows)
+    found = rule(txn(59939, NAME), balances)
+    assert found.rule == "PARTY-NOTE-NET" and lines(found) == {"ARI-X", "ARC-X"}
+
+
+def test_two_invoices_less_their_own_credit_notes_with_the_same_net_are_not_guessed():
+    rows = [item("ARI-1", "C1", "F1", 71939), item("ARC-1", "C1", "N1", 12000, related="F1"),
+            item("ARI-2", "C1", "F2", 61939), item("ARC-2", "C1", "N2", 2000, related="F2")]
+    rule, balances = engine(rows)
+    found = rule(txn(59939, NAME), balances)
+    assert found is None or found.rule != "PARTY-NOTE-NET"

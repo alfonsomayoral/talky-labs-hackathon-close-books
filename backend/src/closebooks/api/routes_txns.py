@@ -9,7 +9,7 @@ import duckdb
 import orjson
 from fastapi import APIRouter, Query, Request
 
-from ..paths import masters_dir
+from ..paths import master_path
 from .documents import facts_for, read_text
 from .errors import not_found
 from .query import Paging, Where, fetch, order_by, page_of
@@ -166,7 +166,7 @@ def _record(fields: dict | None) -> dict:
 
 
 def _master_row(run: RunData, filename: str, key: str, value: str) -> dict | None:
-    got = fetch(duckdb.connect(), f"SELECT * FROM {read_csv(masters_dir(run.phase_dir) / filename)} "
+    got = fetch(duckdb.connect(), f"SELECT * FROM {read_csv(master_path(run.phase_dir, filename))} "
                                   f'WHERE "{key}" = ? LIMIT 1', [value])
     return got[0] if got else None
 

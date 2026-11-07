@@ -55,6 +55,9 @@ FINAL trae a propósito: una sociedad nueva con banco, divisa (ZAR) y numeració
 
 Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, precisión de clase de excepción según §4.1, `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 180 s en holdout (era 150; relajado a las 14:30 porque el límite real es la memoria y FINAL corre en ~3 min). Medir con `just be-score --compare` y `just be-diff`.
 
+**Excepción conocida a la puerta (15:20):** `PARTY-FRACTION` (PR 109, de PabloGMadrono) casa BT-2025-0074167, un cobro sin partida (`unidentified_lookalike` 1,000 → 0,9993 en holdout y en drift). Se mantiene por decisión de la orquestadora con los datos delante: 464 de 466 facturas correctas, +0,26 en LIVE oficial (92,59 → 92,85), +0,25 en drift, dos cobros sin partida casados (el otro, BT-2025-0188058, en `customer_advance`). Es la única regla del día fuera de la puerta.
+
+
 | # | Bloque | Objetivo medible | Esfuerzo [Inferencia] |
 | --- | --- | --- | --- |
 | 1 | **Test de generalización** antes de tocar reglas: holdout con una sociedad excluida de todo lo aprendido (índices de nombres, tabla de códigos, gramática de números construidos sin ella) y con un banco cuyos códigos no estén en la tabla; anotar la caída por segmento. Es la línea base de sobreajuste | tabla en `docs/ACCURACY_PLAN.md` §6 | 1 h |
@@ -88,9 +91,9 @@ De los 12.601 movimientos fallados, 8.654 son `not_matched`: cobros en `FALLBACK
 
 **No intentar con una heurística:**
 
-- **Facturas dispersas sin referencia:** calculo que 2.000–2.500 líneas de un gran cliente seguirán en fallback [Inferencia]. Son 5 o más facturas sueltas entre decenas de abiertas, sin ninguna en el texto: hay más combinaciones que céntimos posibles, así que varias suman el cobro y nada dice cuál es.
+- **Facturas dispersas sin referencia:** 2.435 líneas con 2 o más facturas seguían en fallback en holdout, repartidas entre 912 clientes (el mayor, 18 líneas): no hay un gran cliente (`docs/N_TO_M.md` §9). Son 5 o más facturas sueltas entre decenas de abiertas, sin ninguna en el texto: hay más combinaciones que céntimos posibles, así que varias suman el cobro y nada dice cuál es.
 - **Muchas candidatas pequeñas:** `MAX_CHANCE` descarta la búsqueda cuando se esperan demasiadas soluciones por azar.
-- **Una factura abierta y un importe distinto, sin cita:** simulado en holdout con saldos del golden. `PARTIAL` acierta 51 y falla 60 (46 sobre `unidentified`); `OVERPAYMENT` acierta 23 y falla 67 (35 sobre `unidentified`). Siguen en fallback.
+- **Una factura abierta y un importe distinto, sin cita y sin pareja: retirada.** Medida en holdout con saldos de estado: acierta 22 de 229, con 154 falsos sobre `unidentified` y `unidentified_lookalike`. Siguen en fallback; lo que sí se empareja es `PAIRED-PARTIAL`, dos cobros que suman al céntimo el saldo de la única factura que lo cumple. Antes, con saldos del golden, se había simulado `PARTIAL` con 51 aciertos y 60 fallos, y `OVERPAYMENT` con 23 y 67.
 
 ## 5. Reglas del juego
 

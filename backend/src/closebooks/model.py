@@ -21,6 +21,7 @@ class Proposal:
     in_listed_order: bool = False  # by_cash on what a document lists: cash no clause explains fills it in that order
     # item_id -> (deduction in cents as the document prints it, negative when the payer paid less, reason as printed)
     deductions: dict[str, tuple[int, str | None]] = field(default_factory=dict)
+    settles_rest: bool = False  # says it pays what a dispute left: what it paid, no exception, whatever our balance
 
 
 @dataclass(slots=True)

@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
 
 import polars as pl
 
-from .paths import masters_dir, phase_dir
+from .paths import base_master_path, master_path, phase_dir
 
 ITEM_COLUMNS = ["item_id", "item_type", "entity", "party_id", "party_name", "document_number", "issue_date",
                 "due_date", "currency", "total_cents", "open_cents", "payment_terms", "customer_po",
@@ -51,9 +52,23 @@ class Phase:
         return path if path.exists() else None
 
 
+def short_masters(phase: Path) -> dict[str, tuple[int, int]]:
+    """Files of masters_final/ with fewer rows than the master they replace, with both counts: maybe only a delta."""
+    found = {}
+    for file in (f"{name}.csv" for name in MASTER_FILES):
+        final, base = phase / "masters_final" / file, base_master_path(phase, file)
+        if final.exists() and base.exists():
+            rows = load_table(final).height, load_table(base).height
+            if rows[0] < rows[1]:
+                found[file] = rows
+    return found
+
+
 def load_masters(phase: Path) -> dict[str, pl.DataFrame]:
-    folder = masters_dir(phase)
-    return {name: load_table(folder / f"{name}.csv") for name in MASTER_FILES}
+    for file, (rows, base) in short_masters(phase).items():
+        print(f"warning: masters_final/{file} has {rows} rows, fewer than the {base} of the master it replaces",
+              file=sys.stderr)
+    return {name: load_table(master_path(phase, f"{name}.csv")) for name in MASTER_FILES}
 
 
 def _with_eur(txns: pl.DataFrame, fx_rates: pl.DataFrame) -> pl.DataFrame:
@@ -64,6 +79,10 @@ def _with_eur(txns: pl.DataFrame, fx_rates: pl.DataFrame) -> pl.DataFrame:
     keyed = txns.with_columns(pl.col("booking_date").str.to_date().alias("_date")).sort("_date")
     joined = keyed.join_asof(rates, left_on="_date", right_on="date", by="currency", strategy="backward",
                             check_sortedness=False)
+    missing = joined.filter(pl.col("rate").is_null(), pl.col("currency") != "EUR").group_by("currency").len().sort(
+        "currency")
+    for currency, lines in missing.iter_rows():
+        print(f"warning: no FX rate for {currency} on {lines} bank lines: their EUR amount uses 1.0", file=sys.stderr)
     rate = pl.when(pl.col("currency") == "EUR").then(1.0).otherwise(pl.col("rate").fill_null(1.0))
     return joined.with_columns(
         (pl.col("amount_cents") / rate).round().cast(pl.Int64).alias("amount_eur_cents")

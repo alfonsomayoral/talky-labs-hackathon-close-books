@@ -79,6 +79,12 @@ class PartyIndex:
         self.certain = False
         return sorted(found)
 
+    def named_in(self, text: str, entity: str) -> list[str]:
+        """The customers a text names, whoever ordered the payment, a name the bank cut included (`_identifies`)."""
+        found = self._in_text({"text": text}, "customer", entity, "", whole_only=False)
+        self.certain = False
+        return found
+
     def same_name(self, parties: list[str]) -> bool:
         return bool(set.intersection(*(self.names_of[p] for p in parties)))
 

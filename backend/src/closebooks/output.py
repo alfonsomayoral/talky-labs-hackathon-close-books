@@ -36,8 +36,9 @@ def _gzip_bytes(path: Path, data: bytes) -> None:
 def _csv_line(row: Row) -> str:
     if row.item_id is None:
         return f"{row.bank_txn_id},,,{row.category},{row.exception or ''}\n"
-    return f"{row.bank_txn_id},{row.item_id},{row.amount_cents // 100}.{row.amount_cents % 100:02d},," \
-           f"{row.exception or ''}\n"
+    sign = "-" if row.amount_cents < 0 else ""
+    cents = abs(row.amount_cents)
+    return f"{row.bank_txn_id},{row.item_id},{sign}{cents // 100}.{cents % 100:02d},,{row.exception or ''}\n"
 
 
 def write_submission(run: Path, rows: list[Row]) -> int:

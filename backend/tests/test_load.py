@@ -8,8 +8,9 @@ from types import SimpleNamespace
 import polars as pl
 import pytest
 
-from closebooks.load import load_detail, load_masters, to_cents
-from closebooks.paths import masters_dir, phase_dir
+from closebooks import paths
+from closebooks.load import MASTER_FILES, load_detail, load_masters, short_masters, to_cents
+from closebooks.paths import phase_dir
 
 
 def test_amounts_are_exact_integer_cents():
@@ -63,13 +64,72 @@ def test_every_item_of_live_is_issued_in_the_phase_or_open_at_start(live):
     assert in_phase_or_open == 487243 + 199414 + 19500 + 325419
 
 
-def test_masters_final_win_over_the_package_masters(tmp_path):
+def _masters(folder, names=MASTER_FILES, rows=3):
+    """Master files whose single column says which folder they came from."""
+    folder.mkdir(parents=True)
+    for name in names:
+        (folder / f"{name}.csv").write_text("origin\n" + f"{folder.parent.name}/{folder.name}\n" * rows)
+
+
+@pytest.fixture
+def package(tmp_path, monkeypatch):
+    monkeypatch.setattr(paths, "PKG", tmp_path / "pkg")
+    _masters(tmp_path / "pkg" / "masters")
+
+
+def _origins(phase):
+    return {name: table["origin"][0] for name, table in load_masters(phase).items()}
+
+
+def test_masters_final_replaces_only_the_master_files_it_brings(tmp_path, package):
     phase = tmp_path / "final"
-    (phase / "masters_final").mkdir(parents=True)
-    assert masters_dir(phase) == phase / "masters_final"
-    (phase / "masters_final" / "entities.csv").write_text("entity,legal_name\nZA01,Umvoti Pools\n")
-    with pytest.raises(FileNotFoundError):
-        load_masters(phase)  # the other masters are missing: fails loud instead of mixing folders silently
+    _masters(phase / "masters_final", ["customers"])
+    _masters(phase / "masters")
+    origins = _origins(phase)
+    assert origins.pop("customers") == "final/masters_final"
+    assert set(origins.values()) == {"final/masters"}
+
+
+def test_master_file_in_neither_folder_of_the_phase_comes_from_the_package(tmp_path, package):
+    phase = tmp_path / "final"
+    _masters(phase / "masters_final", ["customers"])
+    _masters(phase / "masters", ["entities"])
+    origins = _origins(phase)
+    assert origins.pop("customers") == "final/masters_final"
+    assert origins.pop("entities") == "final/masters"
+    assert set(origins.values()) == {"pkg/masters"}
+
+
+def test_masters_final_file_shorter_than_the_phase_master_is_reported_and_warned(tmp_path, package, capsys):
+    phase = tmp_path / "final"
+    _masters(phase / "masters_final", ["customers"], rows=1)
+    _masters(phase / "masters", rows=4)
+    assert short_masters(phase) == {"customers.csv": (1, 4)}
+    load_masters(phase)
+    err = capsys.readouterr().err
+    assert err.startswith("warning: ") and "customers.csv" in err
+
+
+def test_masters_final_file_shorter_than_the_package_master_counts_when_the_phase_has_no_masters(tmp_path, package):
+    phase = tmp_path / "final"
+    _masters(phase / "masters_final", ["customers"], rows=1)
+    assert short_masters(phase) == {"customers.csv": (1, 3)}
+
+
+@pytest.mark.parametrize("rows", [3, 4])
+def test_masters_final_file_with_as_many_rows_or_more_is_not_short(tmp_path, package, capsys, rows):
+    phase = tmp_path / "final"
+    _masters(phase / "masters_final", ["customers"], rows=rows)
+    _masters(phase / "masters", rows=3)
+    assert short_masters(phase) == {}
+    load_masters(phase)
+    assert capsys.readouterr().err == ""
+
+
+def test_phase_masters_shorter_than_the_package_ones_are_not_short_masters(tmp_path, package):
+    phase = tmp_path / "live"
+    _masters(phase / "masters", rows=1)
+    assert short_masters(phase) == {}
 
 
 def test_item_carried_over_from_the_previous_phase_keeps_its_name_and_terms(live):
@@ -104,3 +164,22 @@ def test_polars_returns_freed_memory_to_the_system_unless_told_otherwise():
     chosen = subprocess.run([sys.executable, "-c", code], env={**env, "_RJEM_MALLOC_CONF": "narenas:1"},
                             capture_output=True, text=True, check=True)
     assert "dirty_decay_ms:0" not in chosen.stdout
+
+
+def test_a_bank_line_with_no_rate_stays_at_one_and_says_which_currency(capsys):
+    from closebooks.load import _with_eur
+
+    lines = pl.DataFrame({"booking_date": ["2025-01-02"] * 3, "currency": ["HUF", "HUF", "USD"],
+                          "amount_cents": [500, 300, 110]})
+    rates = pl.DataFrame({"date": ["2025-01-01"], "currency": ["USD"], "units_per_eur": ["1.10"]})
+    assert sorted(_with_eur(lines, rates)["amount_eur_cents"].to_list()) == [100, 300, 500]
+    assert "HUF" in capsys.readouterr().err
+
+
+def test_every_rate_found_says_nothing(capsys):
+    from closebooks.load import _with_eur
+
+    lines = pl.DataFrame({"booking_date": ["2025-01-02"] * 2, "currency": ["EUR", "USD"], "amount_cents": [100, 110]})
+    rates = pl.DataFrame({"date": ["2025-01-01"], "currency": ["USD"], "units_per_eur": ["1.10"]})
+    _with_eur(lines, rates)
+    assert capsys.readouterr().err == ""
