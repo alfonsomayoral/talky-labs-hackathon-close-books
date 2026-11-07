@@ -49,6 +49,7 @@ export function diffMetrics(a: Score, b: Score): Delta[] {
 }
 
 export const isDrop = (d: Delta) => d.delta != null && d.delta < -EPSILON
+export const isRise = (d: Delta) => d.delta != null && d.delta > EPSILON
 
 /** Every segment of either run; the ones that drop first, worst first, then by name. */
 export function diffSegments(a: Score, b: Score): Delta[] {
@@ -72,6 +73,11 @@ export function diffCounts(a: Record<string, number>, b: Record<string, number>)
 /** Latest scored run (b) against the previous scored run of its phase (a); with no scores, the two latest runs. */
 export function defaultPair(runs: RunSummary[]): { a: string | null; b: string | null } {
   const byDate = [...runs].sort((p, q) => q.createdAt.localeCompare(p.createdAt))
+  const served = byDate.find((r) => r.served)
+  if (served) {
+    const previous = byDate.find((r) => r.phase === served.phase && r.createdAt < served.createdAt)
+    return { a: previous?.runId ?? null, b: served.runId }
+  }
   const scored = byDate.filter((r) => r.score != null)
   const pool = scored.length ? scored : byDate
   const b = pool[0]
