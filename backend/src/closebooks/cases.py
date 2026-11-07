@@ -221,7 +221,7 @@ def _item_label(item: dict, open_cents: int, currency: str) -> str:
 
 def _option(option: dict, info: dict[str, dict], names: dict[str, str]) -> dict:
     ids = [i for i, _ in option["items"]]
-    cents = sum(o for _, o in option["items"])
+    cents = sum(-o if i[:3] in ("ARC", "APC") else o for i, o in option["items"])  # credit notes net off
     currency = info[ids[0]]["currency"]
     if option["kind"] == "party":
         numbers = ", ".join(info[i]["number"] for i in ids[:3]) + (f" y {len(ids) - 3} más" if len(ids) > 3 else "")
@@ -230,7 +230,8 @@ def _option(option: dict, info: dict[str, dict], names: dict[str, str]) -> dict:
     if len(ids) == 1:
         return {"id": ids[0], "label": _item_label(info[ids[0]], cents, currency)}
     numbers = " + ".join(info[i]["number"] for i in ids)
-    return {"id": "+".join(ids), "label": f"{numbers} · {_money(cents, currency)} · {names.get(option['partyId'])}"}
+    party = names.get(option["partyId"]) or info[ids[0]]["party_name"] or option["partyId"]
+    return {"id": "+".join(ids), "label": f"{numbers} · {_money(cents, currency)} · {party}"}
 
 
 def attach_questions(cases: list[dict], abstentions: dict[str, dict], txns: dict[str, dict], info_of: Callable,
@@ -254,10 +255,17 @@ def attach_questions(cases: list[dict], abstentions: dict[str, dict], txns: dict
             ask = f"¿De qué {'cliente' if incoming else 'proveedor'} es {what}?"
         else:
             ask = f"¿Qué facturas liquida {what}?"
+        # the rule keys on the counterparty's name, or its account when the line has no name; with neither there is
+        # nothing to remember and the preview is null
+        key = ({"payerName": payer} if payer else {"iban": txn.get("counterparty_account")}
+               if txn.get("counterparty_account") else None)
         preview = None
-        if incoming and payer:
-            preview = {"kind": "payer_is_customer", "payerName": payer, "partyId": "<la opción elegida>",
-                       "description": f"En adelante, los cobros de {payer} se asignan al cliente elegido"}
+        if key:
+            who = payer or txn["counterparty_account"]
+            what_party = "cliente" if incoming else "proveedor"
+            preview = {"kind": "payer_is_customer", **key, "partyId": "<la opción elegida>",
+                       "description": f"En adelante, los {'cobros de' if incoming else 'pagos a'} {who} se asignan "
+                                      f"al {what_party} elegido"}
         question_id = f"Q-{n:06d}"
         questions.append({
             "questionId": question_id, "caseId": case["caseId"], "bankTxnId": txn_id, "entity": txn["entity"],

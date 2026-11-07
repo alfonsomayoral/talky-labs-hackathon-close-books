@@ -448,6 +448,7 @@ class AnswerBody(BaseModel):
 class DraftEdit(BaseModel):
     subject: str
     body: str
+    to: str | None = None
 
 
 class DraftAction(BaseModel):

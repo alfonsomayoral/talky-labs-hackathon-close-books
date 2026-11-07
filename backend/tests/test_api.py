@@ -9,7 +9,7 @@ import time
 import zipfile
 
 import pytest
-from api_fixture import ADVICE, build_phase, build_run
+from api_fixture import ADVICE, DRAFTS, build_phase, build_run
 from fastapi.testclient import TestClient
 
 from closebooks import paths
@@ -303,6 +303,20 @@ def test_a_draft_asked_for_is_the_template_of_the_case_written_to_the_outbox_onl
     assert (run / "drafts.jsonl").read_text() == ""
     assert api.post(f"{url}/D-000001/send").json()["status"] == "sent"
     assert api.post(url, json={"caseId": "CASE-overdue-1", "kind": "email_customer"}).json()["status"] == "sent"
+
+
+def test_a_draft_without_recipient_lists_and_its_recipient_is_editable(api, env):
+    run = env[1] / RUN
+    (run / "drafts.jsonl").write_text("".join(json.dumps({**d, "to": None}) + "\n" for d in DRAFTS))
+    page = api.get(f"/api/runs/{RUN}/drafts")
+    assert page.status_code == 200 and [d["to"] for d in page.json()["items"]] == [None, None]
+    kept = api.put(f"/api/runs/{RUN}/drafts/D-1", json={"subject": "s", "body": "b"}).json()
+    assert kept["to"] is None  # an edit that does not mention `to` leaves it as it was
+    set_to = api.put(f"/api/runs/{RUN}/drafts/D-1", json={"subject": "s", "body": "b", "to": "x@y.example"}).json()
+    assert set_to["to"] == "x@y.example"
+    cleared = api.put(f"/api/runs/{RUN}/drafts/D-1", json={"subject": "s", "body": "b", "to": None}).json()
+    assert cleared["to"] is None
+    assert api.post(f"/api/runs/{RUN}/drafts/D-1/send").json()["to"] is None
 
 
 def test_open_items_filters_and_aging_buckets(api):
