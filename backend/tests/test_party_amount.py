@@ -1,10 +1,12 @@
 """Tercero + partidas abiertas en ese momento + números citados. Textos reales de TRAIN."""
 from __future__ import annotations
 
+import tracemalloc
 from types import SimpleNamespace
 
 import polars as pl
 
+from closebooks.rules import item_index
 from closebooks.rules.parties import PartyIndex, normalize
 from closebooks.rules.party_amount import PartyAmount, _chance
 from closebooks.state import OpenBalances
@@ -49,6 +51,41 @@ def lines(proposal):
 
 def test_normalize_drops_accents_and_case():
     assert normalize("Rodríguez Climatización S.L.") == "RODRIGUEZ CLIMATIZACION S L"
+
+
+def test_invoice_index_does_not_materialize_a_python_record_for_every_invoice():
+    count = 50_000
+    items = pl.DataFrame({"n": range(count)}).select(
+        pl.concat_str(pl.lit("ARI-"), pl.col("n")).alias("item_id"),
+        pl.lit("ARI").alias("item_type"), pl.lit("E1").alias("entity"), pl.lit("C1").alias("party_id"),
+        pl.lit("Wellness Garrido S.L.").alias("party_name"),
+        pl.concat_str(pl.lit("FV25-"), pl.col("n").cast(pl.String).str.pad_start(7, "0")).alias("document_number"),
+        pl.lit("2025-01-01").alias("issue_date"), pl.lit("EUR").alias("currency"),
+        pl.lit(1000).alias("total_cents"), pl.lit(1000).alias("open_cents"),
+        pl.lit(None, pl.String).alias("customer_po"))
+    phase = SimpleNamespace(items=items, masters=masters(), start="2025-01-01")
+    tracemalloc.start()
+    try:
+        rule = PartyAmount(phase, set())
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 12 * 1024**2, f"invoice index allocated {peak / 1024**2:.1f} MiB of Python objects"
+    balances = OpenBalances.from_items(items)
+    assert lines(rule(txn(1000, "PAGO FV25-0049999", date="2025-02-01"), balances)) == {"ARI-49999"}
+
+
+def test_reference_hash_collisions_preserve_party_entity_currency_and_issue_date(monkeypatch):
+    monkeypatch.setattr(item_index, "hash", lambda _: 0, raising=False)
+    rule, balances = engine([
+        item("ARI-1", "C1", "FV25-123456", 5000),
+        item("ARI-2", "C2", "FV25-123456", 5000, entity="E2"),
+        item("ARI-3", "C1", "FV25-123456", 5000, currency="USD"),
+        item("ARI-4", "C1", "FV25-123456", 5000, issued="2025-01-01"),
+    ])
+    assert lines(rule(txn(5000, NAME + "FRA FV25-123456"), balances)) == {"ARI-1"}
+    assert lines(rule(txn(5000, "PAGO FV25-123456"), balances)) == {"ARI-1"}
+    assert lines(rule(txn(5000, "PAGO FV25-123456", entity="E2"), balances)) == {"ARI-2"}
 
 
 def test_party_from_counterparty_name_exact():

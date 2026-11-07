@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from itertools import combinations
 
 import polars as pl
@@ -12,12 +13,10 @@ from ..load import cancelled_item_ids
 from ..model import Proposal
 from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, cross_border
 from ..state import OpenBalances
+from .item_index import ItemIndex
 from .parties import PartyIndex, normalize
 
 _TOKEN = re.compile(r"[A-Z0-9][A-Z0-9/\-]{2,}")
-MIN_SUFFIX = 3
-STRONG_SUFFIX = 5
-MIN_CUT = 6
 LONG_CUT = 8
 MAX_SUBSET_ITEMS = 24
 MAX_FULL_SEARCH = 22  # a bound on the search per line; what a unique subset means is `_chance`
@@ -174,33 +173,20 @@ class PartyAmount:
         customers = phase.masters["customers"]
         self.countries = dict(customers.select("customer_id", "country").iter_rows()) if (
             "country" in customers.columns) else {}
-        known = items.filter(pl.col("party_id").is_not_null())
+        known = items.select("entity", "party_id", "party_name").filter(pl.col("party_id").is_not_null())
         self.parties = PartyIndex(phase.masters, known.select("entity", "party_id", "party_name").unique())
-        self._known = known
+        self._known = items
         self.reindex()
 
     def release(self) -> None:
         """Before writing the run: the indexes are the biggest thing in memory and nothing needs them after resolve."""
-        self.items, self.by_number, self.clauses = {}, {}, {}
+        self.items, self.clauses = None, {}
         self.parties = None
         self._known = None
 
     def reindex(self) -> None:
-        self.items: dict[str, list[tuple]] = defaultdict(list)
-        self.by_number: dict[tuple[str, str], list[tuple]] = defaultdict(list)
-        known = self._known
         replaced = {i: _alnum(c["replaces"]["replaces"]) for i, c in self.clauses.items() if "replaces" in c}
-        columns = ("item_id", "party_id", "document_number", "issue_date", "currency", "total_cents", "customer_po",
-                   "entity")
-        for item_id, party, number, issued, currency, total, po, entity in known.select(columns).iter_rows():
-            if item_id in self.cancelled:
-                continue
-            compact = _alnum(number or "")
-            entry = (item_id, number or "", issued or "", currency, total, (po or "").upper(), compact,
-                     re.sub(r"\D", "", number or ""), replaced.get(item_id, ""))
-            self.items[party].append(entry)
-            if len(compact) >= MIN_CUT:
-                self.by_number[entity, compact].append(entry)
+        self.items = ItemIndex(self._known, self.cancelled, replaced)
 
     def __call__(self, txn: dict, balances: OpenBalances) -> Proposal | None:
         kind = "customer" if txn["amount_cents"] > 0 else "supplier"
@@ -230,7 +216,7 @@ class PartyAmount:
         if alias:
             params, rule = alias
             target = _alnum(params.get("documentNumber") or "")
-            hits = [i for i in self.by_number.get((txn["entity"], target), ()) if i[3] == currency]
+            hits = [i for i in self.items.number(txn["entity"], target) if i[3] == currency]
             if len(hits) == 1:
                 return _as_taught(self._proposal("REF-TEXT", None, [hits[0][0]], by_cash=True, confidence=1.0), rule)
             if params.get("partyId"):
@@ -257,17 +243,22 @@ class PartyAmount:
 
     def _match(self, party: str, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
         date = txn["booking_date"]
-        mine = [i for i in self.items.get(party, ()) if i[2] <= date and i[3] == currency]
-        if not mine:
-            return None
-        open_now = {i[0]: balances.open(i[0]) for i in mine}
-        free = [(i, open_now[i[0]]) for i in mine
-                if open_now[i[0]] > 0 and i[0] not in self.reserved and i[2] >= self.unknown_before]
         tokens = self._tokens(txn)
-        strong, weak = self._cited(mine, tokens)
-        by_reference = self._by_reference(strong, weak, free, open_now, cash, party, {_alnum(t) for t in tokens})
+        strong, weak = self.items.cited(party, tokens, date, currency)
+        open_now = {i[0]: balances.open(i[0]) for i in strong + weak}
+        free = None
+
+        def free_items():
+            nonlocal free
+            if free is None:
+                free = self.items.free(party, date, currency, balances, self.reserved, self.unknown_before)
+                open_now.update((i[0], amount) for i, amount in free)
+            return free
+
+        by_reference = self._by_reference(strong, weak, free_items, open_now, cash, party, {_alnum(t) for t in tokens})
         if by_reference:
             return by_reference
+        free = free_items()
         same = [i for i, o in free if o == cash and i[0][:3] not in CREDIT_NOTES]
         if same:
             picked = self._of_month(same, txn) or min(same, key=lambda i: (i[2], i[0]))
@@ -295,31 +286,7 @@ class PartyAmount:
         text = " ".join(filter(None, fields))
         return {t.strip("-/") for t in _TOKEN.findall(normalize(text.replace("/", "-")) + " " + text.upper())}
 
-    @staticmethod
-    def _cited(items: list[tuple], tokens: set[str]) -> tuple[list[tuple], list[tuple]]:
-        """Items the text cites: strong (the number or a long tail) and weak (a short tail or a cut number)."""
-        flats = [(token, _alnum(token)) for token in tokens]
-        flats = [(t, f) for t, f in flats if len(f) >= MIN_SUFFIX]
-        strong, weak = [], []
-        for item in items:
-            po, compact, digits, replaced = item[5], item[6], item[7], item[8]
-            level = 0
-            for token, flat in flats:
-                if flat == compact or (po and token == po) or flat == replaced:
-                    level = 2
-                    break
-                core = flat.lstrip("0") or flat
-                if flat.isdigit() and digits.endswith(core) and len(core) >= MIN_SUFFIX:
-                    level = max(level, 2 if len(core) >= STRONG_SUFFIX else 1)
-                elif len(flat) >= MIN_CUT and compact.startswith(flat):
-                    level = max(level, 1)
-            if level == 2:
-                strong.append(item)
-            elif level == 1:
-                weak.append(item)
-        return strong, weak
-
-    def _by_reference(self, strong: list, weak: list, free: list, open_now: dict, cash: int, party: str,
+    def _by_reference(self, strong: list, weak: list, free: Callable[[], list], open_now: dict, cash: int, party: str,
                       flats: set[str]):
         """A citation counts when it explains the cash; a whole number counts on its own."""
         make = self._proposal
@@ -332,16 +299,16 @@ class PartyAmount:
         for_strong = [(i, open_now[i[0]]) for i in strong if open_now[i[0]] > 0]
         if for_strong and _net(for_strong) > cash:
             named = {i[0] for i, _ in for_strong}
-            notes = [f for f in free if f[0][0] not in named and f[0][0][:3] in CREDIT_NOTES]
+            notes = [f for f in free() if f[0][0] not in named and f[0][0][:3] in CREDIT_NOTES]
             netted = self._notes_for(notes, _net(for_strong) - cash)
             if netted:
                 return make("REF-COMPLETED", party, [*named, *netted], by_cash=True, confidence=0.9)
         if for_strong and _net(for_strong) < cash:
             named = {i[0] for i, _ in for_strong}
-            rest = self._subset([f for f in free if f[0][0] not in named], cash - _net(for_strong), min_size=1)
+            rest = self._subset([f for f in free() if f[0][0] not in named], cash - _net(for_strong), min_size=1)
             if rest:
                 return make("REF-COMPLETED", party, [*named, *rest], by_cash=True, confidence=0.9)
-            run = self._consecutive(free, cash, skipped=MAX_SKIPPED, named=named)
+            run = self._consecutive(free(), cash, skipped=MAX_SKIPPED, named=named)
             if run:
                 return make("REF-COMPLETED", party, run, by_cash=True, confidence=0.9)
         if for_strong:
@@ -449,7 +416,7 @@ class PartyAmount:
         hits = {}
         wanted = ("AR" if txn["amount_cents"] > 0 else "AP")
         for token in self._tokens(txn):
-            for item in self.by_number.get((txn["entity"], _alnum(token)), ()):
+            for item in self.items.number(txn["entity"], _alnum(token)):
                 if item[3] == currency and item[2] <= txn["booking_date"] and item[0][:2] == wanted:
                     hits[item[0]] = item
         if not hits:

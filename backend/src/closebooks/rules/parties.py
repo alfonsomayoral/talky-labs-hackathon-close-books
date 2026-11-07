@@ -6,6 +6,7 @@ import unicodedata
 from collections import defaultdict
 
 import polars as pl
+from rapidfuzz.distance import Prefix
 
 MIN_NAME_CHARS = 10
 PREFIX_CHARS = 8
@@ -116,12 +117,7 @@ def _word_starts(text: str) -> list[int]:
 
 
 def _common_prefix(a: str, b: str, start: int) -> int:
-    n = 0
-    for x, y in zip(a, b[start:], strict=False):
-        if x != y:
-            break
-        n += 1
-    return n
+    return Prefix.similarity(a, b[start:])
 
 
 def _identifies(norm: str, text: str, position: int, length: int) -> bool:

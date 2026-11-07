@@ -1,7 +1,7 @@
 """Cases: what the platform shows and a person decides (CONTRACT §2.2)."""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import date, timedelta
 
 from .model import Row
@@ -173,7 +173,7 @@ def build_cases(rows: list[Row], txns: dict[str, dict], created_at: str) -> list
     return cases
 
 
-def overdue_cases(items: list[dict], cutoff: str, rates: dict[str, float], names: dict[str, str],
+def overdue_cases(items: Iterable[dict], cutoff: str, rates: dict[str, float], names: dict[str, str],
                   created_at: str, last_movement: dict[str, str]) -> list[dict]:
     """One case per customer with balance more than 15 days past due at the end of the phase and no movement in the
     last 30 days: a customer who pays and whom we do not match is our problem, not a debt.

@@ -17,6 +17,26 @@ def txn(amount_cents: int, **kw):
             "bank_subcode": "", "text": "", **kw}
 
 
+def test_streamed_resolution_emits_complete_transactions_without_retaining_all_rows(sample):
+    transactions = sample.txns.head(3).with_columns(pl.lit("EUR").alias("currency"))
+    item_id = sample.items.filter(pl.col("currency") == "EUR")["item_id"][0]
+    ids = transactions["bank_txn_id"].to_list()
+    proposals = {ids[1]: Proposal("CAT-CODE", [], category="BANK_FEES"),
+                 ids[2]: Proposal("FILE-PAYMENT-RUN", [(item_id, 100)])}
+    phase = SimpleNamespace(items=sample.items, txns=transactions, masters=sample.masters)
+    expected, balances = resolve(phase, proposals)
+    received = []
+
+    def receive(txn, rows):
+        assert rows and {row.bank_txn_id for row in rows} == {txn["bank_txn_id"]}
+        received.extend(rows)
+
+    retained, streamed_balances = resolve(phase, proposals, on_transaction=receive)
+    assert retained == []
+    assert received == expected
+    assert streamed_balances.history(item_id) == balances.history(item_id)
+
+
 def test_receipt_without_evidence_is_unidentified_never_a_guess():
     out = fallback(txn(12697))
     assert (out.category, out.exception, out.rule) == ("UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED")
