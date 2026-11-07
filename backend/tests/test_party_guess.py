@@ -207,3 +207,36 @@ def test_an_exact_sum_needing_two_left_out_is_not_taken():
              invoice("ARI-E", 16016, "2024-01-05")]
     rows, _ = run(items, [line(cents=24024, text=NAMED, date="2024-02-01")])
     assert guessed(rows) == [("ARI-A", 1001), ("ARI-B", 2002), ("ARI-C", 4004)]
+
+
+# BT-2025-0158687, USD 3,303.52: three whole invoices and 40 % of a fourth, all due, and no citation.
+ROUND_SHARE = [invoice("ARI-A", 58055, "2025-04-01"), invoice("ARI-B", 64498, "2025-04-11"),
+               invoice("ARI-C", 182697, "2025-04-21"), invoice("ARI-2025-6309748", 62756, "2025-05-01")]
+
+
+def test_the_only_set_of_due_invoices_with_one_at_a_round_share_is_taken_and_that_one_stays_partial():
+    rows, balances = run([invoice("ARI-LATER", 10000, "2025-09-01"), *ROUND_SHARE],
+                         [line(cents=330352, text=NAMED, date="2025-06-02")])
+    assert {(r.item_id, r.amount_cents, r.exception) for r in rows} == {
+        ("ARI-A", 58055, None), ("ARI-B", 64498, None), ("ARI-C", 182697, None),
+        ("ARI-2025-6309748", 25102, "PARTIAL")}
+    assert {r.confidence for r in rows} == {0.3} and "inferred" in rows[0].candidates[0]["why"]
+    assert (balances.open("ARI-2025-6309748"), balances.open("ARI-A"), balances.open("ARI-LATER")) == (37654, 0, 10000)
+
+
+def test_a_round_share_of_an_invoice_not_yet_due_does_not_count():
+    items = [*ROUND_SHARE[:3], invoice("ARI-2025-6309748", 62756, "2025-07-01")]
+    rows, _ = run(items, [line(cents=330352, text=NAMED, date="2025-06-02")])
+    assert "PARTIAL" not in {r.exception for r in rows}
+
+
+def test_two_sets_with_a_round_share_leave_the_guess_as_it_was():
+    items = [*ROUND_SHARE, invoice("ARI-TWIN", 62756, "2025-05-02")]
+    rows, _ = run(items, [line(cents=330352, text=NAMED, date="2025-06-02")])
+    assert "PARTIAL" not in {r.exception for r in rows}
+
+
+def test_a_share_alone_with_no_whole_invoice_is_not_this_rule():
+    rows, _ = run([invoice("ARI-1", 62756, "2025-05-01"), invoice("ARI-2", 182697, "2025-05-02")],
+                  [line(cents=25102, text=NAMED, date="2025-06-02")])
+    assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
