@@ -4,7 +4,8 @@
 
 Shares are in percentage points; a gap above 3 is a warning. Rows per bank line and the mean amount, which are not
 shares, warn at 3 % of their value. An entity the reference does not have is compared with the reference's whole.
-Exit code 1 if anything warns or a hard check fails.
+Hard checks, that do not depend on LIVE: validate, coverage, size, an FX rate for every currency of the phase, and every
+entity and bank with some line past a fallback. Exit code 1 if anything warns or a hard check fails.
 """
 from __future__ import annotations
 
@@ -35,7 +36,7 @@ def _shares(counts: dict[str, int], total: int) -> dict[str, float]:
 def _profile(run: Path) -> dict:
     meta = json.loads((run / "run.json").read_text())
     rows = pl.read_ndjson(io.BytesIO(gzip.decompress((run / "explanations.jsonl.gz").read_bytes())), schema=SCHEMA)
-    bank = pl.read_csv(Path(meta["dataDir"]) / "bank_transactions.csv.gz", columns=["bank_txn_id", "entity"],
+    bank = pl.read_csv(Path(meta["dataDir"]) / "bank_transactions.csv.gz", columns=["bank_txn_id", "entity", "bank"],
                        infer_schema_length=0)
     per_entity = bank.group_by("entity").len().join(
         rows.filter(pl.col("rule") == FALLBACK).join(bank, left_on="bankTxnId", right_on="bank_txn_id")
@@ -45,12 +46,36 @@ def _profile(run: Path) -> dict:
     for rule, n in meta["byRule"].items():
         families[rule.split("-")[0]] += n
     amounts = rows.filter(pl.col("amountCents").is_not_null())
-    return {"meta": meta, "rows": meta["rows"], "bank_ids": bank["bank_txn_id"],
+    return {"meta": meta, "rows": meta["rows"], "bank_ids": bank["bank_txn_id"], "bank": bank,
+            "rule_rows": rows.select("bankTxnId", "rule"),
             "by_rule": _shares(meta["byRule"], meta["rows"]), "by_family": _shares(families, meta["rows"]),
             "by_exception": _shares(meta.get("byException", {}), meta["rows"]),
             "unidentified": dict(per_entity.select("entity", "share").iter_rows()),
             "unidentified_all": 100 * meta["byRule"].get(FALLBACK, 0) / meta["txns"],
             "row_ids": rows["bankTxnId"], "amounts": amounts.select("amountCents", "currency")}
+
+
+def _without_rate(folder: Path, masters: dict) -> dict[str, int]:
+    """Lines per currency of the phase, in bank lines or items, that the FX file does not have."""
+    known = set(masters["fx_rates"]["currency"]) | {"EUR"}
+    found: Counter = Counter()
+    bank = pl.read_csv(folder / "bank_transactions.csv.gz", columns=["currency", "orig_currency"],
+                       infer_schema_length=0)
+    for column in bank.get_columns():
+        found.update(dict(column.drop_nulls().value_counts().iter_rows()))
+    for name in ("ar_invoices", "ap_invoices", "credit_notes", "open_items_at_start"):
+        path = folder / f"{name}.csv.gz"
+        if path.exists():
+            found.update(dict(pl.read_csv(path, columns=["currency"], infer_schema_length=0)["currency"]
+                              .drop_nulls().value_counts().iter_rows()))
+    return {c: n for c, n in sorted(found.items()) if c not in known}
+
+
+def _only_fallback(profile: dict, column: str) -> list[str]:
+    """Entities or banks where no line got past a fallback: the rules may depend on a name they do not know."""
+    rows = profile["rule_rows"].join(profile["bank"], left_on="bankTxnId", right_on="bank_txn_id")
+    settled = rows.filter(~pl.col("rule").str.starts_with("FALLBACK-"))[column].unique().to_list()
+    return sorted(set(profile["bank"][column].drop_nulls()) - set(settled))
 
 
 def _hard_checks(run: Path, profile: dict) -> list[tuple[str, bool, str]]:
@@ -59,7 +84,12 @@ def _hard_checks(run: Path, profile: dict) -> list[tuple[str, bool, str]]:
     masters = load_masters(Path(meta["dataDir"]))
     phase = SimpleNamespace(masters=masters, txns=pl.DataFrame({"bank_txn_id": profile["bank_ids"]}))
     report = validate_file(run / "submission.csv.gz", phase)
+    no_rate = _without_rate(Path(meta["dataDir"]), masters)
+    entities, banks = _only_fallback(profile, "entity"), _only_fallback(profile, "bank")
     return [("validate oficial", bool(report["ok"]), "; ".join(map(str, report["errors"][:3])) or "ok"),
+            ("toda divisa tiene tipo en FX", not no_rate, str(no_rate) if no_rate else "ok"),
+            ("toda sociedad con filas fuera de FALLBACK", not entities, ", ".join(entities) or "ok"),
+            ("todo banco con filas fuera de FALLBACK", not banks, ", ".join(banks) or "ok"),
             ("cobertura de movimientos", not missing, f"{profile['bank_ids'].n_unique() - len(missing)} de "
                                                       f"{profile['bank_ids'].n_unique()}"),
             ("tamaño < 60 MB", meta["csvBytes"] < MAX_CSV_BYTES, f"{meta['csvBytes'] / 1e6:.1f} MB")]

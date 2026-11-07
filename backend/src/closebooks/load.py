@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -64,6 +65,10 @@ def _with_eur(txns: pl.DataFrame, fx_rates: pl.DataFrame) -> pl.DataFrame:
     keyed = txns.with_columns(pl.col("booking_date").str.to_date().alias("_date")).sort("_date")
     joined = keyed.join_asof(rates, left_on="_date", right_on="date", by="currency", strategy="backward",
                             check_sortedness=False)
+    missing = joined.filter(pl.col("rate").is_null(), pl.col("currency") != "EUR").group_by("currency").len().sort(
+        "currency")
+    for currency, lines in missing.iter_rows():
+        print(f"warning: no FX rate for {currency} on {lines} bank lines: their EUR amount uses 1.0", file=sys.stderr)
     rate = pl.when(pl.col("currency") == "EUR").then(1.0).otherwise(pl.col("rate").fill_null(1.0))
     return joined.with_columns(
         (pl.col("amount_cents") / rate).round().cast(pl.Int64).alias("amount_eur_cents")
