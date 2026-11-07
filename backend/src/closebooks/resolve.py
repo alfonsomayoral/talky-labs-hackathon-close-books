@@ -52,7 +52,8 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                 amount, exception = decided[item_id]
             else:
                 amount, exception = decide(
-                    item_id, currency[item_id], txn["currency"], balances.open(item_id), applied, proposal.returned,
+                    item_id, currency[item_id], txn["currency"],
+                    applied if proposal.settles_rest else balances.open(item_id), applied, proposal.returned,
                     deduction=proposal.deductions.get(item_id), terms=terms_of(item_id),
                     booking_date=txn["booking_date"])
             exception = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception)
