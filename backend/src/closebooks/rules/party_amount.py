@@ -214,6 +214,9 @@ class PartyAmount:
         results = [r for party in parties if (r := self._match(party, txn, cash, currency, balances))]
         if len(results) == 1:
             return results[0]
+        homonym = self._only_homonym_with_the_cash(results, cash, currency, balances)
+        if homonym:
+            return homonym
         found = self._by_number_alone(txn, cash, currency, balances)
         if found:
             return found
@@ -229,6 +232,22 @@ class PartyAmount:
         history = balances.history(item_id)
         return bool(history) and history[-1]["exception"] == "RETURNED" and (
             self.reserved[item_id] <= {move["bankTxnId"] for move in history})
+
+    def _only_homonym_with_the_cash(self, results: list[Proposal], cash: int, currency: str,
+                                    balances) -> Proposal | None:
+        """Crosses customer ids, never entities: customers of one entity can share a normalized name (eleven in AU01).
+        The one whose open documents are the cash to the cent settles; the others stay as candidates. Two: ask."""
+        if len(results) < 2 or not self.parties.same_name([r.party_id for r in results]):
+            return None
+        amounts = {r.party_id: [(i, balances.open(i)) for i, _ in r.lines] for r in results}
+        exact = [r for r in results if _net([((i,), o) for i, o in amounts[r.party_id]]) == cash]
+        if len(exact) != 1:
+            return None
+        chosen = exact[0]
+        chosen.candidates = [{"itemId": i, "amountCents": o, "currency": currency, "why": f"homonym {r.party_id}"}
+                             for r in results if r is not chosen for i, o in amounts[r.party_id]]
+        chosen.sources = [*chosen.sources, *({"kind": "customer", "ref": r.party_id} for r in results)]
+        return chosen
 
     def _taught(self, txn: dict, kind: str, cash: int, currency: str, balances) -> Proposal | None:
         """What a person taught goes first; the amount still has to be explained, or the line goes on as usual."""
