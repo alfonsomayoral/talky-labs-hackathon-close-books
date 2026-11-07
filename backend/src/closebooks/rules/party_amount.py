@@ -10,7 +10,7 @@ import polars as pl
 from ..documents.pdfs import phase_clauses
 from ..load import cancelled_item_ids
 from ..model import Proposal
-from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, cross_border
+from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, _is_overpayment, cross_border
 from ..state import OpenBalances
 from .parties import PartyIndex, normalize
 
@@ -37,6 +37,10 @@ _MONTH = re.compile(r"\b(" + "|".join(sorted(MONTHS, key=len, reverse=True)) + r
 MAX_TIED_SUBSETS = 5
 CREDIT_NOTES = ("ARC", "APC")
 _WITHHOLDING = (0.0125, 0.015, 0.10)
+_INSTALMENT = re.compile(
+    r"\b(?:INSTAL+MENTS?|PLAZOS?|PRESTACAO|PRESTACION|RATE|RATA|ECHEANCE|TEILZAHLUNG|CUOTA|VENCIMIENTO|PARCELA|TERMIN)"
+    r"\s+(\d+)\s+(?:OF|DE|SUR|VON)\s+(\d+)\b")
+_PARTIAL = re.compile(r"\b(?:A CUENTA|PARCIAL|PARTIAL|ACOMPTE|TEILZAHLUNG)\b")
 
 
 def _alnum(text: str) -> str:
@@ -126,7 +130,8 @@ def _clauses(phase) -> dict[str, dict[str, dict]]:
     if not hasattr(phase, "dir") or not (phase.dir / "pdfs" / "index.csv").exists():
         return {}
     facts = phase_clauses(phase)
-    return {item: {c.kind: c.value for c in doc.clauses} for item, doc in facts._by_item.items() if doc.clauses}
+    return {item: {**{c.kind: c.value for c in doc.clauses}, "_pdf": {"path": doc.path}}
+            for item, doc in facts._by_item.items() if doc.clauses}
 
 
 def _month_of(text: str) -> tuple[int, int | None] | None:
@@ -224,7 +229,37 @@ class PartyAmount:
             self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
         elif self._pending:
             self._abstain(txn, "subsets", self._pending, balances)
+        else:
+            return self._credit_payout(txn, cash, currency, balances)
         return None
+
+    def _credit_payout(self, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
+        """POLICIES §5.9: a transfer back to a customer settles its credit note, not a supplier invoice."""
+        if txn["amount_cents"] >= 0 or cash <= 0:
+            return None
+        parties = self.parties.find(txn, "customer")
+        if not self.parties.certain:
+            return None
+        tokens = {_alnum(t) for t in self._tokens(txn)}
+        matches = []
+        for party in parties:
+            for note in self.items.get(party, ()):
+                if (note[0][:3] != "ARC" or note[3] != currency or note[2] > txn["booking_date"]
+                        or note[0] in self.reserved or balances.open(note[0]) != cash):
+                    continue
+                clauses = self.clauses.get(note[0], {})
+                if "rappel_offset" in clauses or clauses.get("credit_refund", {}).get("mode") == "offset":
+                    continue
+                if note[6] in tokens or "rappel_payout" in clauses:
+                    matches.append((party, note))
+        if len(matches) != 1:
+            return None
+        party, note = matches[0]
+        sources = [{"kind": "customer", "ref": party}, {"kind": "bankLine", "ref": txn["bank_txn_id"]}]
+        if pdf := self.clauses.get(note[0], {}).get("_pdf"):
+            sources.append({"kind": "pdf", "ref": pdf["path"]})
+        return Proposal("CREDIT-PAYOUT", [(note[0], cash)], confidence=1.0, party_id=party, reference=note[1],
+                        sources=sources)
 
     def _returned(self, item_id: str, balances: OpenBalances) -> bool:
         """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the
@@ -293,9 +328,30 @@ class PartyAmount:
         tokens = self._tokens(txn)
         strong, weak = self._cited(mine, tokens)
         by_reference = self._by_reference(strong, weak, free, open_now, cash, party, {_alnum(t) for t in tokens})
-        if by_reference:
-            return by_reference
         same = [i for i, o in free if o == cash and i[0][:3] not in CREDIT_NOTES]
+        if by_reference:
+            # POLICIES §5.5: a noisy citation must not beat an exact amount of the same, certain payer.
+            # Keep explained shortfalls, PDF plans and overpayments; never break a tie between alternatives.
+            if (txn["amount_cents"] > 0 and self.parties.certain and len(same) == 1
+                    and len(by_reference.lines) == 1 and len(strong) == 1
+                    and by_reference.lines[0][0] == strong[0][0]):
+                cited = strong[0]
+                remaining = open_now[cited[0]]
+                text = normalize(" ".join(filter(None, (txn["text"], txn["remittance_info"]))).replace("/", " OF "))
+                explicit_partial = _PARTIAL.search(text) or _INSTALMENT.search(text)
+                explained = (remaining <= 0 or cash == remaining or self._plan_expects(cited[0], cash)
+                             or explicit_partial
+                             or self._short_paid([(cited, remaining)], cash, party, txn)
+                             or (cash > remaining and _is_overpayment(cash - remaining, remaining)))
+                if not explained and by_reference.rule == "REF-TEXT":
+                    found = self._proposal("PARTY-REF-NOISE", party, [same[0][0]], confidence=0.95)
+                    found.reference = cited[1]
+                    found.candidates = [{"itemId": cited[0], "amountCents": remaining, "currency": currency,
+                                         "why": "cited reference does not explain the cash"}]
+                    found.sources = [{"kind": "customer", "ref": party},
+                                     {"kind": "bankLine", "ref": txn["bank_txn_id"]}]
+                    return found
+            return by_reference
         if same:
             picked = self._of_month(same, txn) or min(same, key=lambda i: (i[2], i[0]))
             return self._proposal("PARTY-AMOUNT", party, [picked[0]], confidence=0.95 if len(same) == 1 else 0.9)
@@ -315,11 +371,33 @@ class PartyAmount:
             return planned
         if not self.parties.certain:
             return None
+        instalment = self._instalment(free, cash, party, txn)
+        if instalment:
+            return instalment
         run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
         if run:
             return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
         # Last: what open documents can explain is more certain than a second payment of a closed one.
         return self._paid_again(mine, open_now, cash, party, balances)
+
+    def _instalment(self, free: list, cash: int, party: str, txn: dict) -> Proposal | None:
+        """An explicit k/n supplies a missing equal-payment plan; an existing PDF plan takes precedence."""
+        text = normalize(" ".join(filter(None, (txn["text"], txn["remittance_info"]))).replace("/", " OF "))
+        parts = {(int(k), int(n)) for k, n in _INSTALMENT.findall(text)}
+        if len(parts) != 1:
+            return None
+        k, n = parts.pop()
+        if not 1 <= k <= n or n < 2:
+            return None
+        matches = [i for i, remaining in free if i[0][:3] == "ARI" and 0 < cash <= remaining
+                   and not {"instalments", "retention", "advance_deduction"} & self.clauses.get(i[0], {}).keys()
+                   # Equal instalments differ by at most one cent when the total is not divisible by n.
+                   and cash in (i[4] // n, (i[4] + n - 1) // n)]
+        if len(matches) != 1:
+            return None
+        return Proposal("PARTY-INSTALMENT", [(matches[0][0], cash)], confidence=0.9, party_id=party,
+                        reference=f"{k}/{n}", sources=[{"kind": "customer", "ref": party},
+                                                     {"kind": "bankLine", "ref": txn["bank_txn_id"]}])
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
