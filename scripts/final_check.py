@@ -19,6 +19,7 @@ from types import SimpleNamespace
 
 import polars as pl
 
+from closebooks.categories import load_codes
 from closebooks.evaluate import validate_file
 from closebooks.load import load_masters
 
@@ -26,7 +27,8 @@ THRESHOLD = 3.0
 MAX_CSV_BYTES = 60_000_000
 FALLBACK = "FALLBACK-UNIDENTIFIED"
 RED, GREEN, END = "\033[31m", "\033[32m", "\033[0m"
-SCHEMA = {"bankTxnId": pl.String, "amountCents": pl.Int64, "currency": pl.String, "rule": pl.String}
+SCHEMA = {"bankTxnId": pl.String, "amountCents": pl.Int64, "currency": pl.String, "rule": pl.String,
+          "category": pl.String}
 
 
 def _shares(counts: dict[str, int], total: int) -> dict[str, float]:
@@ -47,7 +49,7 @@ def _profile(run: Path) -> dict:
         families[rule.split("-")[0]] += n
     amounts = rows.filter(pl.col("amountCents").is_not_null())
     return {"meta": meta, "rows": meta["rows"], "bank_ids": bank["bank_txn_id"], "bank": bank,
-            "rule_rows": rows.select("bankTxnId", "rule"),
+            "rule_rows": rows.select("bankTxnId", "rule", "category"),
             "by_rule": _shares(meta["byRule"], meta["rows"]), "by_family": _shares(families, meta["rows"]),
             "by_exception": _shares(meta.get("byException", {}), meta["rows"]),
             "unidentified": dict(per_entity.select("entity", "share").iter_rows()),
@@ -78,6 +80,17 @@ def _only_fallback(profile: dict, column: str) -> list[str]:
     return sorted(set(profile["bank"][column].drop_nulls()) - set(settled))
 
 
+def _banks_out_of_table(profile: dict) -> dict[str, str]:
+    """Banks the category table has never seen, with what became of their debits with no match. A share of BANK_FEES
+    is normal in some known banks (0 to 100 % in LIVE), so only a bank with no history is worth a look."""
+    known = {key[0] for key in load_codes()}
+    rows = profile["rule_rows"].filter(pl.col("rule") == "FALLBACK-CATEGORY").join(
+        profile["bank"], left_on="bankTxnId", right_on="bank_txn_id").group_by("bank").agg(
+        pl.len().alias("lines"), (pl.col("category") == "BANK_FEES").sum().alias("fees"))
+    return {bank: f"{lines} filas de respaldo, {100 * fees / lines:.0f} % BANK_FEES"
+            for bank, lines, fees in rows.iter_rows() if bank not in known}
+
+
 def _hard_checks(run: Path, profile: dict) -> list[tuple[str, bool, str]]:
     meta = profile["meta"]
     missing = set(profile["bank_ids"]) - set(profile["row_ids"])
@@ -86,10 +99,12 @@ def _hard_checks(run: Path, profile: dict) -> list[tuple[str, bool, str]]:
     report = validate_file(run / "submission.csv.gz", phase)
     no_rate = _without_rate(Path(meta["dataDir"]), masters)
     entities, banks = _only_fallback(profile, "entity"), _only_fallback(profile, "bank")
+    unseen = _banks_out_of_table(profile)
     return [("validate oficial", bool(report["ok"]), "; ".join(map(str, report["errors"][:3])) or "ok"),
             ("toda divisa tiene tipo en FX", not no_rate, str(no_rate) if no_rate else "ok"),
             ("toda sociedad con filas fuera de FALLBACK", not entities, ", ".join(entities) or "ok"),
             ("todo banco con filas fuera de FALLBACK", not banks, ", ".join(banks) or "ok"),
+            ("todo banco en la tabla de categorías", not unseen, str(unseen) if unseen else "ok"),
             ("cobertura de movimientos", not missing, f"{profile['bank_ids'].n_unique() - len(missing)} de "
                                                       f"{profile['bank_ids'].n_unique()}"),
             ("tamaño < 60 MB", meta["csvBytes"] < MAX_CSV_BYTES, f"{meta['csvBytes'] / 1e6:.1f} MB")]
