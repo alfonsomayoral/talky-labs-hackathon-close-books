@@ -30,6 +30,11 @@ Con `live-kpi6-cases2`. **Si se graba con otra ejecución, los ids y las cifras 
 | 4 | Montalbar Hidrotecnia S.L., 138 facturas vencidas por 418.279,57 EUR, borrador en español `D-000049` | `/cobros?ver=CES01000094` |
 | 5 | Plásticos Express S.L.U.: «Factura de proveedor pagada en parte: 36.948,26 EUR», borrador `D-000110` (es) | `/proveedores?ver=CASE-BT-2025-0293358-API-2025-7506669` |
 
+Abiertos uno a uno en el navegador con esta ejecución. Dos cosas que se ven en pantalla:
+
+- **Paso 4:** el panel de Montalbar dice 460.396,55 € vencidos y su correo 418.279,57 €. No es un error: el correo reclama solo lo vencido hace más de 15 días. Di la cifra del correo o no digas ninguna.
+- **Paso 5:** el panel dice «Sin partidas abiertas de este proveedor», porque la factura ya está pagada en parte y cerrada. Se enseña el correo, no las partidas.
+
 **Comprobaciones previas** (todas con la ejecución que se va a enseñar):
 
 - La última ejecución de LIVE tiene preguntas y borradores (`questions.jsonl` y `drafts.jsonl` con filas). Sin ellos, los pasos 3 y 4 no se pueden grabar.
