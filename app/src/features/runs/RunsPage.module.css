@@ -1,0 +1,7 @@
+/* The history table scrolls inside the rest of the sheet, under the tabs. */
+.fillPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}

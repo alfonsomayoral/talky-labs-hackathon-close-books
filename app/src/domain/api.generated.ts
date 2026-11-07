@@ -239,7 +239,11 @@ export interface paths {
         /** List Drafts */
         get: operations["list_drafts_api_runs__runId__drafts_get"];
         put?: never;
-        /** Create Draft */
+        /**
+         * Create Draft
+         * @description The template of the case, written to human/outbox.jsonl as a draft (it carries the whole draft: the
+         *     backend file is not rewritten). Asking again for the same case and kind returns the draft that exists.
+         */
         post: operations["create_draft_api_runs__runId__drafts_post"];
         delete?: never;
         options?: never;
@@ -1026,7 +1030,7 @@ export interface components {
              */
             kind: "email_customer" | "email_supplier";
             /** To */
-            to: string;
+            to: string | null;
             /** Toname */
             toName?: string | null;
             /** Partyid */

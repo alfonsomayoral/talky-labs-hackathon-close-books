@@ -4,6 +4,8 @@ import { CompareTab } from './CompareTab'
 import { FinalConsole } from './FinalConsole'
 import { HistoryTab } from './HistoryTab'
 
+import styles from './RunsPage.module.css'
+
 const TABS = [
   { id: 'historial', label: 'Historial' },
   { id: 'comparar', label: 'Comparar' },
@@ -18,7 +20,7 @@ export function RunsPage() {
     <Page fill={tab === 'historial'}>
       <PageHeader title="Ejecuciones" subtitle="Qué ha hecho cada ejecución, si ha mejorado y si estamos listos para FINAL." />
       <Tabs aria-label="Vistas" tabs={TABS} value={tab} onChange={setVista} idPrefix={ID_PREFIX} />
-      <TabPanel idPrefix={ID_PREFIX} id={tab}>
+      <TabPanel idPrefix={ID_PREFIX} id={tab} className={tab === 'historial' ? styles.fillPanel : undefined}>
         {tab === 'historial' && <HistoryTab onGoToConsole={() => setVista('final')} />}
         {tab === 'comparar' && <CompareTab />}
         {tab === 'final' && <FinalConsole />}
