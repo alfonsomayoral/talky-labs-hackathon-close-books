@@ -60,7 +60,7 @@ const parties: Column<Party>[] = [
 
 const documents: Column<DocumentRow>[] = [
   { id: 'name', header: 'Fichero', width: 'minmax(240px, 1.2fr)', cell: (r) => <Mono>{r.name}</Mono>, sortValue: (r) => r.name },
-  { id: 'kind', header: 'Clase', width: 150, cell: (r) => <Badge variant="outline">{facetLabel('documents', r.kind)}</Badge>, sortValue: (r) => r.kind },
+  { id: 'kind', header: 'Clase', width: 150, cell: (r) => <Badge variant="outline">{r.kind === 'remittanceAdvice' ? `Aviso ${r.format}` : facetLabel('documents', r.kind)}</Badge>, sortValue: (r) => r.kind },
   { id: 'entity', header: 'Sociedad', width: 96, cell: (r) => <Mono>{r.entity}</Mono>, sortValue: (r) => r.entity },
   { id: 'format', header: 'Formato', width: 80, cell: (r) => <Mono>{r.format}</Mono>, sortValue: (r) => r.format },
   { id: 'date', header: 'Fecha', width: 112, cell: (r) => formatDate(r.date), sortValue: (r) => r.date },

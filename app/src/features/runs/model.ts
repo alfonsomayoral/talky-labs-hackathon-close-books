@@ -6,12 +6,15 @@ import { formatNumber } from '@/lib/format'
 /** The official submission limit, uncompressed (`MAX_UNCOMPRESSED` in bankrec_score.py). */
 export const SUBMISSION_LIMIT_BYTES = 60 * 1024 * 1024
 
+/** The official limit of rows (`MAX_ROWS` in bankrec_score.py). */
+export const SUBMISSION_LIMIT_ROWS = 3_000_000
+
 /** Scored metrics in the order the scorer weighs them; the other keys in `score.metrics` are counters. */
 export const METRIC_LABEL: Record<string, string> = {
-  allocation_f1: 'F1 de asignación',
+  allocation_f1: 'F1 de pares',
   precision: 'Precisión',
   recall: 'Cobertura',
-  txn_accuracy: 'Acierto por movimiento',
+  txn_accuracy: 'Exactitud por movimiento',
   exception_macro_f1: 'F1 macro de excepciones',
 }
 
@@ -22,6 +25,7 @@ export const STAGE_LABEL: Record<string, string> = {
   rules: 'Reglas',
   resolve: 'Resolución',
   output: 'Salida',
+  score: 'Puntuación',
 }
 
 const EPSILON = 1e-9
@@ -115,4 +119,26 @@ export function formatBytes(bytes: number): string {
 export function failureCause(error: string | null | undefined): string | null {
   const lines = (error ?? '').split('\n').map((l) => l.trim()).filter(Boolean)
   return lines.at(-1) ?? null
+}
+
+// The event's window (PROBLEM.md): FINAL's data are published at 18:00 and submissions close at 19:30, Madrid time.
+const DATA_AT = Date.parse('2026-11-07T18:00:00+01:00')
+const CLOSE_AT = Date.parse('2026-11-07T19:30:00+01:00')
+
+const untilLabel = (ms: number) => {
+  const minutes = Math.ceil(ms / 60_000)
+  const hours = Math.floor(minutes / 60)
+  return hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`
+}
+
+export function eventClock(now: Date): string {
+  const t = now.getTime()
+  if (t < DATA_AT) return `Faltan ${untilLabel(DATA_AT - t)} para los datos`
+  if (t < CLOSE_AT) return `Datos publicados: quedan ${untilLabel(CLOSE_AT - t)} para el cierre`
+  return 'Envíos cerrados'
+}
+
+/** What a phase with no official answers can compare with: the newest scored run of the holdout. */
+export function scoreReference(runs: RunSummary[]): RunSummary | null {
+  return runs.filter((r) => r.phase === 'holdout' && r.score != null).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
 }

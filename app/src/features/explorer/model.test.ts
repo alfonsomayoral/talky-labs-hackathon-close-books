@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DocumentFact } from '@/domain'
-import { factExtras, fromSortParam, switchTab, toSortParam, withParams } from './model'
+import { clauseText, factExtras, fromSortParam, switchTab, toSortParam, withParams } from './model'
 
 describe('sort in the URL', () => {
   it('writes the column as the API wants it: field, or -field when descending', () => {
@@ -69,8 +69,18 @@ describe('factExtras', () => {
   it('is empty when there is nothing extra', () => {
     expect(factExtras(fact({}))).toEqual([])
   })
+})
 
-  it('includes the clause with its value', () => {
-    expect(factExtras(fact({ clause: 'early_discount', clauseValue: { pct: 2 } }))).toEqual(['Cláusula early_discount {"pct":2}'])
+describe('clauseText', () => {
+  it('says what each clause means, with its data', () => {
+    expect(clauseText('instalments', { n: 3, days: [30, 60, 90] })).toBe('Pago en 3 plazos a 30/60/90 días')
+    expect(clauseText('replaces', { replaces: 'F-12' })).toBe('Anula y sustituye a F-12')
+    expect(clauseText('factored', { factor: 'Norte Pagos' })).toBe('Cedida a Norte Pagos')
+    expect(clauseText('service_month', { month: 'marzo', year: 2025 })).toBe('Mes de servicio: marzo 2025')
+    expect(clauseText('advance_deduction', { proforma: 'PF-9' })).toBe('Deduce el anticipo de la proforma PF-9')
+  })
+
+  it('names a clause it does not know, without raw data', () => {
+    expect(clauseText('something_new', { a: 1 })).toBe('Cláusula something_new')
   })
 })

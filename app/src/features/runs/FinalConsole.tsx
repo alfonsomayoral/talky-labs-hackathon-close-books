@@ -1,11 +1,11 @@
-import { useId, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useId, useState, type DragEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { Check, FileArchive, Play, RotateCcw, ShieldCheck, Terminal } from 'lucide-react'
 import { Badge, Button, Card, KeyValue, Mono, ProgressBar, SegmentedControl, StatusDot } from '@/components'
 import { useCurrentRun, useRun, useRunStatus, useRuns, useStartRun, useUpload, useValidateRun } from '@/data'
 import { formatDuration, formatNumber } from '@/lib/format'
 import { useTextParam } from '@/lib/urlState'
-import { STAGE_LABEL, SUBMISSION_LIMIT_BYTES, consoleStep, formatBytes, stageList, failureCause } from './model'
+import { STAGE_LABEL, SUBMISSION_LIMIT_BYTES, SUBMISSION_LIMIT_ROWS, consoleStep, eventClock, formatBytes, stageList, failureCause } from './model'
 import styles from './FinalConsole.module.css'
 
 const PHASES = ['live', 'holdout', 'final']
@@ -51,6 +51,25 @@ function Dropzone({ file, onFile }: { file: File | null; onFile: (f: File | null
       {file && <span className={styles.muted}>{formatBytes(file.size)}</span>}
       <input id={id} className={styles.file} type="file" accept=".zip,application/zip" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
     </label>
+  )
+}
+
+/** The event's window and the file's limits, always in view. */
+function EventFacts() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return (
+    <KeyValue
+      className={styles.event}
+      labelWidth={190}
+      items={[
+        { label: 'Reloj del evento', value: `18:00 datos · 19:30 cierre · ${eventClock(now)}` },
+        { label: 'Límites del fichero', value: `${formatBytes(SUBMISSION_LIMIT_BYTES)} sin comprimir · ${formatNumber(SUBMISSION_LIMIT_ROWS)} filas` },
+      ]}
+    />
   )
 }
 
@@ -103,9 +122,10 @@ export function FinalConsole() {
   return (
     <Card
       title="Consola FINAL"
-      description="Del zip de la fase al fichero listo para que una persona lo envíe."
+      description="Del zip de la fase al fichero listo. Esta consola no envía nada: el envío lo hace una persona."
       actions={consola && <Button variant="ghost" size="sm" leadingIcon={<RotateCcw />} onClick={reset}>Nueva ejecución</Button>}
     >
+      <EventFacts />
       <ol className={styles.steps}>
         <Step n={1} current={step} title="Fase" summary={consola ? <>Fase <Mono>{chosenPhase}</Mono></> : phase ? <>Fase <Mono>{phase}</Mono> elegida</> : undefined}>
           {!consola && (
@@ -179,7 +199,7 @@ export function FinalConsole() {
                   <KeyValue
                     labelWidth={190}
                     items={[
-                      { label: 'Filas', value: formatNumber(validation.rows) },
+                      { label: 'Filas', value: `${formatNumber(validation.rows)} de ${formatNumber(SUBMISSION_LIMIT_ROWS)}` },
                       {
                         label: 'Movimientos cubiertos',
                         value: run.data ? (

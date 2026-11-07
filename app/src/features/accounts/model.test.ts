@@ -32,7 +32,7 @@ describe('formatChange', () => {
       { format: 'camt053', from: '2025-10-01', to: null },
       { format: 'n43', from: '2025-07-01', to: '2025-09-30' },
     ]
-    expect(formatChange(formats)).toBe('n43 → camt053 desde oct 2025')
+    expect(formatChange(formats)).toBe('Norma 43 → camt.053 desde 1 oct 2025')
   })
 
   it('chains several changes and reports the last start', () => {
@@ -41,7 +41,7 @@ describe('formatChange', () => {
       { format: 'mt940', from: '2025-09-01', to: '2025-11-30' },
       { format: 'camt053', from: '2025-12-01', to: null },
     ]
-    expect(formatChange(formats)).toBe('n43 → mt940 → camt053 desde dic 2025')
+    expect(formatChange(formats)).toBe('Norma 43 → MT940 → camt.053 desde 1 dic 2025')
   })
 
   it('does not call a change two periods of the same format', () => {

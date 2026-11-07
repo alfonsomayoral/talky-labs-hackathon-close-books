@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import { Play, CloudOff } from 'lucide-react'
-import { Amount, Badge, Button, DataTable, EmptyState, Mono, Skeleton, type Column } from '@/components'
-import { useRuns } from '@/data'
+import { Amount, Badge, Button, Card, DataTable, EmptyState, Mono, Skeleton, type Column } from '@/components'
+import { useCurrentRun, useRun, useRuns } from '@/data'
 import { INBOX_STATUSES, type RunSummary } from '@/domain'
 import { formatDateTime, formatDuration, formatNumber } from '@/lib/format'
 import { useOpenObject } from '@/lib/urlState'
 import { RunPanel } from './RunPanel'
+import { ScoreExplainer } from './ScoreExplainer'
+import styles from './RunsPage.module.css'
 
 const queue = (r: RunSummary) => INBOX_STATUSES.reduce((sum, s) => sum + (r.cases[s] ?? 0), 0)
 
@@ -27,12 +29,16 @@ export function HistoryTab({ onGoToConsole }: { onGoToConsole: () => void }) {
   const runs = useRuns()
   const [openId, setOpenId] = useOpenObject()
   const rows = useMemo(() => runs.data ?? [], [runs.data])
+  const current = useRun(useCurrentRun().runId).data
 
   if (runs.isPending) return <Skeleton height={240} />
   if (runs.error) return <EmptyState icon={<CloudOff />} title="No se ha podido cargar el historial" description={runs.error.message} />
 
   return (
     <>
+      <Card className={styles.score}>
+        <ScoreExplainer score={current?.score ?? null} runs={rows} />
+      </Card>
       <DataTable
         aria-label="Historial de ejecuciones"
         rows={rows}

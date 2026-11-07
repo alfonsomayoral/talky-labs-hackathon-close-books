@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { facetLabel } from './facetLabel'
 import { MiniTable } from './MiniTable'
-import { factExtras, withParams } from './model'
+import { clauseText, factExtras, withParams } from './model'
 import styles from './panels.module.css'
 
 export interface PanelProps {
@@ -196,6 +196,8 @@ export function PartyPanel({ id, runId }: PanelProps) {
 export function DocumentPanel({ id, phase }: PanelProps) {
   const q = useDocument(phase, id)
   const d = q.data
+  const clauses = d?.facts.filter((f) => f.clause) ?? []
+  const facts = d?.facts.filter((f) => !f.clause) ?? []
   return (
     <Loaded loading={q.isPending} error={q.error}>
       {d && (
@@ -210,37 +212,51 @@ export function DocumentPanel({ id, phase }: PanelProps) {
             ]}
           />
 
-          <Section title="Hechos extraídos" count={d.facts.length}>
-            {d.facts.length === 0 ? (
-              <p className={styles.none}>No se ha extraído ningún hecho de este documento.</p>
-            ) : (
+          {clauses.length > 0 && (
+            <Section title="Cláusulas extraídas" count={clauses.length}>
               <ul className={styles.facts}>
-                {d.facts.map((f, i) => (
+                {clauses.map((f, i) => (
                   <li key={i} className={styles.fact}>
-                    <div className={styles.factMain}>
-                      <Mono>{f.documentNumber ?? '—'}</Mono>
-                      <Badge variant="outline" title={f.model ?? undefined}>
-                        {f.method === 'model' ? `modelo${f.model ? ` · ${f.model}` : ''}` : 'parser'}
-                      </Badge>
-                    </div>
-                    <div className={styles.factAmounts}>
-                      <span>
-                        Pagado <Amount cents={f.paidCents} currency={f.currency ?? undefined} />
-                      </span>
-                      <span>
-                        Bruto <Amount cents={f.grossCents} currency={f.currency ?? undefined} />
-                      </span>
-                      <span>
-                        Deducción <Amount cents={f.deductionCents} currency={f.currency ?? undefined} />
-                        {f.reason ? ` (${f.reason})` : ''}
-                      </span>
-                    </div>
-                    {factExtras(f).length > 0 && <p className={styles.extras}>{factExtras(f).join(' · ')}</p>}
+                    {clauseText(f.clause!, f.clauseValue)}
                   </li>
                 ))}
               </ul>
-            )}
-          </Section>
+            </Section>
+          )}
+
+          {(facts.length > 0 || clauses.length === 0) && (
+            <Section title="Hechos extraídos" count={facts.length}>
+              {facts.length === 0 ? (
+                <p className={styles.none}>No se ha extraído ningún hecho de este documento.</p>
+              ) : (
+                <ul className={styles.facts}>
+                  {facts.map((f, i) => (
+                    <li key={i} className={styles.fact}>
+                      <div className={styles.factMain}>
+                        <Mono>{f.documentNumber ?? '—'}</Mono>
+                        <Badge variant="outline" title={f.model ?? undefined}>
+                          {f.method === 'model' ? `modelo${f.model ? ` · ${f.model}` : ''}` : 'parser'}
+                        </Badge>
+                      </div>
+                      <div className={styles.factAmounts}>
+                        <span>
+                          Pagado <Amount cents={f.paidCents} currency={f.currency ?? undefined} />
+                        </span>
+                        <span>
+                          Bruto <Amount cents={f.grossCents} currency={f.currency ?? undefined} />
+                        </span>
+                        <span>
+                          Deducción <Amount cents={f.deductionCents} currency={f.currency ?? undefined} />
+                          {f.reason ? ` (${f.reason})` : ''}
+                        </span>
+                      </div>
+                      {factExtras(f).length > 0 && <p className={styles.extras}>{factExtras(f).join(' · ')}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          )}
 
           <Section title="Texto extraído">
             {d.text ? <pre className={styles.text}>{d.text}</pre> : <p className={styles.none}>Este documento no tiene texto extraído.</p>}
