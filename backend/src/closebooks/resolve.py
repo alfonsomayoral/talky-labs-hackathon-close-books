@@ -4,11 +4,11 @@ from __future__ import annotations
 from .categories import fallback
 from .load import Phase
 from .model import Proposal, Row
-from .policy import Terms, allocate, decide
+from .policy import Terms, allocate, cross_border, decide
 from .state import OpenBalances
 
 
-def resolve(phase: Phase, proposals: dict[str, Proposal]) -> tuple[list[Row], OpenBalances]:
+def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tuple[list[Row], OpenBalances]:
     items = phase.items
     ids = items["item_id"].to_list()
     balances = OpenBalances(dict(zip(ids, items["open_cents"].to_list(), strict=True)),
@@ -19,10 +19,13 @@ def resolve(phase: Phase, proposals: dict[str, Proposal]) -> tuple[list[Row], Op
     rows: list[Row] = []
     for txn in phase.txns.select(
         "bank_txn_id", "booking_date", "amount_cents", "currency", "bank", "bank_code", "bank_subcode", "text",
-        "orig_cents", "orig_currency", "amount_eur_cents"
+        "orig_cents", "orig_currency", "amount_eur_cents", "entity", "counterparty_name", "counterparty_account",
+        "remittance_info", "ref1", "ref2", "end_to_end_id"
     ).iter_rows(named=True):
         txn_id = txn["bank_txn_id"]
         proposal = proposals.get(txn_id)
+        if proposal is None and stateful is not None:
+            proposal = stateful(txn, balances)
         if proposal is None:
             out = fallback(txn)
             rows.append(Row(txn_id, None, None, None, out.category, out.exception or None, out.rule, out.confidence))
@@ -57,7 +60,8 @@ def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalanc
     cash = abs(txn["amount_cents"])
     if foreign:
         cash = txn["orig_cents"] if txn["orig_currency"] == currency[first] else None
-    eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if not foreign else None
+    from_abroad = not foreign and cross_border(txn["bank_code"], txn["text"])
+    eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if from_abroad else None
     items = [(item, balances.open(item), terms_of(item)) for item, _ in proposal.lines]
     return allocate(cash, items, txn["booking_date"], foreign, eur_per_cent)
 

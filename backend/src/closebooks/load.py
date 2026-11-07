@@ -15,7 +15,7 @@ ITEM_COLUMNS = ["item_id", "item_type", "entity", "party_id", "party_name", "doc
                 "payment_method", "related_document", "reason"]
 # A phase can cite what happened before it: documents of the months before, items closed earlier.
 PRIOR_PHASES = {"live": ["train"], "final": ["train", "live"]}
-PRIOR_ITEM_DAYS = 2 * 366
+PRIOR_ITEM_DAYS = 400
 PRIOR_DETAIL_MONTHS = 3
 MONTH_IN_NAME = re.compile(r"_(\d{6})(?:_\d+)?\.")
 MASTER_FILES = ("entities", "bank_accounts", "customers", "suppliers", "categories", "payment_terms", "fx_rates")

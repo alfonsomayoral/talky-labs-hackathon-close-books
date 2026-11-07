@@ -16,7 +16,7 @@ from .load import load_phase
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
 from .paths import ROOT, RUNS
 from .resolve import resolve
-from .rules import propose
+from .rules import propose, stateful
 
 
 def _git_commit() -> str | None:
@@ -45,7 +45,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     lap("documents")
     proposals = propose(phase)
     lap("rules")
-    rows, balances = resolve(phase, proposals)
+    rows, balances = resolve(phase, proposals, stateful(phase, proposals))
     lap("resolve")
 
     csv_bytes = write_submission(run, rows)

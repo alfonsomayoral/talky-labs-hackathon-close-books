@@ -4,6 +4,7 @@ from __future__ import annotations
 from ..load import Phase
 from ..model import Proposal
 from . import advices, card_settlements, categories, cheque_deposits, dd_batches, payment_runs
+from .party_amount import PartyAmount
 
 PASSES = (
     payment_runs.propose,
@@ -21,3 +22,9 @@ def propose(phase: Phase) -> dict[str, Proposal]:
         for txn_id, proposal in rule(phase).items():
             proposals.setdefault(txn_id, proposal)
     return proposals
+
+
+def stateful(phase: Phase, proposals: dict[str, Proposal]) -> PartyAmount:
+    """What needs the balance at each date: runs inside resolve on the lines no pass claimed."""
+    reserved = {item for proposal in proposals.values() for item, _ in proposal.lines}
+    return PartyAmount(phase, reserved)

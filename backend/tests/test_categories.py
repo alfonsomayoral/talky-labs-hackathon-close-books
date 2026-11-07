@@ -121,8 +121,13 @@ def test_resolve_emits_a_category_row_for_a_category_proposal():
     for amount, category, exception in ((-1000, "BANK_FEES", None), (1000, "UNIDENTIFIED", "UNIDENTIFIED")):
         t = pl.DataFrame({"bank_txn_id": ["BT-1"], "booking_date": ["2025-01-01"], "amount_cents": [amount],
                           "currency": ["EUR"], "bank": ["PENA"], "bank_code": ["17"], "bank_subcode": ["310"],
-                          "text": ["X"], "orig_cents": [None], "orig_currency": [None], "amount_eur_cents": [amount]},
-                         schema_overrides={"orig_cents": pl.Int64, "orig_currency": pl.String})
+                          "text": ["X"], "orig_cents": [None], "orig_currency": [None], "amount_eur_cents": [amount],
+                          "entity": ["E1"], "counterparty_name": [None], "counterparty_account": [None],
+                          "remittance_info": [None], "ref1": [None], "ref2": [None], "end_to_end_id": [None]},
+                         schema_overrides={"orig_cents": pl.Int64, "orig_currency": pl.String,
+                                           "counterparty_name": pl.String, "counterparty_account": pl.String,
+                                           "remittance_info": pl.String, "ref1": pl.String, "ref2": pl.String,
+                                           "end_to_end_id": pl.String})
         rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters),
                           {"BT-1": Proposal(rule="CAT-CODE", lines=[], category=category)})
         assert len(rows) == 1

@@ -19,6 +19,8 @@ import polars as pl
 FOLDER = "remittance_advices"
 KINDS = {".csv": "csv", ".txt": "txt", ".xlsx": "xlsx", ".pdf": "pdf"}
 
+MAX_WORKERS = 6  # a bound on memory: FINAL runs with the platform up; two kernel panics came from exhausting it
+
 
 class AdviceError(ValueError):
     """The file is not an advice this module knows how to read."""
@@ -330,7 +332,7 @@ def _parse_chunk(chunk: list[tuple[Path, str, date | None]]) -> list[tuple[Advic
 def parse_advices(files: list[tuple], workers: int | None = None) -> AdviceBatch:
     """Files as (path, relative path[, received date]); in parallel, in the order given."""
     items = [(Path(f[0]), f[1], f[2] if len(f) > 2 else None) for f in files]
-    workers = workers or os.cpu_count() or 1
+    workers = workers or min(MAX_WORKERS, os.cpu_count() or 1)
     batch = AdviceBatch()
     if workers == 1 or len(items) < 2 * workers:
         results = [_parse_chunk(items)]
