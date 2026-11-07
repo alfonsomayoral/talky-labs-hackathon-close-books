@@ -374,6 +374,160 @@ def _parse_pdf(path: Path, rel: str, received: date | None) -> Advice:
                   money(amount[1]) if amount else None, lines)
 
 
+# --- layouts nobody has seen, txt and pdf -----------------------------------------------------------------------
+
+_CELL_SPLIT = re.compile(r"\s*[;|\t]\s*| {2,}")
+_DATE_CELL = re.compile(r"\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2}")
+_PRINTED_AMOUNT = re.compile(r"-?\d[\d.,' ]*[.,]\d{2}(?!\d)")
+_CURRENCY = re.compile(r"\b[A-Z]{3}\b")
+MAX_CELLS_BEFORE_DATE = 3  # how far into a line its date may be
+_MIN_REF_DIGITS = 4
+
+
+def _date_cell(cell: str) -> str | None:
+    if not _DATE_CELL.fullmatch(cell):
+        return None
+    try:
+        return parse_date(cell if cell[:4].isdigit() else re.sub(r"[.-]", "/", cell))
+    except AdviceError:
+        return None
+
+
+def _amount_cell(cell: str) -> int | None:
+    try:
+        return money(cell) if _PRINTED_AMOUNT.fullmatch(cell) else None
+    except AdviceError:
+        return None
+
+
+def _is_number_cell(cell: str) -> bool:
+    return " " not in cell and any(c.isdigit() for c in cell) and not _date_cell(cell) and _amount_cell(cell) is None
+
+
+def _rows_of(cells: list[str], offset: int) -> tuple[list[list[str]], list[str]] | None:
+    """Lines of the table: each with one date, a document and an amount. What is outside is the head and the foot."""
+    starts = [i - offset for i, c in enumerate(cells) if _date_cell(c) and i >= offset]
+    pieces = [cells[a:b] for a, b in zip(starts, [*starts[1:], len(cells)], strict=True)]
+    while pieces and not _a_line(pieces[0]):
+        starts, pieces = starts[1:], pieces[1:]
+    if not pieces:
+        return None
+    foot: list[str] = []
+    seen_amount = False
+    for at, cell in enumerate(pieces[-1]):  # the last line runs into the foot: nothing after a word that ends it
+        if _amount_cell(cell) is not None:
+            seen_amount = True
+        elif seen_amount and not _date_cell(cell) and not _is_number_cell(cell):
+            foot = pieces[-1][at + 1:] + foot
+            pieces[-1] = pieces[-1][:at + 1]
+            break
+    if not all(_a_line(p) for p in pieces):
+        return None
+    return pieces, cells[:starts[0]] + foot
+
+
+def _a_line(cells: list[str]) -> bool:
+    return ((_date_cell(cells[0]) is not None or _is_number_cell(cells[0])) and sum(
+        1 for c in cells if _date_cell(c)) == 1 and any(_is_number_cell(c) for c in cells)
+            and any(_amount_cell(c) is not None for c in cells))
+
+
+def _number_position(rows: list[list[str]]) -> int | None:
+    """Which number of the line is ours: the only one, or the only one that always carries the year of its date."""
+    numbers = [[c for c in row if _is_number_cell(c)] for row in rows]
+    most = max(len(n) for n in numbers)
+    if most == 1:
+        return 0
+    years = [next(_date_cell(c) for c in row if _date_cell(c))[2:4] for row in rows]
+    fit = [p for p in range(most) if all(len(n) > p and year in n[p] for n, year in zip(numbers, years, strict=True))]
+    return fit[0] if len(fit) == 1 else None
+
+
+def _paid_ways(amounts: list[int]) -> dict[str, tuple[int, int]]:
+    """(gross, paid) of a line under each way a table can print them."""
+    biggest = max(amounts, key=abs)
+    ways = {"last": (biggest, amounts[-1]), "first": (biggest, amounts[0])}
+    if len(amounts) == 2 and abs(amounts[1]) < abs(amounts[0]):
+        ways["net"] = (amounts[0], amounts[0] - abs(amounts[1]) if amounts[0] > 0 else amounts[0] + abs(amounts[1]))
+    return ways
+
+
+def _lines_of(rows: list[list[str]], total_of: set[int]) -> tuple[list[AdviceLine], int] | None:
+    """The one reading of the amounts whose paid column adds up to a total the document prints."""
+    position = _number_position(rows)
+    if position is None:
+        return None
+    amounts = [[a for c in row if (a := _amount_cell(c)) is not None] for row in rows]
+    readings: dict[tuple, int] = {}
+    for way in ("last", "first", "net"):
+        if way == "net" and (any(len(a) > 2 for a in amounts) or not any("net" in _paid_ways(a) for a in amounts)):
+            continue
+        reading = tuple(_paid_ways(a).get(way, (a[0], a[0])) for a in amounts)
+        total = sum(paid for _, paid in reading)
+        if total in total_of:
+            readings[reading] = total
+    if not readings and len(total_of) == 1 and all(len(a) == 1 for a in amounts):
+        # One amount per line and one total printed: the same reading a known layout gets when a discount goes unsaid.
+        readings = {tuple((a[0], a[0]) for a in amounts): next(iter(total_of))}
+    if len(readings) != 1:
+        return None
+    (reading, total), = readings.items()
+    lines = []
+    for n, (row, (gross, paid)) in enumerate(zip(rows, reading, strict=True), 1):
+        numbers = [c for c in row if _is_number_cell(c)]
+        words = [c for c in row if _amount_cell(c) is None and not _date_cell(c) and not _is_number_cell(c)]
+        others = numbers[:position] + numbers[position + 1:]
+        lines.append(AdviceLine(n, numbers[position], next(_date_cell(c) for c in row if _date_cell(c)), gross,
+                                paid - gross, words[0] if words and gross != paid else None, paid,
+                                others[0] if others else None))
+    return lines, total
+
+
+def _payment_ref(outside: list[str]) -> str | None:
+    tokens = [(("ref" in cell.lower()), token) for cell in outside for token in re.split(r"[\s:]+", cell)
+              if sum(c.isdigit() for c in token) >= _MIN_REF_DIGITS and not _date_cell(token)
+              and _amount_cell(token) is None]
+    return max(tokens, key=lambda t: (t[0], len(t[1])))[1] if tokens else None
+
+
+def read_cells(text_lines: list[str], fmt: str, rel: str, received: date | None, ref: str | None = None) -> Advice:
+    """An advice in a layout no parser knows, by what its cells hold: a line has a date, a document and amounts, and its
+    paid amounts add up to a total printed outside the table. Anything not unequivocal is rejected as unknown."""
+    cells = [c.strip() for line in text_lines for c in _CELL_SPLIT.split(line) if c.strip()]
+    unknown = AdviceError("unknown layout")
+    found = []
+    for offset in range(MAX_CELLS_BEFORE_DATE + 1):
+        parts = _rows_of(cells, offset)
+        if parts is None:
+            continue
+        rows, outside = parts
+        printed = {money(m.strip()) for cell in outside for m in _PRINTED_AMOUNT.findall(cell)}
+        read = _lines_of(rows, printed)
+        if read:
+            found.append((read, outside))
+    readings = {tuple((x.document, x.gross_cents, x.paid_cents) for x in read[0]) for read, _ in found}
+    if len(readings) != 1:
+        raise unknown
+    (lines, total), outside = found[0]
+    amount_text = next((c for c in outside for m in _PRINTED_AMOUNT.findall(c) if money(m.strip()) == total), "")
+    currency = _CURRENCY.search(amount_text)
+    return Advice(rel, fmt, ref or _payment_ref(outside), None, currency[0] if currency else None, total, lines)
+
+
+def _by_content(kind: str, path: Path, rel: str, received: date | None) -> Advice:
+    if kind == "pdf":
+        from pypdf import PdfReader
+
+        try:
+            text = "\n".join(page.extract_text() for page in PdfReader(path).pages)
+        except Exception as err:  # corrupt or truncated pdf
+            raise AdviceError(f"unreadable pdf: {err}") from err
+        return read_cells(text.splitlines(), kind, rel, received)
+    head, _, body = _read_text(path).partition("\n\n")
+    subject = re.search(r"^Subject:\s*(.+?)\s*$", head, re.M)
+    return read_cells(body.splitlines(), kind, rel, received, subject[1].split()[-1] if subject else None)
+
+
 # --- entry points --------------------------------------------------------------------------------------------------
 
 PARSERS = {"csv": _parse_csv, "txt": _parse_txt, "xlsx": _parse_xlsx, "pdf": _parse_pdf}
@@ -384,7 +538,12 @@ def parse_advice(path: Path, rel: str | None = None, received: date | None = Non
     if kind is None:
         raise AdviceError(f"unknown format {path.suffix!r}")
     try:
-        advice = PARSERS[kind](path, rel or path.name, received)
+        try:
+            advice = PARSERS[kind](path, rel or path.name, received)
+        except AdviceError:
+            if kind not in ("txt", "pdf"):
+                raise
+            advice = _by_content(kind, path, rel or path.name, received)
     except AdviceError:
         raise
     except Exception as err:  # a dirty document must never take the run down
