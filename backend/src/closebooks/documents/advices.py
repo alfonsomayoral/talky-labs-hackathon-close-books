@@ -152,16 +152,91 @@ COLUMNS = {
 }
 
 
-def _columns(header: list) -> dict[str, int]:
+def _columns(header: list, rows: list[list]) -> dict[str, int]:
     names = [str(h or "").strip().lower() for h in header]
     found = {key: names.index(alias) for key, aliases in COLUMNS.items() for alias in aliases if alias in names}
     if "document" not in found or "paid" not in found:
-        raise AdviceError(f"unknown layout: {header!r}")
+        return _columns_by_content(header, rows)
+    return found
+
+
+_DECIMALS = re.compile(r"[.,]\d{1,2}$")
+
+
+def _amount_of(cell) -> int | None:
+    """Cents of a cell that can only be an amount: a number, or text with decimals. A bare 1102416261 is a document."""
+    if isinstance(cell, (int, float, Decimal)):
+        return money(cell)
+    text = _clean(cell)
+    return money(text) if text and _DECIMALS.search(text) and _NUMBER.match(text.lstrip("(-+").rstrip(")")) else None
+
+
+def _date_of(cell) -> str | None:
+    try:
+        return parse_date(cell)
+    except AdviceError:
+        return None
+
+
+def _columns_by_content(header: list, rows: list[list]) -> dict[str, int]:
+    """Headers nobody has seen: the columns by what they hold, only when it can be one column each.
+
+    Paid is where the TOTAL row prints the total, if its lines add up to it. The document number fills every line and
+    is neither date nor amount; if another column does too (the customer's order), the number is the one that carries
+    the year of the line's date. Whatever is not unequivocal is left out, or the file is rejected as unknown."""
+    unknown = AdviceError(f"unknown layout: {header!r}")
+    width = len(header)
+    grid = [[*r, *[None] * (width - len(r))][:width] for r in rows]
+    is_total = [(_clean(r[0]) or "").upper() == "TOTAL" for r in grid]
+    lines = [r for r, total in zip(grid, is_total, strict=True) if not total]
+    totals = [r for r, total in zip(grid, is_total, strict=True) if total]
+    if len(totals) != 1 or not lines:
+        raise unknown
+    printed = [c for c in range(1, width) if _clean(totals[0][c]) is not None]
+    if len(printed) != 1 or _amount_of(totals[0][printed[0]]) is None:
+        raise unknown
+    paid = printed[0]
+    amounts = {c: [_amount_of(r[c]) for r in lines] for c in range(width)}
+    if None in amounts[paid] or sum(amounts[paid]) != _amount_of(totals[0][paid]):
+        raise unknown
+    found = {"paid": paid}
+    dates = [c for c in range(width) if all(_date_of(r[c]) for r in lines)]
+    if len(dates) == 1:
+        found["doc_date"] = dates[0]
+    texts = {c: [_clean(r[c]) for r in lines] for c in range(width)}
+    numbers = [c for c in range(width) if c not in dates and all(v and any(x.isdigit() for x in v) for v in texts[c])
+               and not any(amounts[c])]
+    if len(numbers) > 1 and len(dates) == 1:
+        numbers = [c for c in numbers if all(
+            _date_of(r[dates[0]])[2:4] in str(r[c]) for r in lines)]
+    if len(numbers) != 1:
+        raise unknown
+    found["document"] = numbers[0]
+    orders = [c for c in range(width) if c not in (*dates, numbers[0]) and not any(amounts[c]) and any(texts[c])
+              and all(not v or any(x.isdigit() for x in v) for v in texts[c])]
+    if len(orders) == 1:
+        found["po"] = orders[0]
+    gross = [c for c in range(width) if c != paid and None not in amounts[c]
+             and all(abs(g) >= abs(p) for g, p in zip(amounts[c], amounts[paid], strict=True))]
+    if len(gross) == 1:
+        found["gross"] = gross[0]
+    base = amounts[gross[0]] if len(gross) == 1 else amounts[paid]
+    deductions = [c for c in range(width) if c not in (paid, *gross) and any(a is not None for a in amounts[c])
+                  and all(a is None or abs(a) == abs(g - p) for a, g, p in zip(amounts[c], base, amounts[paid],
+                                                                                strict=True))]
+    if len(deductions) == 1:
+        found["deduction"] = deductions[0]
+    used = set(found.values())
+    reasons = [c for c in range(width) if c not in used and any(texts[c])
+               and not any(any(x.isdigit() for x in v) for v in texts[c] if v)
+               and all(g != p for v, g, p in zip(texts[c], base, amounts[paid], strict=True) if v)]
+    if len(reasons) == 1:
+        found["reason"] = reasons[0]
     return found
 
 
 def _table_lines(rows: list[list]) -> tuple[list[AdviceLine], int | None]:
-    cols = _columns(rows[0])
+    cols = _columns(rows[0], rows[1:])
     lines: list[AdviceLine] = []
     total = None
     for row in rows[1:]:

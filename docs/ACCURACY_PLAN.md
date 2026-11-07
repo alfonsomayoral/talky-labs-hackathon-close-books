@@ -67,7 +67,7 @@ Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento q
 | 8 | **Categorías estructurales** y vocabulario por maestro (§3) | holdout con banco excluido ≥ 0,9 en `nonitem_*` | 1 h |
 | 9 | **Ensayo FINAL** con el holdout-drift y con el mutador de layout de aviso inventado: una ejecución completa cronometrada, `validate`, distribución por regla comparada con LIVE | run + validate < 5 min, RSS ≤ 7,5 GB | 30 min |
 
-Orden recomendado: 1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9. Congelación de reglas a las **17:00**. FINAL se publica a las 18:00 y el envío único cierra a las 19:30.
+Orden recomendado: 1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9, cambiado tras medir: después de duplicados y homónimos va la lectura de avisos por contenido (§6: un layout desconocido cuesta hasta 8,33 puntos), luego explicar el importe con tercero seguro (§4.2), y el bloque 3 baja. Congelación de reglas a las **17:00**. FINAL se publica a las 18:00 y el envío único cierra a las 19:30.
 
 ### 4.1 Puerta de precisión por clase (decidido el 7 nov, 11:20)
 
@@ -126,5 +126,6 @@ Holdout con el código de `main`. Cada columna cambia una sola cosa. Pico de 6,9
 
 - **La tabla de códigos no es un riesgo.** La fuga no mueve nada y quitar dos bancos solo baja `customer_refund` (1,000 → 0,958, n = 354). `nonitem_*` se mantiene en 1,000 por las reglas de texto.
 - **El layout inventado es el mayor riesgo medido: −8,33 puntos.** Reescribe las cabeceras de los 2.815 avisos csv y xlsx de 6.762, así que es el peor caso, no una predicción. `_columns` los rechaza y se pierden `ar_1toN_remittance`, `ar_short_dispute` (0,801 → 0,319) y `ar_dispute_settlement` (0,860 → 0,523).
+- **Corregido después (lectura de avisos por contenido):** con layout inventado, 83,04 → 91,77, igual que holdout. Solo 4 de los 2.489 csv siguen rechazados por no ser inequívocos.
 - **ZA01 en drift es pesimista.** Los avisos y PDF conservan la numeración FA/AV y sus importes sin doblar, y las partidas previas de TRAIN siguen como MA01. Parte de la diferencia viene del mutador, sin separar cuánta.
 - **El 90,06 anterior era del mutador viejo.** El drift reconstruido da 91,08, y esa es la base de la puerta desde ahora.

@@ -147,3 +147,45 @@ def test_facts_frame_has_one_row_per_line_with_the_contract_columns():
         -404, "VCHR23209939", "parser")
     assert residue(batch) == {"xlsx": {"read": 1, "closed": 1, "failed": 0},
                               "pdf": {"read": 0, "closed": 0, "failed": 1}}
+
+
+# Lines of the holdout's advices under headers nobody has seen: the numbers carry the year of their date.
+HEADERS = "Beleg-Nr;Fecha doc;Importe bruto;Abzug;Motivo abzug;Liquidado;Pedido cliente"
+BODY = """FV24-0305899;12/03/2024;11006.11;;;11006.11;4576522204
+FV24-0311335;06/05/2024;1830.85;-54.93;SHORT DELIVERY;1775.92;4573673371
+1102416261;25/06/2024;1447.39;;;1447.39;
+TOTAL;;;;;14229.42;
+"""
+
+
+def invented(tmp_path, headers=HEADERS, body=BODY):
+    path = tmp_path / "advice.csv"
+    path.write_text(f"payment_ref;PAY-2024-002248;payment_date;2024-12-31;currency;EUR\n{headers}\n{body}")
+    return path
+
+
+def test_a_csv_with_invented_headers_is_read_by_what_its_columns_hold(tmp_path):
+    advice = parse_advice(invented(tmp_path))
+    assert advice.closes
+    assert lines(advice) == [("FV24-0305899", 1100611, 0, None, 1100611),
+                             ("FV24-0311335", 183085, -5493, "SHORT DELIVERY", 177592),
+                             ("1102416261", 144739, 0, None, 144739)]
+    assert advice.lines[0].doc_date == "2024-03-12"
+    assert advice.lines[0].po == "4576522204"
+
+
+def test_two_columns_that_could_be_the_document_number_are_rejected(tmp_path):
+    body = BODY.replace("FV24-0305899", "ABC-1").replace("FV24-0311335", "ABC-2").replace("1102416261", "ABC-3")
+    body = body.replace("4576522204", "PO-1").replace("4573673371", "PO-2").replace("1447.39;\n", "1447.39;PO-3\n")
+    with pytest.raises(AdviceError):
+        parse_advice(invented(tmp_path, body=body))
+
+
+def test_an_invented_layout_whose_amounts_do_not_add_up_to_the_total_is_rejected(tmp_path):
+    with pytest.raises(AdviceError):
+        parse_advice(invented(tmp_path, body=BODY.replace("14229.42", "99.99")))
+
+
+def test_an_invented_layout_with_no_total_is_rejected(tmp_path):
+    with pytest.raises(AdviceError):
+        parse_advice(invented(tmp_path, body=BODY.replace("TOTAL;;;;;14229.42;\n", "")))

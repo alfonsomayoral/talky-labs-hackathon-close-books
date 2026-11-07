@@ -68,7 +68,9 @@ def _deducted(open_cents: int, applied: int, deduction: tuple[int, str | None], 
         return applied, "SHORT_DISPUTE"
     discount = _discount_cents(terms)
     if not reason:
-        is_withholding = any(_is_rate(shortfall, total, rate) for rate in WITHHOLDING_RATES)
+        where = terms.country if terms else None
+        is_withholding = where in (None, *WITHHOLDING_COUNTRIES) and any(
+            _is_rate(shortfall, total, rate) for rate in WITHHOLDING_RATES)
         is_discount = discount is not None and abs(shortfall - discount) <= 1
     if is_withholding:
         return open_cents, "SHORT_WITHHOLDING"
@@ -141,6 +143,15 @@ def _explain(gap: int, cash: int, invoices: list, notes: list, booking_date: str
         out = {}
         for i, o, t in invoices:
             if i not in discounts:
+                out[i] = (o, "")
+            else:
+                out[i] = (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")
+        return out
+    only = [i for i, d in discounts.items() if abs(d - gap) <= 1]
+    if len(only) == 1:  # the discount of one invoice of several, the rest paid as they are
+        out = {}
+        for i, o, t in invoices:
+            if i != only[0]:
                 out[i] = (o, "")
             else:
                 out[i] = (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")

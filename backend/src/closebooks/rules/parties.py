@@ -33,6 +33,7 @@ class PartyIndex:
         self.by_name: dict[tuple[str, str, str], set[str]] = defaultdict(set)
         self.by_iban: dict[tuple[str, str, str], set[str]] = defaultdict(set)
         self.by_prefix: dict[tuple[str, str, str], list[tuple[str, str]]] = defaultdict(list)
+        self.names_of: dict[str, set[str]] = defaultdict(set)
         self.group_of: dict[str, list[str]] = {}
         self.entities: set[str] = set()
         customers = masters["customers"]
@@ -45,26 +46,31 @@ class PartyIndex:
         for entity, party, name in printed.select("entity", "party_id", "party_name").iter_rows():
             kind = "supplier" if party and party.startswith("S") else "customer"
             self._add(kind, entity, party, name, None)
-        members: dict[str, list[str]] = defaultdict(list)
-        for row in customers.select("customer_id", "group_id", "parent_customer_id").iter_rows(named=True):
+        members: dict[tuple[str, str], list[str]] = defaultdict(list)
+        columns = ("customer_id", "entity", "group_id", "parent_customer_id")
+        for row in customers.select(columns).iter_rows(named=True):
             key = row["group_id"] or row["parent_customer_id"]
             if key:
-                members[key].append(row["customer_id"])
-        for row in customers.select("customer_id", "group_id", "parent_customer_id").iter_rows(named=True):
+                members[row["entity"], key].append(row["customer_id"])
+        for row in customers.select(columns).iter_rows(named=True):
             key = row["group_id"] or row["parent_customer_id"]
             if key:
-                self.group_of[row["customer_id"]] = members[key]
+                self.group_of[row["customer_id"]] = members[row["entity"], key]
 
     def _add(self, kind: str, entity: str, party: str, name: str | None, iban: str | None) -> None:
         self.entities.add(entity)
         norm = normalize(name)
         if norm:
+            self.names_of[party].add(norm)
             key = (kind, entity, norm)
             if party not in self.by_name[key]:
                 self.by_name[key].add(party)
                 self.by_prefix[kind, entity, norm[:PREFIX_CHARS]].append((norm, party))
         if iban:
             self.by_iban[kind, entity, iban].add(party)
+
+    def same_name(self, parties: list[str]) -> bool:
+        return bool(set.intersection(*(self.names_of[p] for p in parties)))
 
     def find(self, txn: dict, kind: str) -> list[str]:
         """The parties the line names. `self.certain` says whether the evidence was whole: a known ordering party, its

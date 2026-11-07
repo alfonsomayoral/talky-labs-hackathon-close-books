@@ -10,7 +10,14 @@ import polars as pl
 from ..documents.pdfs import phase_clauses
 from ..load import cancelled_item_ids
 from ..model import Proposal
-from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, cross_border
+from ..policy import (
+    FEE_LIMIT_EUR_CENTS,
+    FEE_LIMIT_RATIO,
+    SEPA_COUNTRIES,
+    Terms,
+    _in_terms,
+    cross_border,
+)
 from ..state import OpenBalances
 from .parties import PartyIndex, normalize
 
@@ -117,6 +124,15 @@ def _small_subset(signed: list, cash: int, min_size: int) -> list[str] | None:
     return sorted(found.pop()) if len(found) == 1 else None
 
 
+def _discount_days(phase) -> dict[str, int]:
+    if "payment_terms" not in phase.masters or "payment_terms" not in phase.items.columns:
+        return {}
+    rows = phase.masters["payment_terms"].iter_rows(named=True)
+    days = {r["code"]: int(r["discount_days"]) for r in rows if r["early_payment_discount_pct"]}
+    with_terms = phase.items.filter(pl.col("payment_terms").is_in(list(days)))
+    return {i: days[c] for i, c in with_terms.select("item_id", "payment_terms").iter_rows()}
+
+
 def _net(pairs: list) -> int:
     return sum(-o if i[0][:3] in CREDIT_NOTES else o for i, o in pairs)
 
@@ -171,6 +187,7 @@ class PartyAmount:
         # TRAIN has no opening balances: items issued before its first line are candidates only if something cites them.
         self.unknown_before = phase.start if getattr(phase, "name", "") == "train" else ""
         self.terms_pct = _discount_pct(phase)
+        self.discount_days = _discount_days(phase)
         customers = phase.masters["customers"]
         self.countries = dict(customers.select("customer_id", "country").iter_rows()) if (
             "country" in customers.columns) else {}
@@ -214,14 +231,57 @@ class PartyAmount:
         results = [r for party in parties if (r := self._match(party, txn, cash, currency, balances))]
         if len(results) == 1:
             return results[0]
+        homonym = self._only_homonym_with_the_cash(results, cash, currency, balances)
+        if homonym:
+            return homonym
         found = self._by_number_alone(txn, cash, currency, balances)
         if found:
             return found
+        group = self._in_the_group(parties, txn, cash, currency, balances) if not results else None
+        if group:
+            return group
         if results:
             self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
         elif self._pending:
             self._abstain(txn, "subsets", self._pending, balances)
         return None
+
+    def _returned(self, item_id: str, balances: OpenBalances) -> bool:
+        """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the
+        item any other way; while one is still to come (a re-presented batch), the item stays reserved."""
+        history = balances.history(item_id)
+        return bool(history) and history[-1]["exception"] == "RETURNED" and (
+            self.reserved[item_id] <= {move["bankTxnId"] for move in history})
+
+    def _in_the_group(self, parties: list[str], txn: dict, cash: int, currency: str, balances) -> Proposal | None:
+        """POLICIES §5.1: a parent may pay for its subsidiaries, inside one entity. A payer named whole, with nothing of
+        its own that the cash explains, and only one other customer of its group whose open documents are the cash."""
+        if not self.parties.certain:
+            return None
+        members = {m for p in parties for m in self.parties.group_of.get(p, ())} - set(parties)
+        results = [r for m in sorted(members) if (r := self._match(m, txn, cash, currency, balances))]
+        exact = [r for r in results if _net([((i,), balances.open(i)) for i, _ in r.lines]) == cash]
+        if len(exact) != 1:
+            return None
+        chosen = exact[0]
+        chosen.sources = [*chosen.sources, *({"kind": "customer", "ref": p} for p in parties)]
+        return chosen
+
+    def _only_homonym_with_the_cash(self, results: list[Proposal], cash: int, currency: str,
+                                    balances) -> Proposal | None:
+        """Crosses customer ids, never entities: customers of one entity can share a normalized name (eleven in AU01).
+        The one whose open documents are the cash to the cent settles; the others stay as candidates. Two: ask."""
+        if len(results) < 2 or not self.parties.same_name([r.party_id for r in results]):
+            return None
+        amounts = {r.party_id: [(i, balances.open(i)) for i, _ in r.lines] for r in results}
+        exact = [r for r in results if _net([((i,), o) for i, o in amounts[r.party_id]]) == cash]
+        if len(exact) != 1:
+            return None
+        chosen = exact[0]
+        chosen.candidates = [{"itemId": i, "amountCents": o, "currency": currency, "why": f"homonym {r.party_id}"}
+                             for r in results if r is not chosen for i, o in amounts[r.party_id]]
+        chosen.sources = [*chosen.sources, *({"kind": "customer", "ref": r.party_id} for r in results)]
+        return chosen
 
     def _taught(self, txn: dict, kind: str, cash: int, currency: str, balances) -> Proposal | None:
         """What a person taught goes first; the amount still has to be explained, or the line goes on as usual."""
@@ -262,7 +322,8 @@ class PartyAmount:
             return None
         open_now = {i[0]: balances.open(i[0]) for i in mine}
         free = [(i, open_now[i[0]]) for i in mine
-                if open_now[i[0]] > 0 and i[0] not in self.reserved and i[2] >= self.unknown_before]
+                if open_now[i[0]] > 0 and i[2] >= self.unknown_before and (
+                    i[0] not in self.reserved or self._returned(i[0], balances))]
         tokens = self._tokens(txn)
         strong, weak = self._cited(mine, tokens)
         by_reference = self._by_reference(strong, weak, free, open_now, cash, party, {_alnum(t) for t in tokens})
@@ -286,8 +347,16 @@ class PartyAmount:
         planned = self._explained_by_state(free, cash, party)
         if planned:
             return planned
-        run = self._consecutive(free, cash, skipped=MAX_SKIPPED) if self.parties.certain else None
-        return self._proposal("PARTY-WINDOW", party, run, confidence=0.85) if run else None
+        if not self.parties.certain:
+            return None
+        run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
+        if run:
+            return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
+        net = self._net_of_terms(free, cash, txn["booking_date"])
+        if net:
+            return self._proposal("PARTY-NET-SUBSET", party, net, by_cash=True, confidence=0.85)
+        # Last: what open documents can explain is more certain than a second payment of a closed one.
+        return self._paid_again(mine, open_now, cash, party, balances)
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
@@ -425,6 +494,35 @@ class PartyAmount:
     @staticmethod
     def _is_month(clause: dict | None, month: int, year: int | None) -> bool:
         return bool(clause) and clause["month"] == month and (year is None or clause["year"] == year)
+
+    def _net_of_terms(self, free: list, cash: int, booked: str) -> list[str] | None:
+        """Several invoices, each net of its early-payment discount within terms (POLICIES §3). One unique set. Net of a
+        withheld rate it took SHORT_WITHHOLDING below its gate in the drift holdout: left out."""
+
+        def paid(item: tuple, open_cents: int) -> int:
+            pct = self.terms_pct.get(item[0])
+            terms = Terms(pct, self.discount_days.get(item[0]), item[2], item[4])
+            if open_cents != item[4] or not _in_terms(terms, booked):
+                return open_cents
+            return open_cents - round(item[4] * pct / 100)
+
+        credit = sum(o for i, o in free if i[0][:3] in CREDIT_NOTES)
+        signed = [(i[0], -o if i[0][:3] in CREDIT_NOTES else paid(i, o)) for i, o in free]
+        if all(v == o or i[0][:3] in CREDIT_NOTES for (i, o), (_, v) in zip(free, signed, strict=True)):
+            return None
+        signed = [(i, v) for i, v in signed if v <= cash + credit]
+        if not 2 <= len(signed) <= MAX_FULL_SEARCH or (
+                _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE):
+            return None
+        return _unique_subset(signed, cash, 2)
+
+    def _paid_again(self, mine: list, open_now: dict, cash: int, party: str, balances) -> Proposal | None:
+        """A whole party, nothing open that the cash explains, and one invoice with exactly that total that a line of
+        this run settled. One closed before the run may only look like the cash (POLICIES §3, unidentified)."""
+        closed = [i for i in mine if open_now[i[0]] <= 0 and i[4] == cash and i[0][:3] not in CREDIT_NOTES]
+        if len(closed) != 1 or not balances.history(closed[0][0]):
+            return None
+        return self._proposal("PARTY-DUPLICATE", party, [closed[0][0]], by_cash=True, confidence=0.85)
 
     def _explained_by_state(self, free: list, cash: int, party: str) -> Proposal | None:
         """No exact amount: only what the invoice's own PDF expects. Anything looser was measured and rejected."""

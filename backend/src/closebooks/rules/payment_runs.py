@@ -9,11 +9,14 @@ import polars as pl
 
 from ..load import Phase, load_detail
 from ..model import Proposal
+from .parties import normalize
 
 MAX_DAYS_AFTER_DUE = 4
 RUN_REF = re.compile(r"\b((?:PR|CF)\d{12})(?:-(\d{4}))?\b")
 # A debit in N43 may cut the reference at the end of a 38-character field.
 RUN_REF_CUT = re.compile(r"\b((?:PR|CF)\d{4,11}) \| (\d{1,8})\b")
+REASON_CODE = re.compile(r"\b[A-Z]{2}\d{2}\b")  # ISO 20022 return reason: AC01, MD07, BE04
+NAME_CHARS = 20  # the bank cuts a beneficiary's name; the first characters are what survives
 
 
 def _cents(column: str) -> pl.Expr:
@@ -78,11 +81,15 @@ def propose(phase: Phase) -> dict[str, Proposal]:
     by_run: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for row in documents.select("run_id", "run_type", "debtor_account_id", "end_to_end_id", "beneficiary",
                                 "transfer_cents", "doc_cents", "item_id", "party_id", "due_date", "currency",
-                                "file").iter_rows(named=True):
+                                "execution_date", "file").iter_rows(named=True):
         account = row["debtor_account_id"]
         by_transfer[account, row["end_to_end_id"]].append(row)
         by_run[account, row["run_id"]].append(row)
         transfers_of_run[account, row["run_id"]].setdefault(row["end_to_end_id"], row)
+    sent: dict[tuple[str, int], list[dict]] = defaultdict(list)
+    for transfers in transfers_of_run.values():
+        for transfer in transfers.values():
+            sent[transfer["debtor_account_id"], transfer["transfer_cents"]].append(transfer)
 
     used: set[tuple[str, str]] = set()
     proposals: dict[str, Proposal] = {}
@@ -91,7 +98,7 @@ def propose(phase: Phase) -> dict[str, Proposal]:
         pl.concat_str(["text", "ref1", "ref2", "end_to_end_id", "remittance_info"], separator=" ", ignore_nulls=True)
         .alias("all_text"), "text")
     for txn in txns.iter_rows(named=True):
-        ref = _reference(txn["all_text"])
+        ref = _reference(txn["all_text"]) or _rejected_transfer(txn, sent)
         if ref is None:
             continue
         run_id, suffix = ref
@@ -111,11 +118,29 @@ def propose(phase: Phase) -> dict[str, Proposal]:
         if not lines:
             continue
         returned = txn["amount_cents"] > 0
+        transfers = {r["end_to_end_id"]: r for r in rows}
+        if not returned and len(transfers) == 1 and abs(txn["amount_cents"]) != rows[0]["transfer_cents"]:
+            # Paid in another currency: if it is rejected, what comes back is what the account paid.
+            sent[account, abs(txn["amount_cents"])].append(rows[0])
         proposals[txn["bank_txn_id"]] = Proposal(
             rule="FILE-PAYMENT-RETURN" if returned else "FILE-PAYMENT-RUN", lines=lines,
             party_id=rows[0]["party_id"], reference=reference, returned=returned,
             sources=[{"kind": "paymentRun", "ref": rows[0]["file"], "label": reference}])
     return proposals
+
+
+def _rejected_transfer(txn: dict, sent: dict) -> tuple[str, str] | None:
+    """A credit with a return reason and no reference (POLICIES §3): the one transfer of that amount, from that account
+    and to the beneficiary the text names, made before it. POLICIES gives no time limit; two candidates are a tie."""
+    if txn["amount_cents"] <= 0 or not REASON_CODE.search(txn["text"] or ""):
+        return None
+    text = normalize(txn["all_text"])
+    found = [t for t in sent.get((txn["account_id"], txn["amount_cents"]), ())
+             if t["execution_date"] < txn["booking_date"]
+             and normalize(t["beneficiary"])[:NAME_CHARS] in text]
+    if len(found) != 1:
+        return None
+    return found[0]["run_id"], found[0]["end_to_end_id"].removeprefix(found[0]["run_id"] + "-")
 
 
 def _matches(row: dict, txn: dict) -> bool:

@@ -37,9 +37,10 @@ def test_any_other_stated_reason_is_a_dispute_for_what_was_paid():
 
 
 def test_shortfall_with_no_reason_is_read_from_its_ratio():
-    assert line(100000, 98750, (-1250, None))[1] == "SHORT_WITHHOLDING"
-    assert line(100000, 98500, (-1500, None))[1] == "SHORT_WITHHOLDING"
-    assert line(100000, 90000, (-10000, None))[1] == "SHORT_WITHHOLDING"
+    mexico = Terms(None, None, "2025-06-01", 100000, "MX")
+    assert line(100000, 98750, (-1250, None), terms=mexico)[1] == "SHORT_WITHHOLDING"
+    assert line(100000, 98500, (-1500, None), terms=mexico)[1] == "SHORT_WITHHOLDING"
+    assert line(100000, 90000, (-10000, None), terms=mexico)[1] == "SHORT_WITHHOLDING"
     assert line(140394, 137586, (-2808, None), terms=D2N30)[1] == "SHORT_DISCOUNT"
     assert line(100000, 80000, (-20000, None)) == (80000, "PARTIAL")
 
@@ -154,3 +155,38 @@ def test_discount_on_the_invoices_that_have_it_and_full_on_the_rest():
     no_terms = Terms(None, None, "2025-06-01", 50000, "ES")
     out = allocate(148000, [facts("ARI-1", 100000, with_terms), facts("ARI-2", 50000, no_terms)], "2025-06-05", False)
     assert out == {"ARI-1": (100000, "SHORT_DISCOUNT"), "ARI-2": (50000, "")}
+
+
+def test_an_advice_without_reason_is_not_withholding_outside_those_countries():
+    terms = Terms(None, None, "2025-01-01", 100000, "ES")
+    assert decide("ARI-1", "EUR", "EUR", 100000, 90000, deduction=(-10000, None), terms=terms,
+                  booking_date="2025-02-01") == (90000, "PARTIAL")
+    terms = Terms(None, None, "2025-01-01", 100000, "BR")
+    assert decide("ARI-1", "EUR", "EUR", 100000, 90000, deduction=(-10000, None), terms=terms,
+                  booking_date="2025-02-01") == (100000, "SHORT_WITHHOLDING")
+
+
+def _terms(pct=None, total=100000, issued="2025-06-01", country="ES"):
+    return Terms(pct, 10 if pct else None, issued, total, country)
+
+
+def test_a_gap_that_is_the_discount_of_one_invoice_of_several_is_that_invoice_within_terms():
+    # BT-2025-0000118: only one of the invoices paid carries a discount, and it is taken.
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(None, 50000))]
+    assert allocate(148000, items, "2025-06-05", False) == {"ARI-1": (100000, "SHORT_DISCOUNT"), "ARI-2": (50000, "")}
+
+
+def test_the_same_gap_out_of_terms_leaves_that_invoice_partial():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(None, 50000))]
+    assert allocate(148000, items, "2025-07-05", False) == {"ARI-1": (98000, "PARTIAL"), "ARI-2": (50000, "")}
+
+
+def test_a_gap_that_is_the_discount_of_one_of_two_invoices_with_terms_goes_to_that_one():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(2.0, 50000))]
+    assert allocate(149000, items, "2025-06-05", False) == {"ARI-1": (100000, ""), "ARI-2": (50000, "SHORT_DISCOUNT")}
+
+
+def test_two_invoices_whose_discount_is_the_gap_are_not_guessed():
+    items = [("ARI-1", 50000, _terms(2.0, 50000)), ("ARI-2", 50000, _terms(2.0, 50000))]
+    out = allocate(99000, items, "2025-06-05", False)
+    assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}

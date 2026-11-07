@@ -26,5 +26,8 @@ def propose(phase: Phase) -> dict[str, Proposal]:
 
 def stateful(phase: Phase, proposals: dict[str, Proposal]) -> PartyAmount:
     """What needs the balance at each date: runs inside resolve on the lines no pass claimed."""
-    reserved = {item for proposal in proposals.values() for item, _ in proposal.lines}
+    reserved: dict[str, set[str]] = {}
+    for txn_id, proposal in proposals.items():
+        for item, _ in proposal.lines:
+            reserved.setdefault(item, set()).add(txn_id)
     return PartyAmount(phase, reserved)

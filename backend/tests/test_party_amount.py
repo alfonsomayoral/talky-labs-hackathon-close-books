@@ -33,7 +33,7 @@ def engine(items, customers=(("C1", "E1", "Wellness Garrido S.L.", None, "ES11",
     table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String})
     phase = SimpleNamespace(items=table, masters=masters(customers, suppliers), start="2021-01-01")
     balances = OpenBalances(dict(zip(table["item_id"], table["open_cents"], strict=True)))
-    return PartyAmount(phase, reserved=set()), balances
+    return PartyAmount(phase, reserved={}), balances
 
 
 def txn(amount, text="", name=None, remit=None, iban=None, date="2024-06-01", entity="E1", currency="EUR", orig=None,
@@ -149,7 +149,7 @@ def test_foreign_payment_is_compared_in_the_currency_of_the_invoice():
 
 def test_invoice_reserved_by_a_document_rule_is_not_eaten_by_an_uncited_payment():
     rule, balances = engine([item("ARI-1", "C1", "FV1234", 1000)])
-    rule.reserved = {"ARI-1"}
+    rule.reserved = {"ARI-1": {"BT-0"}}
     assert rule(txn(1000, NAME), balances) is None
     assert lines(rule(txn(1000, NAME, remit="FRA FV1234"), balances)) == {"ARI-1"}
 
@@ -305,12 +305,46 @@ def test_payment_net_of_retention_or_advance_from_the_pdf():
 
 
 def test_amount_that_nothing_explains_is_not_guessed_even_with_a_known_party():
-    # Measured on the holdout: guessing a partial was right 12 % of the time, an overpayment 22 %, a duplicate 77 %.
+    # Measured on the holdout: guessing a partial was right 12 % of the time, an overpayment 22 %.
     rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
     assert rule(txn(40000, NAME), balances) is None
     assert rule(txn(80407, NAME), balances) is None
+
+
+def settled(*rows):
+    """An engine where these items were settled by an earlier line of this run."""
+    rule, balances = engine(list(rows))
+    for row in rows:
+        balances.apply(row["item_id"], row["total_cents"], "", "BT-0", "2024-05-01")
+    return rule, balances
+
+
+def test_exact_total_of_the_one_invoice_of_the_party_already_settled_is_a_duplicate():
+    # BT-2025-0080327: paid twice with no reference. Nothing is open for that amount and only one closed item has it.
+    rule, balances = settled(item("ARI-1", "C1", "F1", 228043))
+    found = rule(txn(228043, NAME), balances)
+    assert found.rule == "PARTY-DUPLICATE" and lines(found) == {"ARI-1"}
+
+
+def test_invoice_closed_before_this_run_may_just_look_like_the_cash():
+    # BT-2025-0162197, unidentified_lookalike: nothing in the run says this invoice was ever paid.
     rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
     assert rule(txn(228043, NAME), balances) is None
+
+
+def test_two_settled_invoices_with_that_total_are_not_guessed():
+    rule, balances = settled(item("ARI-1", "C1", "F1", 228043), item("ARI-2", "C1", "F2", 228043))
+    assert rule(txn(228043, NAME), balances) is None
+
+
+def test_settled_credit_note_of_that_amount_is_not_a_duplicate():
+    rule, balances = settled(item("ARC-1", "C1", "A1", 228043))
+    assert rule(txn(228043, NAME), balances) is None
+
+
+def test_duplicate_needs_a_whole_party_name():
+    rule, balances = settled(item("ARI-1", "C1", "F1", 228043))
+    assert rule(txn(228043, "WELLNESS GARRIDO"), balances) is None
 
 
 def test_debit_citing_a_customer_invoice_is_not_settled_by_the_number_alone():
@@ -535,3 +569,115 @@ def test_a_run_among_too_many_open_invoices_is_not_taken():
     many = [item(f"ARI-{n:03d}", "C1", f"FV24-1{n:06d}", 1000 + n % 37, issued=f"2024-03-{n % 28 + 1:02d}")
             for n in range(70)]
     assert pay(many, 5000 + 5 * 3) is None
+
+
+def test_invoice_reserved_by_a_batch_is_free_again_once_the_batch_returned_it():
+    # BT-2025-0014588: direct debit returned, the customer then pays by transfer with no reference.
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
+    rule.reserved = {"ARI-1": {"BT-0", "BT-00"}}
+    assert rule(txn(75407, NAME), balances) is None
+    balances.apply("ARI-1", 75407, "", "BT-0", "2024-05-01")
+    assert rule(txn(75407, NAME), balances).rule == "PARTY-DUPLICATE"
+    balances.apply("ARI-1", 75407, "RETURNED", "BT-00", "2024-05-10")
+    assert lines(rule(txn(75407, NAME), balances)) == {"ARI-1"}
+
+
+def test_invoice_of_a_returned_batch_stays_reserved_while_a_re_presentation_is_to_come():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
+    rule.reserved = {"ARI-1": {"BT-0", "BT-00", "BT-000"}}
+    balances.apply("ARI-1", 75407, "", "BT-0", "2024-05-01")
+    balances.apply("ARI-1", 75407, "RETURNED", "BT-00", "2024-05-10")
+    assert rule(txn(75407, NAME), balances) is None
+
+
+# BT-2025-0000058: eleven customers named the same in AU01. Another one's invoice starts like the cut number.
+HOMONYMS = (("C1", "E1", "Hydro Port Ellery Pty Ltd", None, None, None, None, None),
+            ("C2", "E1", "Hydro Port Ellery Pty Ltd", None, None, None, None, None))
+HOMONYM = "DIRECT CREDIT HYDRO PORT ELLERY PT INV# INV24-0223"
+
+
+def test_of_two_customers_named_the_same_the_one_whose_invoice_is_the_cash_settles():
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 171730), item("ARI-2", "C2", "INV24-0223999", 90000)],
+                            customers=HOMONYMS)
+    found = rule(txn(171730, HOMONYM, name="Hydro Port Ellery Pty Ltd"), balances)
+    assert lines(found) == {"ARI-1"}
+    assert found.party_id == "C1"
+    assert [c["itemId"] for c in found.candidates] == ["ARI-2"]
+    assert {"kind": "customer", "ref": "C2"} in found.sources
+
+
+def test_customers_with_different_names_are_not_homonyms_even_if_one_has_the_cash():
+    # The bank cut the name: both start the same, and the cut does not say which one paid.
+    customers = (("C1", "E1", "Hydro Port Ellery Pty Ltd", None, None, None, None, None),
+                 ("C2", "E1", "Hydro Port Ellery North Pty Ltd", None, None, None, None, None))
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 171730), item("ARI-2", "C2", "INV24-0223999", 90000)],
+                            customers=customers)
+    assert rule(txn(171730, "DIRECT CREDIT HYDRO PORT ELLE INV# INV24-0223"), balances) is None
+
+
+def test_of_two_customers_named_the_same_both_with_the_cash_nothing_is_guessed():
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 171730),
+                             item("ARI-2", "C2", "INV24-0223999", 171730)], customers=HOMONYMS)
+    assert rule(txn(171730, HOMONYM, name="Hydro Port Ellery Pty Ltd"), balances) is None
+
+
+def test_of_two_customers_named_the_same_a_citation_that_explains_nothing_settles_nothing():
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 80000), item("ARI-2", "C2", "INV24-0223999", 90000)],
+                            customers=HOMONYMS)
+    assert rule(txn(171730, HOMONYM, name="Hydro Port Ellery Pty Ltd"), balances) is None
+
+
+def discounted(*rows):
+    rule, balances = engine(list(rows))
+    rule.terms_pct = {r["item_id"]: 2.0 for r in rows}
+    rule.discount_days = {r["item_id"]: 10 for r in rows}
+    return rule, balances
+
+
+def test_several_invoices_each_net_of_its_discount_add_up_to_the_cash():
+    # BT-2025-0000118: a customer takes its early-payment discount on every invoice it pays, with no citation.
+    rule, balances = discounted(item("ARI-1", "C1", "F1", 100003, issued="2024-05-28"),
+                                item("ARI-2", "C1", "F2", 50011, issued="2024-05-28"),
+                                item("ARI-3", "C1", "F3", 700013, issued="2024-05-28"))
+    found = rule(txn(98003 + 49011, NAME), balances)
+    assert found.rule == "PARTY-NET-SUBSET" and lines(found) == {"ARI-1", "ARI-2"}
+
+
+def test_invoices_out_of_terms_are_not_net_of_their_discount():
+    rule, balances = discounted(item("ARI-1", "C1", "F1", 100003, issued="2024-01-01"),
+                                item("ARI-2", "C1", "F2", 50011, issued="2024-01-01"))
+    assert rule(txn(98003 + 49011, NAME), balances) is None
+
+
+# POLICIES §5.1: BT-2025-0000873, the parent pays with its own name and the invoice is of a subsidiary.
+GROUP = (("C1", "E1", "Holding Porto Alvor S.A.", None, None, "G1", None, None),
+         ("C2", "E1", "Piscinas Porto Alvor Lda.", None, None, "G1", "C1", None),
+         ("C3", "E1", "Jardins Porto Alvor Lda.", None, None, "G1", "C1", None))
+PARENT = "TRANSFERENCIA DE HOLDING PORTO ALVOR S.A. | "
+
+
+def test_parent_paying_the_only_invoice_of_its_group_with_that_amount():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939), item("ARI-2", "C3", "F2", 12000)], customers=GROUP)
+    found = rule(txn(71939, PARENT), balances)
+    assert found.party_id == "C2" and lines(found) == {"ARI-1"}
+    assert {"kind": "customer", "ref": "C1"} in found.sources
+
+
+def test_two_members_of_the_group_with_that_amount_are_not_guessed():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939), item("ARI-2", "C3", "F2", 71939)], customers=GROUP)
+    assert rule(txn(71939, PARENT), balances) is None
+
+
+def test_payer_with_its_own_invoice_of_that_amount_goes_first():
+    rule, balances = engine([item("ARI-0", "C1", "F0", 71939), item("ARI-1", "C2", "F1", 71939)], customers=GROUP)
+    assert lines(rule(txn(71939, PARENT), balances)) == {"ARI-0"}
+
+
+def test_a_group_member_whose_invoices_do_not_add_up_to_the_cash_settles_nothing():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939)], customers=GROUP)
+    assert rule(txn(50000, PARENT), balances) is None
+
+
+def test_a_name_that_is_not_whole_does_not_reach_the_group():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939)], customers=GROUP)
+    assert rule(txn(71939, "HOLDING PORTO"), balances) is None
