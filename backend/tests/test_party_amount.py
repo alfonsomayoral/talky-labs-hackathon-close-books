@@ -647,3 +647,37 @@ def test_invoices_out_of_terms_are_not_net_of_their_discount():
     rule, balances = discounted(item("ARI-1", "C1", "F1", 100003, issued="2024-01-01"),
                                 item("ARI-2", "C1", "F2", 50011, issued="2024-01-01"))
     assert rule(txn(98003 + 49011, NAME), balances) is None
+
+
+# POLICIES §5.1: BT-2025-0000873, the parent pays with its own name and the invoice is of a subsidiary.
+GROUP = (("C1", "E1", "Holding Porto Alvor S.A.", None, None, "G1", None, None),
+         ("C2", "E1", "Piscinas Porto Alvor Lda.", None, None, "G1", "C1", None),
+         ("C3", "E1", "Jardins Porto Alvor Lda.", None, None, "G1", "C1", None))
+PARENT = "TRANSFERENCIA DE HOLDING PORTO ALVOR S.A. | "
+
+
+def test_parent_paying_the_only_invoice_of_its_group_with_that_amount():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939), item("ARI-2", "C3", "F2", 12000)], customers=GROUP)
+    found = rule(txn(71939, PARENT), balances)
+    assert found.party_id == "C2" and lines(found) == {"ARI-1"}
+    assert {"kind": "customer", "ref": "C1"} in found.sources
+
+
+def test_two_members_of_the_group_with_that_amount_are_not_guessed():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939), item("ARI-2", "C3", "F2", 71939)], customers=GROUP)
+    assert rule(txn(71939, PARENT), balances) is None
+
+
+def test_payer_with_its_own_invoice_of_that_amount_goes_first():
+    rule, balances = engine([item("ARI-0", "C1", "F0", 71939), item("ARI-1", "C2", "F1", 71939)], customers=GROUP)
+    assert lines(rule(txn(71939, PARENT), balances)) == {"ARI-0"}
+
+
+def test_a_group_member_whose_invoices_do_not_add_up_to_the_cash_settles_nothing():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939)], customers=GROUP)
+    assert rule(txn(50000, PARENT), balances) is None
+
+
+def test_a_name_that_is_not_whole_does_not_reach_the_group():
+    rule, balances = engine([item("ARI-1", "C2", "F1", 71939)], customers=GROUP)
+    assert rule(txn(71939, "HOLDING PORTO"), balances) is None
