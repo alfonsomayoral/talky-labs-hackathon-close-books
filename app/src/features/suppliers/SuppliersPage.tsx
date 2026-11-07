@@ -172,17 +172,17 @@ export function SuppliersPage() {
       />
       <div className={styles.header}>
         <div className={styles.metrics}>
-        <Card>
+        <Card data-surface="feature">
           <Metric label="Incidencias abiertas" value={loadingHeader ? '' : formatNumber(openAll.total)} loading={loadingHeader} />
         </Card>
-        <Card>
+        <Card data-surface="feature">
           <Metric
             label="Importe afectado"
             value={loadingHeader ? '' : formatMoney(openAll.sumAmountEur, 'EUR', { compact: true })}
             loading={loadingHeader}
           />
         </Card>
-        <Card>
+        <Card data-surface="feature">
           <Metric
             label="Abonos por compensar"
             value={loadingHeader ? '' : formatNumber(openCredits.total)}

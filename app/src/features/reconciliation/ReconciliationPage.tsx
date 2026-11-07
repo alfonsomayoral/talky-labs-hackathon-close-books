@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { SearchX, CloudOff } from 'lucide-react'
 import type { TxnRow } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, evidenceOf, ruleDescription } from '@/domain'
-import { Amount, Badge, ConfidenceBand, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, type Column } from '@/components'
+import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, autoRate, evidenceOf, ruleDescription } from '@/domain'
+import { Amount, Badge, Card, ConfidenceBand, DataTable, EmptyState, FilterBar, FilterChip, Metric, Mono, Page, PageHeader, Skeleton, type Column } from '@/components'
 import { useActiveRun, useAccounts, useRunStats, useTransactions } from '@/data'
-import { formatDate, formatNumber } from '@/lib/format'
+import { formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useListParam, useOpenObject, useTextParam } from '@/lib/urlState'
 import { TxnPanel } from '@/features/shared'
 import { SearchBox } from './SearchBox'
@@ -35,7 +35,7 @@ const COLUMNS: Column<TxnRow>[] = [
     },
     sortValue: (t) => t.rowCount,
   },
-  { id: 'evidence', header: 'Evidencia', width: 112, cell: (t) => <span className={styles.evidence}>{evidenceOf(t.rule).source}</span> },
+  { id: 'evidence', header: 'Evidencia', width: 128, cell: (t) => <span className={styles.evidence}>{evidenceOf(t.rule).source}</span> },
   { id: 'rule', header: 'Regla', width: 168, cell: (t) => <Mono title={ruleDescription(t.rule)}>{t.rule}</Mono>, sortValue: (t) => t.rule },
   { id: 'confidence', header: 'Confianza', width: 104, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
   {
@@ -46,7 +46,7 @@ const COLUMNS: Column<TxnRow>[] = [
     sortValue: (t) => t.caseStatus,
   },
   // Last: the account is also a filter and the panel's header, so it is what falls off a narrow screen, not the rule.
-  { id: 'accountId', header: 'Cuenta', width: 140, cell: (t) => <Mono>{t.accountId}</Mono>, sortValue: (t) => t.accountId },
+  { id: 'accountId', header: 'Cuenta', width: 128, cell: (t) => <Mono>{t.accountId}</Mono>, sortValue: (t) => t.accountId },
 ]
 
 export function ReconciliationPage() {
@@ -122,6 +122,17 @@ export function ReconciliationPage() {
           </FilterBar>
         }
       />
+      <div className={styles.kpis}>
+        <Card padding="sm" data-surface="feature">
+          <Metric label="Movimientos" value={stats.data ? formatNumber(stats.data.txns) : ''} loading={!stats.data} />
+        </Card>
+        <Card padding="sm" data-surface="feature">
+          <Metric label="Conciliado sin intervención" value={stats.data ? formatPercent(autoRate(stats.data), { decimals: 1 }) : ''} loading={!stats.data} />
+        </Card>
+        <Card padding="sm" data-surface="feature">
+          <Metric label="Importe identificado" value={stats.data ? <Amount cents={stats.data.identifiedEur} compact /> : ''} loading={!stats.data} />
+        </Card>
+      </div>
       {list.error && list.rows.length === 0 ? (
         <EmptyState icon={<CloudOff />} title="No se pudieron cargar los movimientos" description={list.error.message} action={undefined} />
       ) : list.loading ? (

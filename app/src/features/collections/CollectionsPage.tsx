@@ -106,7 +106,7 @@ export function CollectionsPage() {
           </FilterBar>
         }
       />
-      <Card padding="md">
+      <Card padding="md" data-surface="feature">
         <div className={styles.metrics}>
           <Metric
             label="Saldo abierto"
@@ -123,13 +123,15 @@ export function CollectionsPage() {
           <Metric label="Disputas abiertas" value={aging ? formatNumber(disputes) : '—'} loading={isPending} hint="Suma de los 200 clientes con más saldo vencido." />
           <Metric label="Duplicados a devolver" value={aging ? formatNumber(duplicates) : '—'} loading={isPending} hint="Suma de los 200 clientes con más saldo vencido." />
         </div>
-        {aging && (
+      </Card>
+      {aging && (
+        <Card padding="md">
           <div className={styles.aging}>
             <AgingBar buckets={aging.totals} label="Saldo del grupo por tramo de vencimiento" size="md" />
             <AgingLegend buckets={aging.totals} />
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
       {body}
       <PartyPanel runId={runId} partyId={open} aging={aging?.parties ?? []} onClose={() => setOpen(null)} />
     </Page>

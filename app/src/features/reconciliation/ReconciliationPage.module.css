@@ -35,3 +35,17 @@
   white-space: nowrap;
   color: var(--ink-2);
 }
+
+.kpis {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+/* On a phone the list comes first: the same counts are in the filter bar and the tabs. */
+@media (max-width: 640px) {
+  .kpis {
+    display: none;
+  }
+}
