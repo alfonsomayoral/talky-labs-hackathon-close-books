@@ -332,7 +332,8 @@ class PartyAmount:
         if by_reference:
             # POLICIES §5.5: a noisy citation must not beat an exact amount of the same, certain payer.
             # Keep explained shortfalls, PDF plans and overpayments; never break a tie between alternatives.
-            if (self.parties.certain and len(same) == 1 and len(by_reference.lines) == 1 and len(strong) == 1
+            if (txn["amount_cents"] > 0 and self.parties.certain and len(same) == 1
+                    and len(by_reference.lines) == 1 and len(strong) == 1
                     and by_reference.lines[0][0] == strong[0][0]):
                 cited = strong[0]
                 remaining = open_now[cited[0]]

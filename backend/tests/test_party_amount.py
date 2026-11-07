@@ -209,6 +209,14 @@ def test_noisy_reference_yields_to_one_exact_invoice_of_a_certain_party():
     assert found.rule == "PARTY-REF-NOISE"
 
 
+def test_customer_reference_recovery_does_not_change_supplier_payments():
+    rule, balances = engine([item("API-1", "S1", "AP24-000001", 15000),
+                             item("API-2", "S1", "AP24-000002", 10000)], customers=(),
+                            suppliers=(("S1", "E1", "Industrial Supply Ltd", None),))
+    wire = txn(-10000, name="Industrial Supply Ltd", remit="AP24-000001")
+    assert lines(rule(wire, balances)) == {"API-1"}
+
+
 @pytest.mark.parametrize("cash,amounts", [(10000, [15000, 10000, 10000]), (10100, [10000, 10100])])
 def test_ambiguous_alternative_or_explained_overpayment_keeps_the_reference(cash, amounts):
     rule, balances = engine([item(f"ARI-{n}", "C1", f"FV24-{n:06}", amount)
