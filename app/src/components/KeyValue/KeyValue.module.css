@@ -35,3 +35,8 @@
   font-size: var(--text-12);
   font-variant-numeric: tabular-nums;
 }
+
+/* A long id wraps inside its card instead of running past it. */
+.value > * {
+  white-space: normal;
+}

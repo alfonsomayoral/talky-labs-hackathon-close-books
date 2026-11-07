@@ -195,13 +195,14 @@
 
 .active,
 .active:hover {
-  background: var(--bg);
-  border-color: var(--line);
-  color: var(--ink-strong);
+  background: var(--action);
+  border-color: transparent;
+  color: var(--action-ink);
 }
 
-.active .entryIcon {
-  color: var(--brand);
+.active .entryIcon,
+.active .count {
+  color: var(--action-ink);
 }
 
 .alertCount {
@@ -209,8 +210,8 @@
   height: 18px;
   padding: 0 var(--space-1-5);
   border-radius: var(--radius-pill);
-  background: var(--danger-bg);
-  color: var(--danger-ink);
+  background: var(--brand-soft);
+  color: var(--brand-ink);
   font-size: var(--text-12);
   font-weight: var(--weight-semibold);
   line-height: 18px;

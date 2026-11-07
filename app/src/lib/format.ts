@@ -51,7 +51,7 @@ export function formatCompactMoney(cents: number | null | undefined, currency = 
   const abs = Math.abs(units)
   if (abs < 1000) return formatMoney(cents, currency, { decimals: 0, signed: opts.signed })
   const [divisor, suffix] = abs >= 1e6 ? [1e6, 'M'] : [1e3, 'k']
-  const value = nf({ maximumFractionDigits: 1, signDisplay: opts.signed ? 'exceptZero' : 'auto' }).format(units / divisor)
+  const value = nf({ minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: opts.signed ? 'exceptZero' : 'auto' }).format(units / divisor)
   const symbol = COMPACT_SYMBOL[currency]
   return symbol === '€' ? `${value} ${suffix}€` : `${value} ${suffix} ${symbol ?? currency}`
 }

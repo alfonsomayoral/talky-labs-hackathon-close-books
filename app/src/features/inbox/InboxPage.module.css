@@ -19,6 +19,7 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+  white-space: normal;
   font-size: var(--text-12);
   line-height: var(--leading);
   color: var(--ink-2);
@@ -57,4 +58,39 @@
   gap: var(--space-3);
   flex: 1;
   min-height: 0;
+}
+
+.kpis {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+/* On a phone the list comes first: the same counts are in the filter bar and the tabs. */
+@media (max-width: 640px) {
+  .kpis {
+    display: none;
+  }
+}
+
+.kpi {
+  padding: var(--space-3);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow var(--duration-fast) ease;
+}
+
+.kpi:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.kpi:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 2px;
 }

@@ -149,12 +149,13 @@ describe('eventClock', () => {
 })
 
 describe('scoreReference', () => {
-  it('takes the newest scored holdout', () => {
-    const runs = [run('a', 'holdout', '2026-11-07T08:00', 91.2), run('b', 'holdout', '2026-11-07T09:00', 91.37), run('c', 'live', '2026-11-07T10:00', null), run('d', 'holdout', '2026-11-07T11:00', null)]
-    expect(scoreReference(runs)?.runId).toBe('b')
+  it('is the score of the run the API serves, never just the latest', () => {
+    const served = { ...run('b', 'holdout', '2026-11-07T09:00', 91.37), served: true }
+    expect(scoreReference([run('a', 'holdout', '2026-11-07T12:00', 99), served])?.runId).toBe('b')
   })
 
-  it('is null without one', () => {
-    expect(scoreReference([run('c', 'live', '2026-11-07T10:00', null)])).toBeNull()
+  it('is null when the served run has no score', () => {
+    const served = { ...run('c', 'live', '2026-11-07T10:00', null), served: true }
+    expect(scoreReference([run('a', 'holdout', '2026-11-07T12:00', 99), served])).toBeNull()
   })
 })

@@ -51,3 +51,15 @@ uv run closebooks score ../runs/train-mem
 ```
 
 `--no-score` deja `score: null` en `run.json`. El comando `score` imprime el resultado; no modifica los metadatos.
+
+`_RJEM_MALLOC_CONF=dirty_decay_ms:0,muzzy_decay_ms:0` hace que Polars devuelva al sistema la memoria que libera: tras `load` en holdout, 950 MB de RSS frente a 1,8 GB. Lo fijan `closebooks/__init__.py`, si la variable no está ya definida, y el `justfile`. FINAL corre con ella.
+
+## Parámetros del motor que no salen de los datos
+
+Son cotas de búsqueda, no valores aprendidos. Un candidato solo se acepta si es la única solución.
+
+| Constante | Valor | Qué acota |
+| --- | --- | --- |
+| `MAX_FULL_SEARCH` | 22 | Facturas abiertas del tercero en la búsqueda completa de un subconjunto: cota de tiempo por movimiento |
+| `MAX_SKIPPED` | 2 | Facturas que un cliente puede saltarse dentro de la ventana que paga |
+| `MAX_CHANCE` | 0,05 | Conjuntos que se esperaría que sumaran el cobro por azar (conjuntos buscados ÷ céntimos que suman las candidatas). Por encima, una solución única no prueba nada y no se toma. Se fijó de antemano, no mirando el golden |

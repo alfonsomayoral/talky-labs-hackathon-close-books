@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AgingParty } from '@/domain'
-import { filterParties, riskOf, sortFromParam, sortToParam } from './model'
+import { chaseFirst, filterParties, riskOf, sortFromParam, sortToParam } from './model'
 
 const party = (over: Partial<AgingParty> = {}): AgingParty => ({
   partyId: 'C1',
@@ -56,5 +56,14 @@ describe('sort in the URL', () => {
     expect(sortFromParam('-overdueEur')).toEqual({ columnId: 'overdueEur', direction: 'desc' })
     expect(sortToParam({ columnId: 'partyName', direction: 'asc' })).toBe('partyName')
     expect(sortFromParam('nope')).toBeNull()
+  })
+})
+
+describe('chaseFirst', () => {
+  const party = (partyId: string, caseId: string | null) => ({ partyId, caseId }) as AgingParty
+
+  it('puts the customers that can be chased first, keeping the order within each group', () => {
+    const rows = [party('a', null), party('b', 'C1'), party('c', null), party('d', 'C2')]
+    expect(chaseFirst(rows).map((p) => p.partyId)).toEqual(['b', 'd', 'a', 'c'])
   })
 })

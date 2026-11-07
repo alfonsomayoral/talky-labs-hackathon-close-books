@@ -14,8 +14,8 @@ export interface RankRow {
 }
 
 /** Rows with a thin bar proportional to the biggest one; a row with `to` is a link. */
-export function RankList({ rows }: { rows: RankRow[] }) {
-  const max = Math.max(1, ...rows.map((r) => r.value))
+export function RankList({ rows, total }: { rows: RankRow[]; total?: number }) {
+  const max = total ?? Math.max(1, ...rows.map((r) => r.value))
   return (
     <ul className={styles.list}>
       {rows.map((r) => {

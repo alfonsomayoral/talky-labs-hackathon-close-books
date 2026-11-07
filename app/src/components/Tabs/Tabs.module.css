@@ -52,8 +52,8 @@
   min-width: 18px;
   padding: 0 5px;
   border-radius: var(--radius-pill);
-  background: var(--bg-muted);
-  color: var(--ink-2);
+  background: var(--brand-soft);
+  color: var(--brand-ink);
   font-size: var(--text-12);
   line-height: 16px;
   text-align: center;

@@ -84,9 +84,9 @@ export function OverviewPage() {
       </div>
 
       <div className={styles.queues}>
-        <QueueCard label="Decisiones" description="Varias opciones con la misma evidencia: decide una persona." totals={totals?.decidir} to={to('/bandeja', { vista: 'decidir' })} />
-        <QueueCard label="Por revisar" description="Sin evidencia para casar: cobros sin identificar, casaciones ambiguas y cargos." totals={totals?.revisar} to={to('/bandeja', { vista: 'revisar' })} />
-        <QueueCard label="Cobros" description="Ya conciliados, con algo que reclamar: parciales, disputas y clientes vencidos." totals={totals?.reclamar} to={to('/bandeja', { vista: 'reclamar' })} />
+        <QueueCard label="Decidir" description="Varias opciones con la misma evidencia: decide una persona." totals={totals?.decidir} to={to('/bandeja', { vista: 'decidir' })} />
+        <QueueCard label="Revisar" description="Sin evidencia para casar: cobros sin identificar, otras casaciones ambiguas y cargos." totals={totals?.revisar} to={to('/bandeja', { vista: 'revisar' })} />
+        <QueueCard label="Reclamar" description="Ya conciliados, con algo que reclamar: parciales, disputas y clientes vencidos." totals={totals?.reclamar} to={to('/bandeja', { vista: 'reclamar' })} />
       </div>
 
       <div className={styles.metrics}>

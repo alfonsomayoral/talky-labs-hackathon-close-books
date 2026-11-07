@@ -12,15 +12,20 @@ import styles from './RunsPage.module.css'
 const queue = (r: RunSummary) => INBOX_STATUSES.reduce((sum, s) => sum + (r.cases[s] ?? 0), 0)
 
 const COLUMNS: Column<RunSummary>[] = [
-  { id: 'runId', header: 'Ejecución', width: 'minmax(210px, 1.4fr)', cell: (r) => <Mono>{r.runId}</Mono>, sortValue: (r) => r.runId },
-  { id: 'phase', header: 'Fase', width: 100, cell: (r) => <Badge variant="outline">{r.phase}</Badge>, sortValue: (r) => r.phase },
+  { id: 'runId', header: 'Ejecución', width: 'minmax(210px, 1.4fr)', cell: (r) => (
+      <span>
+        <Mono>{r.runId}</Mono> {r.served && <Badge emphasis="positive">Abierta</Badge>}
+      </span>
+    ),
+    sortValue: (r) => r.runId },
+  { id: 'phase', header: 'Fase', width: 136, cell: (r) => <Badge variant="outline">{r.phase}</Badge>, sortValue: (r) => r.phase },
   { id: 'createdAt', header: 'Fecha', width: 150, cell: (r) => formatDateTime(r.createdAt), sortValue: (r) => r.createdAt },
   { id: 'commit', header: 'Commit', width: 90, cell: (r) => <Mono>{r.gitCommit}</Mono> },
   { id: 'duration', header: 'Duración', width: 110, align: 'right', cell: (r) => formatDuration(r.durationMs), sortValue: (r) => r.durationMs },
-  { id: 'txns', header: 'Movimientos', width: 110, align: 'right', cell: (r) => formatNumber(r.txns), sortValue: (r) => r.txns },
+  { id: 'txns', header: 'Movimientos', width: 124, align: 'right', cell: (r) => formatNumber(r.txns), sortValue: (r) => r.txns },
   { id: 'rows', header: 'Filas', width: 90, align: 'right', cell: (r) => formatNumber(r.rows), sortValue: (r) => r.rows },
   { id: 'queue', header: 'En cola', width: 90, align: 'right', cell: (r) => formatNumber(queue(r)), sortValue: queue },
-  { id: 'calls', header: 'Llamadas', width: 90, align: 'right', cell: (r) => formatNumber(r.modelCalls), sortValue: (r) => r.modelCalls },
+  { id: 'calls', header: 'Llamadas', width: 100, align: 'right', cell: (r) => formatNumber(r.modelCalls), sortValue: (r) => r.modelCalls },
   { id: 'cost', header: 'Coste', width: 90, align: 'right', cell: (r) => <Amount cents={Math.round(r.modelCostUsd * 100)} currency="USD" />, sortValue: (r) => r.modelCostUsd },
   { id: 'score', header: 'Puntuación', width: 110, align: 'right', cell: (r) => formatNumber(r.score, { decimals: 2 }), sortValue: (r) => r.score },
 ]

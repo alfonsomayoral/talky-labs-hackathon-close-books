@@ -2,13 +2,13 @@ import { useMemo, useRef } from 'react'
 import { CircleAlert } from 'lucide-react'
 import { Amount, Badge, DataTable, EmptyState, KeyValue, Mono, Section, SidePanel, Skeleton, type Column } from '@/components'
 import { useCase, useOpenItems, useParty } from '@/data'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, caseKindLabel, type AgingParty, type CaseRow, type OpenItem } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, caseKindLabel, type AgingParty, type CaseRow, type OpenItem } from '@/domain'
 import { formatDate, formatNumber } from '@/lib/format'
 import { Link } from 'react-router'
 import { useScopedTo } from '@/lib/urlState'
 import { CaseActions } from '@/features/shared'
 import { AgingBar } from './AgingBar'
-import { RISK_HEURISTIC, RISK_LABEL, RISK_TONE, riskOf } from './model'
+import { RISK_HEURISTIC, RISK_LABEL, RISK_EMPHASIS, riskOf } from './model'
 import styles from './PartyPanel.module.css'
 
 interface PartyPanelProps {
@@ -20,7 +20,7 @@ interface PartyPanelProps {
   onClose: () => void
 }
 
-const ITEM_ROW = 36
+const ITEM_ROW = 44
 const ITEMS_MAX_HEIGHT = 8 * ITEM_ROW + 40
 const RECENT_MOVEMENTS = 8
 const OWN_CASE_KINDS = ['dispute', 'duplicate_payment']
@@ -87,7 +87,7 @@ export function PartyPanel({ runId, partyId, aging, onClose }: PartyPanelProps) 
               <AgingBar buckets={row.buckets} label="Saldo del cliente por tramo de vencimiento" size="md" />
               {risk && (
                 <p className={styles.risk}>
-                  <Badge tone={RISK_TONE[risk]}>Riesgo {RISK_LABEL[risk].toLowerCase()}</Badge>
+                  <Badge emphasis={RISK_EMPHASIS[risk]}>Riesgo {RISK_LABEL[risk].toLowerCase()}</Badge>
                   <span>{RISK_HEURISTIC}</span>
                 </p>
               )}
@@ -95,6 +95,7 @@ export function PartyPanel({ runId, partyId, aging, onClose }: PartyPanelProps) 
           )}
 
           <KeyValue
+            className={styles.facts}
             labelWidth={120}
             items={[
               { label: 'Id', value: party.partyId, mono: true },
@@ -115,7 +116,7 @@ export function PartyPanel({ runId, partyId, aging, onClose }: PartyPanelProps) 
             ) : chaseCaseId ? (
               <Skeleton height={80} />
             ) : (
-              <p className={styles.muted}>Este cliente no tiene un caso de cobro abierto, así que no hay correo que preparar desde aquí.</p>
+              <p className={styles.muted}>Sin caso de cobro: el sistema solo los abre a los clientes con más saldo vencido de cada sociedad que no tienen movimientos recientes. Por eso no hay correo que preparar desde aquí.</p>
             )}
           </Section>
 
@@ -169,7 +170,7 @@ function CaseLine({ c }: { c: CaseRow }) {
     <li className={styles.case}>
       <div className={styles.caseHead}>
         <span className={styles.kind}>{caseKindLabel(c.kind)}</span>
-        <Badge tone={CASE_STATUS_TONE[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge>
+        <Badge emphasis={CASE_STATUS_EMPHASIS[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge>
         <Amount cents={c.amountCents} currency={c.currency} className={styles.end} />
       </div>
       <p className={styles.caseSummary}>{c.summary}</p>

@@ -53,7 +53,7 @@ const parties: Column<Party>[] = [
     id: 'blockedSince',
     header: 'Bloqueado',
     width: 120,
-    cell: (r) => (r.blockedSince ? <Badge tone="danger">{formatDate(r.blockedSince)}</Badge> : '—'),
+    cell: (r) => (r.blockedSince ? <Badge emphasis="strong">{formatDate(r.blockedSince)}</Badge> : '—'),
     sortValue: (r) => r.blockedSince,
   },
 ]

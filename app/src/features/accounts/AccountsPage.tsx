@@ -18,7 +18,7 @@ const COLUMNS: Column<Account>[] = [
       <span className={styles.account}>
         <Mono>{a.accountId}</Mono>
         {!a.inMaster && (
-          <Badge tone="warn" variant="outline" aria-label="No está en el maestro" title="No está en el maestro: aparece en los movimientos pero no en el maestro de cuentas">
+          <Badge emphasis="medium" aria-label="No está en el maestro" title="No está en el maestro: aparece en los movimientos pero no en el maestro de cuentas">
             sin maestro
           </Badge>
         )}
@@ -26,17 +26,16 @@ const COLUMNS: Column<Account>[] = [
     ),
     sortValue: (a) => a.accountId,
   },
-  { id: 'bank', header: 'Banco', width: 'minmax(120px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
-  { id: 'entity', header: 'Sociedad', width: 84, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
-  { id: 'currency', header: 'Divisa', width: 68, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
+  { id: 'bank', header: 'Banco', width: 'minmax(136px, 1fr)', cell: (a) => <span className={styles.bank} title={a.bankName ?? a.bank}>{a.bankName ?? a.bank}</span>, sortValue: (a) => a.bankName ?? a.bank },
+  { id: 'entity', header: 'Sociedad', width: 92, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
   {
     id: 'format',
     header: 'Formato de extracto',
-    width: 'minmax(280px, 1.2fr)',
+    width: 'minmax(290px, 1fr)',
     cell: (a) => {
       const change = formatChange(a.formats)
       return change ? (
-        <Badge tone="info" title="El banco migra sus extractos a otro formato durante la fase y los textos cambian de forma">
+        <Badge emphasis="medium" title="El banco migra sus extractos a otro formato durante la fase y los textos cambian de forma">
           {change}
         </Badge>
       ) : (
@@ -73,7 +72,7 @@ const COLUMNS: Column<Account>[] = [
   {
     id: 'reconciled',
     header: '% conciliado',
-    width: 110,
+    width: 118,
     cell: (a) =>
       a.reconciledRate == null ? (
         '—'

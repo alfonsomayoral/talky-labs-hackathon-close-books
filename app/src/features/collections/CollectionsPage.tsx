@@ -8,7 +8,7 @@ import { useEntityScope, useOpenObject, useTextParam } from '@/lib/urlState'
 import { TextField } from '@/features/shared'
 import { AgingBar, AgingLegend } from './AgingBar'
 import { PartyPanel } from './PartyPanel'
-import { RISK_HEURISTIC, RISK_TONE, filterParties, riskOf, RISK_LABEL, sortFromParam, sortToParam } from './model'
+import { RISK_HEURISTIC, RISK_EMPHASIS, chaseFirst, filterParties, riskOf, RISK_LABEL, sortFromParam, sortToParam } from './model'
 import styles from './CollectionsPage.module.css'
 
 const RISK_RANK = { low: 0, medium: 1, high: 2 }
@@ -21,7 +21,7 @@ export function CollectionsPage() {
   const [open, setOpen] = useOpenObject()
 
   const { data: aging, error, isPending } = useAging(runId, entity, 'customer')
-  const rows = useMemo(() => filterParties(aging?.parties ?? [], q), [aging, q])
+  const rows = useMemo(() => chaseFirst(filterParties(aging?.parties ?? [], q)), [aging, q])
 
   // The API returns the top 200 by overdue balance: these two are counts over them.
   const disputes = useMemo(() => (aging?.parties ?? []).reduce((n, p) => n + p.disputes, 0), [aging])
@@ -43,7 +43,7 @@ export function CollectionsPage() {
         cell: (p) => <span className="tabular">{p.oldestDaysOverdue > 0 ? `${formatNumber(p.oldestDaysOverdue)} d` : '—'}</span>,
       },
       { id: 'disputes', header: 'Disputas', width: 100, align: 'right', sortValue: (p) => p.disputes, cell: (p) => <span className="tabular">{p.disputes || '—'}</span> },
-      { id: 'duplicates', header: 'Duplicados', width: 112, align: 'right', sortValue: (p) => p.duplicates, cell: (p) => <span className="tabular">{p.duplicates || '—'}</span> },
+      { id: 'chase', header: 'Reclamar', width: 112, sortValue: (p) => (p.caseId ? 0 : 1), cell: (p) => <Badge emphasis={p.caseId ? 'medium' : 'quiet'}>{p.caseId ? 'Con caso' : 'Sin caso'}</Badge> },
       {
         id: 'risk',
         header: (
@@ -55,7 +55,7 @@ export function CollectionsPage() {
         sortValue: (p) => RISK_RANK[riskOf(p)],
         cell: (p) => {
           const risk = riskOf(p)
-          return <Badge tone={RISK_TONE[risk]}>{RISK_LABEL[risk]}</Badge>
+          return <Badge emphasis={RISK_EMPHASIS[risk]}>{RISK_LABEL[risk]}</Badge>
         },
       },
     ],
@@ -100,13 +100,8 @@ export function CollectionsPage() {
       <PageHeader
         title="Cobros"
         subtitle="A qué clientes reclamar hoy, cuánto y qué hay abierto con cada uno."
-        filters={
-          <FilterBar onClear={q ? () => setQ(null) : undefined} end={aging && <span className="tabular">{formatNumber(rows.length)} clientes</span>}>
-            <TextField label="Buscar clientes" hideLabel type="search" placeholder="Buscar por cliente, id o sociedad" value={q ?? ''} onChange={(v) => setQ(v || null)} className={styles.search} />
-          </FilterBar>
-        }
       />
-      <Card padding="md">
+      <Card padding="md" data-surface="feature">
         <div className={styles.metrics}>
           <Metric
             label="Saldo abierto"
@@ -123,13 +118,18 @@ export function CollectionsPage() {
           <Metric label="Disputas abiertas" value={aging ? formatNumber(disputes) : '—'} loading={isPending} hint="Suma de los 200 clientes con más saldo vencido." />
           <Metric label="Duplicados a devolver" value={aging ? formatNumber(duplicates) : '—'} loading={isPending} hint="Suma de los 200 clientes con más saldo vencido." />
         </div>
-        {aging && (
+      </Card>
+      {aging && (
+        <Card padding="md">
           <div className={styles.aging}>
             <AgingBar buckets={aging.totals} label="Saldo del grupo por tramo de vencimiento" size="md" />
             <AgingLegend buckets={aging.totals} />
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
+    <FilterBar onClear={q ? () => setQ(null) : undefined} end={aging && <span className="tabular">{formatNumber(rows.length)} clientes</span>}>
+      <TextField label="Buscar clientes" hideLabel type="search" placeholder="Buscar por cliente, id o sociedad" value={q ?? ''} onChange={(v) => setQ(v || null)} className={styles.search} />
+    </FilterBar>
       {body}
       <PartyPanel runId={runId} partyId={open} aging={aging?.parties ?? []} onClose={() => setOpen(null)} />
     </Page>

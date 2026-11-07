@@ -53,7 +53,7 @@ FINAL trae a propósito: una sociedad nueva con banco, divisa (ZAR) y numeració
 
 ## 4. Plan de trabajo (por puntos esperados por hora; cada bloque con su puerta)
 
-Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, ninguna clase de excepción con precisión < 0,95 (si no llega, se apaga), `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 150 s en holdout. Medir con `just be-score --compare` y `just be-diff`.
+Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, precisión de clase de excepción según §4.1, `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 150 s en holdout. Medir con `just be-score --compare` y `just be-diff`.
 
 | # | Bloque | Objetivo medible | Esfuerzo [Inferencia] |
 | --- | --- | --- | --- |
@@ -69,6 +69,29 @@ Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento q
 
 Orden recomendado: 1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9. Congelación de reglas a las **17:00**. FINAL se publica a las 18:00 y el envío único cierra a las 19:30.
 
+### 4.1 Puerta de precisión por clase (decidido el 7 nov, 11:20)
+
+- `DUPLICATE_PAYMENT` y `OVERPAYMENT`, las de regla opcional: precisión ≥ 0,95 o se apagan.
+- El resto de clases: la precisión no baja más de 0,002 frente a `main`, en holdout y en drift.
+
+«Ninguna clase < 0,95» no se cumplía ni en la base, y apagar `PARTIAL` perdería mucho más de lo que arregla. Precisión en `runs/perf-holdout-a`:
+
+| Clase | Precisión |
+| --- | --- |
+| `DUPLICATE_PAYMENT` | 0,846 |
+| `PARTIAL` | 0,923 |
+| `SHORT_BANK_CHARGES` | 0,948 |
+
+### 4.2 Dónde está de verdad la pérdida (medido en holdout) y qué no se intenta
+
+De los 12.601 movimientos fallados, 8.654 son `not_matched`: cobros en `FALLBACK-UNIDENTIFIED` que el golden sí casa, y en 6.446 de ellos `find` ya da el tercero correcto. Lo que falta es explicar el importe, no identificar al tercero.
+
+**No intentar con una heurística:**
+
+- **Facturas dispersas sin referencia:** calculo que 2.000–2.500 líneas de un gran cliente seguirán en fallback [Inferencia]. Son 5 o más facturas sueltas entre decenas de abiertas, sin ninguna en el texto: hay más combinaciones que céntimos posibles, así que varias suman el cobro y nada dice cuál es.
+- **Muchas candidatas pequeñas:** `MAX_CHANCE` descarta la búsqueda cuando se esperan demasiadas soluciones por azar.
+- **Una factura abierta y un importe distinto, sin cita:** simulado en holdout con saldos del golden. `PARTIAL` acierta 51 y falla 60 (46 sobre `unidentified`); `OVERPAYMENT` acierta 23 y falla 67 (35 sobre `unidentified`). Siguen en fallback.
+
 ## 5. Reglas del juego
 
 - Una PR por bloque, contra `main`, con la tabla antes/después por segmento en holdout y holdout-drift, matriz de excepciones, tiempo y RSS. La orquestadora fusiona; nadie fusiona su propia PR.
@@ -78,11 +101,30 @@ Orden recomendado: 1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9. Congelaci�
 - Nunca se envía nada a la clasificación; nunca se escribe en `db/` salvo `db/holdout*/`; `runs/` con nombres propios (`runs/acc-*`).
 - Cada afirmación en el ESTADO con su medida; lo no medido se dice.
 
-## 6. Línea base de generalización (rellenar en el bloque 1)
+## 6. Línea base de generalización (bloque 1, medido el 7 nov a las 11:43)
 
-| Prueba | Holdout | Sin sociedad X en lo aprendido | Sin banco Y en la tabla | Con layout de aviso inventado |
-| --- | --- | --- | --- | --- |
-| Score | 91,37 | | | |
-| `ar_ref_noise` | | | | |
-| `nonitem_*` | | | | |
-| `ar_1toN_remittance` | | | | |
+Holdout con el código de `main`. Cada columna cambia una sola cosa. Pico de 6,96 a 7,49 GB por ejecución, una cada vez.
+
+| Prueba | Holdout | Tabla sin fuga (`--before 2025-01-01`) | Sin bancos MONC y MEZQ en la tabla | Con layout de aviso inventado | Drift reconstruido |
+| --- | --- | --- | --- | --- | --- |
+| Score | 91,37 | 91,37 | 91,37 | **83,04** | 91,08 |
+| Exactitud por movimiento | 0,9370 | 0,9370 | 0,9369 | 0,9251 | 0,9335 |
+| Macro-F1 de excepciones | 0,820 | 0,820 | 0,820 | **0,652** | 0,815 |
+| `ar_ref_noise` | 0,902 | 0,902 | 0,902 | 0,894 | 0,900 |
+| `nonitem_*` (13.766) | 1,000 | 1,000 | 1,000 | 1,000 | 1,000 |
+| `ar_1toN_remittance` | 0,988 | 0,988 | 0,988 | **0,427** | 0,973 |
+
+**Sociedad y banco nuevos:** se sustituyó «sociedad excluida» porque nombres y números ya se indexan por fase: lo único aprendido de TRAIN es la tabla de códigos.
+
+| Medida | Valor |
+| --- | --- |
+| MX01 (único banco, MEZQ), con y sin su banco en la tabla | 0,948 en ambas |
+| MONC, con y sin su banco en la tabla | 0,8726 → 0,8712 |
+| ZA01 en drift, frente a MA01 en holdout | 0,9177 frente a 0,9626 |
+
+**Qué se lee**
+
+- **La tabla de códigos no es un riesgo.** La fuga no mueve nada y quitar dos bancos solo baja `customer_refund` (1,000 → 0,958, n = 354). `nonitem_*` se mantiene en 1,000 por las reglas de texto.
+- **El layout inventado es el mayor riesgo medido: −8,33 puntos.** Reescribe las cabeceras de los 2.815 avisos csv y xlsx de 6.762, así que es el peor caso, no una predicción. `_columns` los rechaza y se pierden `ar_1toN_remittance`, `ar_short_dispute` (0,801 → 0,319) y `ar_dispute_settlement` (0,860 → 0,523).
+- **ZA01 en drift es pesimista.** Los avisos y PDF conservan la numeración FA/AV y sus importes sin doblar, y las partidas previas de TRAIN siguen como MA01. Parte de la diferencia viene del mutador, sin separar cuánta.
+- **El 90,06 anterior era del mutador viejo.** El drift reconstruido da 91,08, y esa es la base de la puerta desde ahora.

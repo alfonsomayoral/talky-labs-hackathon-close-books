@@ -1,5 +1,8 @@
 # Comandos del repo. `just --list` para verlos.
 
+# Polars devuelve al sistema la memoria que libera (backend/README.md, Memoria)
+export _RJEM_MALLOC_CONF := "dirty_decay_ms:0,muzzy_decay_ms:0"
+
 # Servidor de desarrollo del frontend
 fe-dev:
     npm --prefix app run dev

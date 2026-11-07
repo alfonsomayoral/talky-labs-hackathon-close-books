@@ -21,8 +21,10 @@
 .question {
   padding: 0;
   margin-bottom: var(--space-2);
-  font-size: var(--text-14);
-  font-weight: var(--weight-medium);
+  font-family: var(--font-display);
+  font-size: var(--text-16);
+  font-weight: var(--weight-regular);
+
   line-height: var(--leading);
   color: var(--ink-strong);
 }

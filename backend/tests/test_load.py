@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import polars as pl
@@ -91,3 +94,13 @@ def test_detail_file_of_the_previous_month_is_read_but_not_older_ones(tmp_path):
         (tmp_path / folder / "payment_runs" / name).write_text(f"run_id\n{name}\n")
     phase = SimpleNamespace(dir=tmp_path / "live", prior=[tmp_path / "train"], start="2025-07-01")
     assert sorted(load_detail(phase, "payment_runs")["run_id"]) == ["ES01_202506_0.csv", "ES01_202507_0.csv"]
+
+
+def test_polars_returns_freed_memory_to_the_system_unless_told_otherwise():
+    code = "import os, closebooks, polars; print(os.environ['_RJEM_MALLOC_CONF'])"
+    env = {k: v for k, v in os.environ.items() if k != "_RJEM_MALLOC_CONF"}
+    default = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
+    assert default.stdout.strip().endswith("dirty_decay_ms:0,muzzy_decay_ms:0")
+    chosen = subprocess.run([sys.executable, "-c", code], env={**env, "_RJEM_MALLOC_CONF": "narenas:1"},
+                            capture_output=True, text=True, check=True)
+    assert "dirty_decay_ms:0" not in chosen.stdout

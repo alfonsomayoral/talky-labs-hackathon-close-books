@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { CircleAlert, CircleCheck } from 'lucide-react'
-import { Amount, Badge, Button, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, TabPanel, Tabs, type Column, type SortState } from '@/components'
+import { Amount, Badge, Button, DataTable, EmptyState, FilterBar, FilterChip, Metric, Mono, Page, PageHeader, Skeleton, TabPanel, Tabs, type Column, type SortState } from '@/components'
 import { useActiveRun, useCases, useQueueTotals, useRunStats } from '@/data'
 import { PRIORITY_LABEL, QUEUES, caseKindLabel, firstActionable, queueFilter, queueOfKind, type CasePriority, type CaseRow } from '@/domain'
 import { formatNumber } from '@/lib/format'
@@ -10,7 +10,7 @@ import { CasePanel } from './CasePanel'
 import { DEFAULT_SORT, ageDays, ageLabel, sortFromParam, sortToParam } from './model'
 import styles from './InboxPage.module.css'
 
-const PRIORITY_TONE = { 1: 'danger', 2: 'warn', 3: 'neutral' } as const
+const PRIORITY_EMPHASIS = { 1: 'strong', 2: 'medium', 3: 'quiet' } as const
 const ROW_HEIGHT = 60
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -63,9 +63,9 @@ export function InboxPage() {
       {
         id: 'priority',
         header: 'Prioridad',
-        width: 96,
+        width: 104,
         sortValue: (c) => c.priority,
-        cell: (c) => <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>,
+        cell: (c) => <Badge emphasis={PRIORITY_EMPHASIS[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>,
       },
       {
         id: 'case',
@@ -79,7 +79,7 @@ export function InboxPage() {
         ),
       },
       { id: 'party', header: 'Tercero', width: 'minmax(120px, 1.2fr)', cell: (c) => <span className={styles.truncate}>{c.partyName ?? '—'}</span> },
-      { id: 'entity', header: 'Sociedad', width: 80, cell: (c) => <Mono>{c.entity}</Mono> },
+      { id: 'entity', header: 'Sociedad', width: 92, cell: (c) => <Mono>{c.entity}</Mono> },
       {
         id: 'amountEur',
         header: 'Importe',
@@ -100,7 +100,7 @@ export function InboxPage() {
       {
         id: 'bookingDate',
         header: 'Antigüedad',
-        width: 100,
+        width: 112,
         align: 'right',
         sortValue: (c) => c.bookingDate,
         cell: (c) => <span className="tabular">{ageLabel(ageDays(c.bookingDate, asOf))}</span>,
@@ -109,6 +109,9 @@ export function InboxPage() {
     ],
     [asOf],
   )
+
+  // Every decision is the same kind of work on a movement with no party yet: those two columns say nothing there.
+  const shownColumns = queue.id === 'decidir' ? columns.filter((c) => c.id !== 'party' && c.id !== 'action') : columns
 
   const filtered = kinds.length > 0 || priorities.length > 0 || q != null
   const clear = () => {
@@ -147,7 +150,7 @@ export function InboxPage() {
         variant="cards"
         rowHeight={ROW_HEIGHT}
         rows={cases.rows}
-        columns={columns}
+        columns={shownColumns}
         getRowId={(c) => c.caseId}
         serverSort
         sort={sortFromParam(orden)}
@@ -173,6 +176,18 @@ export function InboxPage() {
           </Button>
         }
       />
+      <div className={styles.kpis}>
+        {QUEUES.map((t) => (
+          <button key={t.id} type="button" className={styles.kpi} data-surface={t.id === queue.id ? 'feature' : undefined} aria-pressed={t.id === queue.id} onClick={() => setVista(t.id)}>
+            <Metric
+              label={t.label}
+              value={totals ? formatNumber(totals[t.id].cases) : ''}
+              loading={!totals}
+              comparison={totals ? <Amount cents={totals[t.id].amountEur} compact /> : undefined}
+            />
+          </button>
+        ))}
+      </div>
       <Tabs
         aria-label="Tipo de trabajo"
         tabs={QUEUES.map((t) => ({ id: t.id, label: t.label, count: totals?.[t.id].cases }))}

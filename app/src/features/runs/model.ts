@@ -139,7 +139,5 @@ export function eventClock(now: Date): string {
   return 'Envíos cerrados'
 }
 
-/** What a phase with no official answers can compare with: the newest scored run of the holdout. */
-export function scoreReference(runs: RunSummary[]): RunSummary | null {
-  return runs.filter((r) => r.phase === 'holdout' && r.score != null).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
-}
+/** The score of the run the API serves: the others are experiments. */
+export const scoreReference = (runs: RunSummary[]): RunSummary | null => runs.find((r) => r.served && r.score != null) ?? null

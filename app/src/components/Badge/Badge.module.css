@@ -66,3 +66,28 @@
   border-color: var(--line);
   color: var(--ink-2);
 }
+
+/* Emphasis: priority, case status and risk. Green reads as healthy, so what needs a person is ink; never a status colour (ARCHITECTURE.md §5.4). */
+.positive,
+.strong,
+.medium,
+.quiet {
+  border-radius: var(--radius-pill);
+}
+.positive {
+  background: var(--action);
+  color: var(--action-ink);
+}
+.strong {
+  background: var(--ink);
+  color: var(--bg);
+}
+.medium {
+  background: transparent;
+  border-color: var(--brand-ink);
+  color: var(--brand-ink);
+}
+.quiet {
+  padding: 0;
+  color: var(--ink-2);
+}

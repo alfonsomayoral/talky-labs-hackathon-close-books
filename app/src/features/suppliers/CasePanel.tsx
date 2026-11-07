@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { ArrowUpRight, CircleAlert } from 'lucide-react'
 import { Amount, Badge, ButtonLink, EmptyState, KeyValue, Mono, SidePanel, Skeleton } from '@/components'
 import { useCase, useOpenItems } from '@/data'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, PRIORITY_LABEL, caseKindLabel } from '@/domain'
+import { caseStatusBadge, PRIORITY_LABEL, caseKindLabel } from '@/domain'
 import { formatDate, formatNumber } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { CaseActions } from '@/features/shared'
@@ -58,9 +58,10 @@ export function CasePanel({ runId, caseId, onClose }: CasePanelProps) {
         <div className={styles.body}>
           <p className={styles.summary}>{c.summary}</p>
           <KeyValue
+            className={styles.facts}
             labelWidth={110}
             items={[
-              { label: 'Estado', value: <Badge tone={CASE_STATUS_TONE[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge> },
+              { label: 'Estado', value: <Badge emphasis={caseStatusBadge(c).emphasis}>{caseStatusBadge(c).label}</Badge> },
               { label: 'Prioridad', value: PRIORITY_LABEL[c.priority] },
               { label: 'Importe', value: <Amount cents={c.amountCents} currency={c.currency} /> },
               ...(c.currency !== 'EUR' ? [{ label: 'En euros', value: <Amount cents={c.amountEur} currency="EUR" /> }] : []),
@@ -110,7 +111,7 @@ function Items({ runId, partyId, entity, caseItemIds }: { runId: string; partyId
               <span className={styles.kindCell}>{ITEM_KIND[item.itemType] ?? item.itemType}</span>
               <span className={styles.due}>{item.dueDate ? formatDate(item.dueDate) : '—'}</span>
               <Amount cents={item.totalCents} currency={item.currency} />
-              <span className={styles.flag}>{inCase && <Badge tone="brand">Del caso</Badge>}</span>
+              <span className={styles.flag}>{inCase && <Badge emphasis="medium">Del caso</Badge>}</span>
             </li>
           ))}
         </ul>

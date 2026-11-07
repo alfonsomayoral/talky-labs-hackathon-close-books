@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { SearchX, CloudOff } from 'lucide-react'
 import type { TxnRow } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, evidenceOf, ruleDescription } from '@/domain'
-import { Amount, Badge, ConfidenceBand, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, type Column } from '@/components'
+import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, autoRate, evidenceOf, ruleDescription } from '@/domain'
+import { Amount, Badge, Card, ConfidenceBand, DataTable, EmptyState, FilterBar, FilterChip, Metric, Mono, Page, PageHeader, Skeleton, type Column } from '@/components'
 import { useActiveRun, useAccounts, useRunStats, useTransactions } from '@/data'
-import { formatDate, formatNumber } from '@/lib/format'
+import { formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useListParam, useOpenObject, useTextParam } from '@/lib/urlState'
 import { TxnPanel } from '@/features/shared'
 import { SearchBox } from './SearchBox'
@@ -16,8 +16,8 @@ const getRowId = (t: TxnRow) => t.bankTxnId
 
 const COLUMNS: Column<TxnRow>[] = [
   { id: 'bookingDate', header: 'Fecha', width: 92, cell: (t) => <span className={styles.muted}>{formatDate(t.bookingDate)}</span>, sortValue: (t) => t.bookingDate },
-  { id: 'entity', header: 'Sociedad', width: 88, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
-  { id: 'text', header: 'Texto del banco', width: 'minmax(160px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
+  { id: 'entity', header: 'Sociedad', width: 96, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
+  { id: 'text', header: 'Texto del banco', width: 'minmax(280px, 3fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
   { id: 'amountEur', header: 'Importe', width: 152, align: 'right', cell: (t) => <Amount cents={t.amountCents} currency={t.currency} signed colorize />, sortValue: (t) => t.amountEur },
   {
     id: 'rowCount',
@@ -35,18 +35,17 @@ const COLUMNS: Column<TxnRow>[] = [
     },
     sortValue: (t) => t.rowCount,
   },
-  { id: 'evidence', header: 'Evidencia', width: 112, cell: (t) => <span className={styles.evidence}>{evidenceOf(t.rule).source}</span> },
+  { id: 'evidence', header: 'Evidencia', width: 128, cell: (t) => <span className={styles.evidence}>{evidenceOf(t.rule).source}</span> },
   { id: 'rule', header: 'Regla', width: 168, cell: (t) => <Mono title={ruleDescription(t.rule)}>{t.rule}</Mono>, sortValue: (t) => t.rule },
-  { id: 'confidence', header: 'Confianza', width: 96, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
+  { id: 'confidence', header: 'Confianza', width: 104, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
   {
     id: 'caseStatus',
     header: 'Caso',
     width: 116,
-    cell: (t) => (t.caseStatus ? <Badge tone={CASE_STATUS_TONE[t.caseStatus]}>{CASE_STATUS_LABEL[t.caseStatus]}</Badge> : <span className={styles.muted}>—</span>),
+    cell: (t) => (t.caseStatus ? <Badge emphasis={CASE_STATUS_EMPHASIS[t.caseStatus]}>{CASE_STATUS_LABEL[t.caseStatus]}</Badge> : <span className={styles.muted}>—</span>),
     sortValue: (t) => t.caseStatus,
   },
   // Last: the account is also a filter and the panel's header, so it is what falls off a narrow screen, not the rule.
-  { id: 'accountId', header: 'Cuenta', width: 140, cell: (t) => <Mono>{t.accountId}</Mono>, sortValue: (t) => t.accountId },
 ]
 
 export function ReconciliationPage() {
@@ -100,28 +99,40 @@ export function ReconciliationPage() {
       <PageHeader
         title="Conciliación"
         subtitle="Qué liquida cada movimiento del banco y por qué: su regla, sus partidas y la evidencia que lo respalda."
-        filters={
-          <FilterBar
-            onClear={hasActiveFilters(filters) ? clear : undefined}
-            end={
-              list.total != null && (
-                <span className={styles.count}>
-                  {formatNumber(list.total)} {list.total === 1 ? 'movimiento' : 'movimientos'}
-                </span>
-              )
-            }
-          >
-            <SearchBox value={q ?? ''} onCommit={(v) => setQ(v.trim() || null)} placeholder="Buscar texto, contraparte, id o factura" aria-label="Buscar movimientos" />
-            {!entity && chip('entity', 'Sociedad')}
-            {chip('account', 'Cuenta')}
-            {chip('format', 'Formato')}
-            {chip('rule', 'Regla')}
-            {chip('exception', 'Excepción')}
-            {chip('category', 'Categoría')}
-            {chip('status', 'Estado del caso')}
-          </FilterBar>
-        }
       />
+      {/* The figures are the whole group's: with a filter on they would contradict the list under them. */}
+      {!hasActiveFilters(filters) && (
+      <div className={styles.kpis}>
+        <Card padding="sm">
+          <Metric label="Movimientos" value={stats.data ? formatNumber(stats.data.txns) : ''} loading={!stats.data} />
+        </Card>
+        <Card padding="sm" data-surface="feature">
+          <Metric label="Conciliado sin intervención" value={stats.data ? formatPercent(autoRate(stats.data), { decimals: 1 }) : ''} loading={!stats.data} />
+        </Card>
+        <Card padding="sm">
+          <Metric label="Importe identificado" value={stats.data ? <Amount cents={stats.data.identifiedEur} compact /> : ''} loading={!stats.data} />
+        </Card>
+      </div>
+      )}
+    <FilterBar
+      onClear={hasActiveFilters(filters) ? clear : undefined}
+      end={
+        list.total != null && (
+          <span className={styles.count}>
+            {formatNumber(list.total)} {list.total === 1 ? 'movimiento' : 'movimientos'}
+          </span>
+        )
+      }
+    >
+      <SearchBox value={q ?? ''} onCommit={(v) => setQ(v.trim() || null)} placeholder="Buscar texto, contraparte, id o factura" aria-label="Buscar movimientos" />
+      {!entity && chip('entity', 'Sociedad')}
+      {chip('account', 'Cuenta')}
+      {chip('format', 'Formato')}
+      {chip('rule', 'Regla')}
+      {chip('exception', 'Excepción')}
+      {chip('category', 'Categoría')}
+      {chip('status', 'Estado del caso')}
+    </FilterBar>
       {list.error && list.rows.length === 0 ? (
         <EmptyState icon={<CloudOff />} title="No se pudieron cargar los movimientos" description={list.error.message} action={undefined} />
       ) : list.loading ? (

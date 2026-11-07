@@ -66,6 +66,19 @@ just be-test: 359 passed, 2 skipped in 61.40s
 Los omitidos necesitan `db/holdout/` y `db/holdout-drift/`, ausentes en este checkout. Falta comparar todos los
 artefactos contra un TRAIN completo de la versión anterior, que no llegó a terminar.
 
+### Integración con main para la PR
+
+Se integró `origin/main` (`bed04ef`), conservando su configuración del asignador de memoria y sus reglas nuevas.
+La búsqueda por referencia adapta la lista diferida de candidatas a esas reglas. Comparación de `sample` contra
+ese `main`: score 85,69 y los 65 segmentos idénticos; CSV, explicaciones, tablas Parquet y registros de casos,
+preguntas y borradores idénticos salvo `createdAt`. La medición completa de TRAIN de arriba corresponde
+al commit `8e76ec8`, anterior a esta integración; no se ha repetido TRAIN completo después.
+
+```text
+just be-check: All checks passed!
+just be-test: 373 passed, 2 skipped in 62.91s
+```
+
 ## Primera intervención: medición histórica
 
 Medido el 7 de noviembre de 2026 en `KPI-6_be-train-performance`, comparando el árbol de trabajo con `64d6245`.
