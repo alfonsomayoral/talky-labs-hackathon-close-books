@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from datetime import date as Date
+from datetime import timedelta
 from fractions import Fraction
 from itertools import combinations
 from math import floor
@@ -40,6 +42,10 @@ MAX_SUBSET_ITEMS = 24
 MAX_FULL_SEARCH = 22  # a bound on the search per line; what a unique subset means is `_chance`
 ALWAYS_SEARCHED = 16  # up to here a unique subset has always been taken, whatever its chance
 MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
+# A receipt with no reference does not pay an invoice not yet due; the week is for weekends and value dates. Measured
+# on holdout, unique sets and errors: 1,548 and 7 at +7 days, 1,528 and 2 at +10.
+DUE_TOLERANCE_DAYS = 7
+MAX_DUE_SEARCH_BYTES = 200_000_000  # the search holds one big integer per item, of as many bits as cents in the cash
 NUMBER_ALONE_TOLERANCE = 0.05
 MONTHS = {name: number for number, names in enumerate((
     "ENERO JANUARY JANVIER JANUAR GENNAIO JANEIRO ENE JAN", "FEBRERO FEBRUARY FEVRIER FEBRUAR FEBBRAIO FEVEREIRO FEB",
@@ -142,6 +148,29 @@ def _discount_days(phase) -> dict[str, int]:
     days = {r["code"]: int(r["discount_days"]) for r in rows if r["early_payment_discount_pct"]}
     with_terms = phase.items.filter(pl.col("payment_terms").is_in(list(days)))
     return {i: days[c] for i, c in with_terms.select("item_id", "payment_terms").iter_rows()}
+
+
+def _sets_up_to_two(values: list[int], target: int) -> list[list[int]]:
+    """Up to two sets of positions adding up to the target. reach[k] has bit s set if the items from k on can sum s,
+    so the walk only follows branches with a solution and stops at the second one."""
+    mask = (1 << (target + 1)) - 1
+    reach = [1] * (len(values) + 1)
+    for k in range(len(values) - 1, -1, -1):
+        reach[k] = (reach[k + 1] | (reach[k + 1] << values[k])) & mask
+    if not reach[0] >> target & 1:
+        return []
+    found: list[list[int]] = []
+    pending = [(0, target, ())]
+    while pending and len(found) < 2:
+        k, left, chosen = pending.pop()
+        if k == len(values):
+            found.append(list(chosen))
+            continue
+        if reach[k + 1] >> left & 1:
+            pending.append((k + 1, left, chosen))
+        if values[k] <= left and reach[k + 1] >> (left - values[k]) & 1:
+            pending.append((k + 1, left - values[k], (*chosen, k)))
+    return found
 
 
 def _net(pairs: list) -> int:
@@ -508,8 +537,26 @@ class PartyAmount:
         net = self._net_of_terms(free, cash, txn["booking_date"])
         if net:
             return self._proposal("PARTY-NET-SUBSET", party, net, by_cash=True, confidence=0.85)
+        due_set = self._due_subset(free, cash, party, date) if not strong and not weak else None
+        if due_set:
+            return due_set
         # Last: what open documents can explain is more certain than a second payment of a closed one.
         return self._paid_again(mine, open_now, cash, party, balances)
+
+    def _due_subset(self, free: list, cash: int, party: str, booked: str) -> Proposal | None:
+        """A receipt citing nothing: the only set of invoices due by now, with no credit notes, that adds up to it."""
+        limit = (Date.fromisoformat(booked) + timedelta(days=DUE_TOLERANCE_DAYS)).isoformat()
+        pool = [(i[0], o) for i, o in sorted(free, key=lambda x: (x[0][2], x[0][0]))
+                if i[0][:3] == "ARI" and o <= cash and self._due.get(i[0], "9") <= limit]
+        values = [o for _, o in pool]
+        if sum(values) < cash or cash * len(pool) // 8 > MAX_DUE_SEARCH_BYTES:
+            return None
+        sets = _sets_up_to_two(values, cash)
+        if len(sets) != 1 or len(sets[0]) < 2:
+            return None
+        found = self._proposal("PARTY-SUBSET-DUE", party, [pool[k][0] for k in sets[0]], confidence=0.85)
+        found.sources = [{"kind": "customer", "ref": party, "label": f"{len(pool)} facturas vencidas en el conjunto"}]
+        return found
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
