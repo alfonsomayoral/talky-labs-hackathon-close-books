@@ -75,3 +75,11 @@
 .header + .pad-sm {
   padding-top: 0;
 }
+
+/* A borderless body is usually a table: it takes the card's height and scrolls inside. */
+.pad-none {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
