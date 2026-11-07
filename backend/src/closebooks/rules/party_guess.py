@@ -14,6 +14,9 @@ excess says more than its age. Two that fit tie and neither is taken. The same a
 a name the bank cut): the owner of the only such invoice is the payer, if it is already due and the excess small (10 %
 of it, or 100 of the currency): a looser excess fits unidentified receipts by chance. It stays an inference, to review.
 
+The oldest invoices that add up to the cash to the cent go first, however many (up to `MAX_SEARCH`), leaving out at most
+one: a sum of many balances does not land on the cent by chance. Without an exact sum, the cap of three stands.
+
 Runs last, after PARTY-AMOUNT-LATE, by booking date, so a later receipt does not take what an earlier guess took."""
 from __future__ import annotations
 
@@ -69,6 +72,21 @@ def _exact(candidates: list[tuple[str, str, int]], cash: int) -> list[tuple[str,
     return []
 
 
+def _oldest_exact(ordered: list[tuple], cash: int) -> list[tuple]:
+    """The oldest invoices whose balances are the cash to the cent, leaving out at most one of them."""
+    total = 0
+    at_cents: dict[int, int] = {}
+    for position, (_, _, _, cents) in enumerate(ordered):
+        total += cents
+        if total == cash:
+            return ordered[:position + 1]
+        left_out = at_cents.get(total - cash)
+        if left_out is not None:
+            return ordered[:left_out] + ordered[left_out + 1:position + 1]
+        at_cents.setdefault(cents, position)
+    return []
+
+
 def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAmount) -> None:
     """Rewrites the rows of each guessed receipt in place. Call it before `engine.release()`."""
     at = {row.bank_txn_id: index for index, row in enumerate(rows) if row.rule == _FALLBACK}
@@ -103,12 +121,16 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
         days = receipts[party]
         before = days[bisect_left(days, date) - 1] if bisect_left(days, date) else ""
         open_now = _open_of(party, date, currency, due, balances, engine)
-        chosen, left = [], cash
-        for due_date, _, item, cents in sorted(c for c in open_now if c[0] >= before):
-            if cents > left or len(chosen) == MAX_ITEMS:
-                break
-            chosen.append((item, cents, due_date))
-            left -= cents
+        ordered = sorted(c for c in open_now if c[0] >= before)
+        added_up = _oldest_exact(ordered[:MAX_SEARCH], cash)
+        chosen, left = [(item, cents, due_date) for due_date, _, item, cents in added_up], 0
+        if not chosen:
+            left = cash
+            for due_date, _, item, cents in ordered:
+                if cents > left or len(chosen) == MAX_ITEMS:
+                    break
+                chosen.append((item, cents, due_date))
+                left -= cents
         overpays = [(item, cents, due_date) for due_date, _, item, cents in open_now
                     if cents < cash and _is_overpayment(cash - cents, cents)]
         if left and len(overpays) == 1:
@@ -128,7 +150,9 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
             txn_id, item, cents, currency, None, said, RULE, 0.3, party, None, [{"kind": "customer", "ref": party}],
             [{"itemId": item, "amountCents": cents, "currency": currency,
               "why": f"inferred overpayment: the cash clears it with an excess within limits, {party} named; to review"
-              if overpaid else f"oldest invoice due ({due_date}) of the only customer named; no reference, to review"}])
+              if overpaid else "inferred: the oldest invoices due of the only customer named add up to the cash; "
+              "to review" if added_up else
+              f"oldest invoice due ({due_date}) of the only customer named; no reference, to review"}])
             for item, cents, due_date in chosen]
         engine.abstentions.pop(txn_id, None)
     rows[:] = [new for index, row in enumerate(rows) for new in guesses.get(index, [row])]

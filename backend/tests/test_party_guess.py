@@ -49,9 +49,9 @@ def test_one_known_customer_gets_its_oldest_due_invoices_that_fit_the_cash():
     assert (balances.open("ARI-1"), balances.open("ARI-2"), balances.open("ARI-3")) == (0, 0, 30000)
 
 
-def test_at_most_three_invoices():
+def test_at_most_three_invoices_without_an_exact_sum():
     items = [invoice(f"ARI-{n}", 1000, f"2024-0{n}-01") for n in range(1, 7)]
-    rows, _ = run(items, [line(cents=6000, text=NAMED)])
+    rows, _ = run(items, [line(cents=6017, text=NAMED)])
     assert guessed(rows) == [("ARI-1", 1000), ("ARI-2", 1000), ("ARI-3", 1000)]
 
 
@@ -168,3 +168,42 @@ def test_of_several_customers_named_a_second_invoice_not_yet_due_that_also_fits_
     items = [invoice("ARI-1", 214603, "2024-12-30", party="C2"), invoice("ARI-2", 214103, "2025-01-30")]
     rows, _ = run(items, [line(cents=224603, text=BOTH, date="2024-12-31")])
     assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
+
+
+# BT-2025-0001690, 4,112.65 from one customer: its seven oldest invoices due, to the cent.
+PAID_SEVEN = [("ARI-2024-2294768", 62005, "2024-08-09"), ("ARI-2024-1120680", 99840, "2024-11-13"),
+              ("ARI-2024-7190381", 34852, "2024-11-30"), ("ARI-2024-3079697", 27139, "2024-12-08"),
+              ("ARI-2024-7576369", 16748, "2024-12-18"), ("ARI-2024-5684600", 97105, "2024-12-20"),
+              ("ARI-2024-6045370", 73576, "2024-12-27")]
+
+
+def test_the_oldest_invoices_that_add_up_to_the_cash_are_taken_past_three():
+    items = [invoice(i, c, d) for i, c, d in PAID_SEVEN] + [invoice("ARI-LATER", 50000, "2025-02-01")]
+    rows, balances = run(items, [line(cents=411265, text=NAMED, date="2025-01-03")])
+    assert guessed(rows) == [(i, c) for i, c, _ in PAID_SEVEN]
+    assert {(r.exception, r.confidence) for r in rows} == {(None, 0.3)}
+    assert "inferred" in rows[0].candidates[0]["why"]
+    assert balances.open("ARI-LATER") == 50000
+
+
+def test_the_oldest_invoices_that_add_up_to_the_cash_leaving_out_one_are_taken():
+    skipped = invoice("ARI-SKIPPED", 12345, "2024-12-01")
+    items = [skipped, *(invoice(i, c, d) for i, c, d in PAID_SEVEN)]
+    rows, balances = run(items, [line(cents=411265, text=NAMED, date="2025-01-03")])
+    assert guessed(rows) == [(i, c) for i, c, _ in PAID_SEVEN]
+    assert balances.open("ARI-SKIPPED") == 12345
+
+
+def test_without_an_exact_sum_a_guess_stays_at_three_invoices_with_cash_left():
+    items = [invoice(i, c, d) for i, c, d in PAID_SEVEN]
+    rows, _ = run(items, [line(cents=411200, text=NAMED, date="2025-01-03")])
+    assert guessed(rows) == [(i, c) for i, c, _ in PAID_SEVEN[:3]]
+    assert "oldest invoice due" in rows[0].candidates[0]["why"]
+
+
+def test_an_exact_sum_needing_two_left_out_is_not_taken():
+    items = [invoice("ARI-A", 1001, "2024-01-01"), invoice("ARI-B", 2002, "2024-01-02"),
+             invoice("ARI-C", 4004, "2024-01-03"), invoice("ARI-D", 8008, "2024-01-04"),
+             invoice("ARI-E", 16016, "2024-01-05")]
+    rows, _ = run(items, [line(cents=24024, text=NAMED, date="2024-02-01")])
+    assert guessed(rows) == [("ARI-A", 1001), ("ARI-B", 2002), ("ARI-C", 4004)]
