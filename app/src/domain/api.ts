@@ -20,12 +20,7 @@ export type DayStats = Schemas['DayStats']
 /** The schema leaves the scorer's metrics and segments untyped. */
 export type RunStats = Omit<Schemas['RunStats'], 'score'> & { score: Score | null }
 export type RunStatus = Schemas['RunStatus']
-<<<<<<< HEAD
-/** The schema's `errors` point at FastAPI's own ValidationError by a name clash: CONTRACT.md §5.1 is what it sends. */
-export type ValidationResult = Omit<Schemas['ValidationResult'], 'errors'> & { errors: { row: number | null; message: string }[] }
-=======
 export type ValidationResult = Schemas['ValidationResult']
->>>>>>> origin/KPI-7_fe-api-sum
 export type UploadResult = Schemas['UploadResult']
 export type Assignment = Schemas['Assignment']
 export type TxnRow = Schemas['TxnRow']
@@ -46,11 +41,7 @@ export type OpenItem = Schemas['OpenItem']
 export type AgingParty = Omit<Schemas['AgingParty'], 'buckets'> & { buckets: Record<AgingBucket, number> }
 export type Aging = Omit<Schemas['Aging'], 'totals' | 'parties'> & { totals: Record<AgingBucket, number>; parties: AgingParty[] }
 export type Party = Schemas['Party']
-<<<<<<< HEAD
-export type PartyDetail = Schemas['PartyDetail']
-=======
 export type PartyDetail = Omit<Schemas['PartyDetail'], 'cases'> & { cases: CaseRow[] }
->>>>>>> origin/KPI-7_fe-api-sum
 export type Account = Schemas['Account']
 export type DataItem = Schemas['DataItem']
 export type DocumentRow = Schemas['DocumentRow']
