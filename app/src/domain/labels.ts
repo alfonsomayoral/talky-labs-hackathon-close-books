@@ -146,4 +146,4 @@ const PARTY_HOW_LABEL: Record<string, string> = {
   memoryRule: 'Por una regla de memoria',
 }
 
-export const partyHowLabel = (how: string) => PARTY_HOW_LABEL[how] ?? how
+export const partyHowLabel = (how: string) => PARTY_HOW_LABEL[how] ?? ruleDescription(how) ?? how

@@ -1,6 +1,6 @@
 # SUBMISSION.md: borrador de la descripción para el jurado
 
-> Borrador. Cifras de `live-kpi6-cases2`. `<S>` y `<F>` se rellenan con la clasificación. Ninguna cifra se da por buena hasta que esté medida.
+> Borrador. Cifras de `live-final-a`. `<S>` y `<F>` se rellenan con la clasificación. Ninguna cifra se da por buena hasta que esté medida.
 
 ## Ideas clave
 
@@ -9,9 +9,9 @@ Para cada movimiento bancario de un grupo de 17 sociedades y 12 divisas, decimos
 - **Las reglas deciden; el modelo solo lee.** Un pipeline determinista concilia en pasadas por certeza: ficheros de remesa, avisos, números en el texto, tercero e importe, categorías. Los parsers leen los documentos. Un modelo podría extraer hechos de los que no lean, con caché, pero nunca elegiría una casación; hoy no ha hecho falta.
 - **No se fuerza nada.** Sin evidencia, el movimiento sale como no identificado, y la duda se convierte en una pregunta a una persona.
 - **Cada fila se explica.** La entrega lleva su regla y sus fuentes: aviso, fichero, PDF o maestro.
-- **Caso, decisión, memoria.** La plataforma enseña lo que el sistema cerró solo (86,8 % de los movimientos de LIVE) y lo que necesita a alguien: preguntas, correos a clientes y proveedores que una persona revisa, y reglas que la siguiente ejecución aplica. Los correos se registran; no sale ninguno.
+- **Caso, decisión, memoria.** La plataforma enseña lo que el sistema cerró solo (87 % de los movimientos de LIVE) y lo que necesita a alguien: preguntas, correos a clientes y proveedores que una persona revisa, y reglas que la siguiente ejecución aplica. Los correos se registran; no sale ninguno.
 
-Resultado: `<S>` puntos en LIVE y `<F>` en FINAL. En LIVE, 203.083 movimientos en 2 minutos, 33.920 casos para una persona, con 0 llamadas a modelo y 0 dólares: todo determinista, con el modelo como residuo opcional, hoy sin usar.
+Resultado: `<S>` puntos en LIVE y `<F>` en FINAL. En LIVE, 203.083 movimientos en poco más de 2 minutos, 33.558 casos para una persona, con 0 llamadas a modelo y 0 dólares: todo determinista, con el modelo como residuo opcional, hoy sin usar.
 
 ## Stack y modelos
 

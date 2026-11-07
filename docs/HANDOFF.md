@@ -1,10 +1,10 @@
 # HANDOFF.md: la plataforma el día del evento
 
-Cómo arrancar la plataforma, qué mirar antes de grabar y qué hacer si algo falla. Solo la parte de `app/` y su API. Medido en este portátil la mañana del 7 nov 2026, con `live-kpi6-cases2` (203.083 movimientos, 692.609 filas).
+Cómo arrancar la plataforma, qué mirar antes de grabar y qué hacer si algo falla. Solo la parte de `app/` y su API. Medido en este portátil la mañana del 7 nov 2026, con `live-final-a` (203.083 movimientos, 694.707 filas).
 
 ## Arrancar
 
-**Arranca `serve` 2 minutos antes de usarlo:** tarda unos 64 s en aceptar conexiones, porque no abre hasta precargar la ejecución, y ocupa unos 4 GB. Después, las nueve pantallas abren en menos de 1,1 s.
+**Arranca `serve` 2 minutos antes de usarlo:** tarda cerca de un minuto (56–64 s) en aceptar conexiones, porque no abre hasta precargar la ejecución, y ocupa unos 4 GB. Después, las nueve pantallas abren en menos de 1,1 s.
 
 ```bash
 just be-serve runs/<la ejecución a enseñar>
@@ -88,7 +88,7 @@ PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/record.mjs http
 
 ## Qué está probado con datos reales
 
-- Las tres interacciones contra `serve` de `main`, con una copia de `live-kpi6-cases2`, 14 de 14 con `interactions.mjs`: pregunta con regla, correo editado y «enviado», marcar gestionado. Lo escrito en `human/` se comprobó línea a línea.
+- Las tres interacciones contra `serve` de `main`, con una copia de `live-final-a`, 14 de 14 con `interactions.mjs`: pregunta con regla, correo editado y «enviado», marcar gestionado. Lo escrito en `human/` se comprobó línea a línea.
 - Las nueve pantallas, build de producción: menos de 1,1 s justo tras arrancar `serve` y después, cero errores de consola.
 - «Preparar correo» y «Lo llevo yo» también con una copia de `live-kpi6-cases2`. «Lo llevo yo» registra el borrador como `manual` y cierra el caso.
 - Consola FINAL, ejecución fallida y validación con errores: enseñan el mensaje y dejan empezar otra. La fallida, también con un fallo real: un zip con datos rotos. Se enseña la causa, no el traceback. Un zip sin `bank_transactions.csv.gz` se rechaza al subir; ese 422 sale en la consola del navegador. La validación con errores, solo forzando la respuesta.
