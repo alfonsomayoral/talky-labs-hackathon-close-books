@@ -46,6 +46,7 @@ MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
 # on holdout, unique sets and errors: 1,548 and 7 at +7 days, 1,528 and 2 at +10.
 DUE_TOLERANCE_DAYS = 7
 MAX_DUE_SEARCH_BYTES = 200_000_000  # the search holds one big integer per item, of as many bits as cents in the cash
+ANY_DUE_DATE = "9999-12-31"
 MAX_WIDE_SEARCH = 30  # a bound on the work per line: 2**15 sums per half of the search
 NUMBER_ALONE_TOLERANCE = 0.05
 MONTHS = {name: number for number, names in enumerate((
@@ -348,7 +349,8 @@ class PartyAmount:
         if found is None or found.rule != "REF-TEXT" or _net(
                 [((i,), balances.open(i)) for i, _ in found.lines]) == cash:
             return found
-        return self._netted_cited(party, txn, cash, currency, found, balances) or found
+        return (self._netted_cited(party, txn, cash, currency, found, balances)
+                or self._rest_of_a_cut_text(party, txn, cash, currency, found, balances) or found)
 
     def _netted_cited(self, party: str, txn: dict, cash: int, currency: str, cited: Proposal,
                       balances) -> Proposal | None:
@@ -558,17 +560,40 @@ class PartyAmount:
     def _due_subset(self, free: list, cash: int, party: str, booked: str) -> Proposal | None:
         """What nothing else explained: the only set of due invoices, with no credit notes, that adds up to it."""
         limit = (Date.fromisoformat(booked) + timedelta(days=DUE_TOLERANCE_DAYS)).isoformat()
+        sets, searched = self._invoice_sets(free, cash, limit)
+        if len(sets) != 1 or len(sets[0]) < 2:
+            return None
+        found = self._proposal("PARTY-SUBSET-DUE", party, sets[0], confidence=0.85)
+        found.sources = [{"kind": "customer", "ref": party, "label": f"{searched} facturas vencidas en el conjunto"}]
+        return found
+
+    def _invoice_sets(self, free: list, cash: int, limit: str) -> tuple[list[list[str]], int]:
+        """Up to two sets of invoices due by the limit, with no credit notes, that add up to the cash; and the pool."""
         pool = [(i[0], o) for i, o in sorted(free, key=lambda x: (x[0][2], x[0][0]))
                 if i[0][:3] == "ARI" and o <= cash and self._due.get(i[0], "9") <= limit]
         values = [o for _, o in pool]
         if sum(values) < cash or cash * len(pool) // 8 > MAX_DUE_SEARCH_BYTES:
+            return [], len(pool)
+        return [[pool[k][0] for k in found] for found in _sets_up_to_two(values, cash)], len(pool)
+
+    def _rest_of_a_cut_text(self, party: str, txn: dict, cash: int, currency: str, cited: Proposal,
+                            balances) -> Proposal | None:
+        """The bank cut a list of invoices and `_netted_cited` could not search the customer whole: the only set of its
+        other invoices that closes the cash. Those due first; the rest only if no set of those closes it (a tie is not
+        a failure to close)."""
+        named = {i for i, _ in cited.lines}
+        target = cash - _net([((i,), balances.open(i)) for i in named])
+        if target <= 0 or not any(i[:3] == "ARI" for i in named) or any(balances.open(i) <= 0 for i in named):
             return None
-        sets = _sets_up_to_two(values, cash)
-        if len(sets) != 1 or len(sets[0]) < 2:
+        booked = txn["booking_date"]
+        others = [(i, balances.open(i[0])) for i in self.items.get(party, ())
+                  if i[2] <= booked and i[3] == currency and i[0] not in named
+                  and self.is_free(i, balances.open(i[0]), balances)]
+        limit = (Date.fromisoformat(booked) + timedelta(days=DUE_TOLERANCE_DAYS)).isoformat()
+        sets = self._invoice_sets(others, target, limit)[0] or self._invoice_sets(others, target, ANY_DUE_DATE)[0]
+        if len(sets) != 1:
             return None
-        found = self._proposal("PARTY-SUBSET-DUE", party, [pool[k][0] for k in sets[0]], confidence=0.85)
-        found.sources = [{"kind": "customer", "ref": party, "label": f"{len(pool)} facturas vencidas en el conjunto"}]
-        return found
+        return self._proposal("REF-TEXT-COMPLETED", party, [*named, *sets[0]], by_cash=True, confidence=0.85)
 
     def _wide_subset(self, free: list, cash: int, party: str) -> Proposal | None:
         """A receipt citing nothing, from a customer with more open items than `_subset` searches whole: the only set of
