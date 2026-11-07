@@ -133,30 +133,32 @@ export function ReconciliationPage() {
       {chip('category', 'Categoría')}
       {chip('status', 'Estado del caso')}
     </FilterBar>
-      {list.error && list.rows.length === 0 ? (
-        <EmptyState icon={<CloudOff />} title="No se pudieron cargar los movimientos" description={list.error.message} action={undefined} />
-      ) : list.loading ? (
-        <Skeleton height={320} />
-      ) : (
-        <DataTable
-          aria-label="Movimientos bancarios"
-          rows={list.rows}
-          columns={COLUMNS}
-          getRowId={getRowId}
-          sort={sort}
-          onSortChange={(next) => setOrden(sortToParam(next))}
-          serverSort
-          onEndReached={list.loadMore}
-          selectedId={ver ?? cursor}
-          onSelectedChange={(id) => {
-            setCursor(id)
-            if (ver && id) setVer(id)
-          }}
-          onOpen={(t) => setVer(t.bankTxnId)}
-          globalKeys
-          empty={<EmptyState icon={<SearchX />} size="sm" title="Ningún movimiento con estos filtros" description="Quita algún filtro o prueba con otra búsqueda." />}
-        />
-      )}
+      <Card padding="none" className={styles.tableCard}>
+        {list.error && list.rows.length === 0 ? (
+          <EmptyState icon={<CloudOff />} title="No se pudieron cargar los movimientos" description={list.error.message} action={undefined} />
+        ) : list.loading ? (
+          <Skeleton height={320} />
+        ) : (
+          <DataTable
+            aria-label="Movimientos bancarios"
+            rows={list.rows}
+            columns={COLUMNS}
+            getRowId={getRowId}
+            sort={sort}
+            onSortChange={(next) => setOrden(sortToParam(next))}
+            serverSort
+            onEndReached={list.loadMore}
+            selectedId={ver ?? cursor}
+            onSelectedChange={(id) => {
+              setCursor(id)
+              if (ver && id) setVer(id)
+            }}
+            onOpen={(t) => setVer(t.bankTxnId)}
+            globalKeys
+            empty={<EmptyState icon={<SearchX />} size="sm" title="Ningún movimiento con estos filtros" description="Quita algún filtro o prueba con otra búsqueda." />}
+          />
+        )}
+      </Card>
       {ver && <TxnPanel bankTxnId={ver} onClose={() => setVer(null)} />}
     </Page>
   )

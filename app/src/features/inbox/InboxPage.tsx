@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { CircleAlert, CircleCheck } from 'lucide-react'
-import { Amount, Badge, Button, DataTable, EmptyState, FilterBar, FilterChip, Metric, Mono, Page, PageHeader, Skeleton, TabPanel, Tabs, type Column, type SortState } from '@/components'
+import { Amount, Badge, Button, Card, DataTable, EmptyState, FilterBar, FilterChip, Metric, Mono, Page, PageHeader, Skeleton, TabPanel, Tabs, type Column, type SortState } from '@/components'
 import { useActiveRun, useCases, useQueueTotals, useRunStats } from '@/data'
 import { PRIORITY_LABEL, QUEUES, caseKindLabel, firstActionable, queueFilter, queueOfKind, type CasePriority, type CaseRow } from '@/domain'
 import { formatNumber } from '@/lib/format'
@@ -147,7 +147,6 @@ export function InboxPage() {
     body = (
       <DataTable
         aria-label="Casos pendientes"
-        variant="cards"
         rowHeight={ROW_HEIGHT}
         rows={cases.rows}
         columns={shownColumns}
@@ -201,7 +200,9 @@ export function InboxPage() {
           {queue.id !== 'decidir' && <FilterChip label="Tipo" options={kindOptions} selected={kinds} onChange={setKinds} />}
           <FilterChip label="Prioridad" options={PRIORITY_OPTIONS} selected={priorities} onChange={setPriorities} />
         </FilterBar>
-        {body}
+        <Card padding="none" className={styles.tableCard}>
+          {body}
+        </Card>
       </TabPanel>
       <CasePanel runId={runId} caseId={open} onClose={() => setOpen(null)} />
     </Page>

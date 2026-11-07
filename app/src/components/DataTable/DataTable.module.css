@@ -13,6 +13,8 @@
    with the content and cover the fixed shadows when an edge is reached. */
 @media (max-width: 900px) {
   .root {
+    /* Short of the screen, so a finger can still scroll the page around the table. */
+    max-height: 70vh;
     background:
       linear-gradient(to right, var(--bg) 40%, transparent) left / 32px 100% no-repeat local,
       linear-gradient(to left, var(--bg) 40%, transparent) right / 32px 100% no-repeat local,
@@ -217,47 +219,4 @@
 .empty {
   position: sticky;
   left: 0;
-}
-
-/* Cards: every row is its own card on the view's sheet, separated by its edge and a soft shadow;
-   hover lifts it, the selected row carries the brand edge. */
-.cards {
-  background: transparent;
-}
-
-.cards .header {
-  padding: 0 var(--space-1-5);
-  background: var(--bg);
-  border-bottom: 0;
-}
-
-.cards .dataRow {
-  left: var(--space-1-5);
-  width: calc(100% - 2 * var(--space-1-5));
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--bg);
-  box-shadow: var(--shadow-card);
-  transition:
-    border-color var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease;
-}
-
-.cards .dataRow:hover {
-  border-color: var(--line-strong);
-  background: var(--bg);
-  box-shadow: var(--shadow-card-hover);
-}
-
-.cards .selected,
-.cards .selected:hover {
-  border-color: var(--brand-line);
-  background: var(--bg);
-  box-shadow:
-    inset 3px 0 0 var(--brand),
-    var(--shadow-card);
-}
-
-.cards .body {
-  margin-bottom: var(--space-3);
 }

@@ -12,7 +12,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding-bottom: 0;
+  padding-bottom: var(--space-4);
 }
 
 .narrow {
@@ -22,6 +22,12 @@
 @media (max-width: 900px) {
   .page {
     padding: var(--space-5) var(--space-4) var(--space-8);
+  }
+
+  /* On a phone the page scrolls: the figures above a table would leave it no height. */
+  .fill {
+    flex: none;
+    overflow: visible;
   }
 }
 

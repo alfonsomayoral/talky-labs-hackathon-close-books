@@ -137,7 +137,6 @@ export function SuppliersPage() {
     body = (
       <DataTable
         aria-label="Incidencias con proveedores"
-        variant="cards"
         rowHeight={ROW_HEIGHT}
         rows={cases.rows}
         columns={columns}
@@ -191,7 +190,9 @@ export function SuppliersPage() {
       <FilterChip label="Incidencia" options={KIND_OPTIONS} selected={kinds} onChange={setKinds} />
       <FilterChip label="Estado" options={STATE_OPTIONS} selected={states} onChange={setStates} />
     </FilterBar>
-      {body}
+      <Card padding="none" className={styles.tableCard}>
+        {body}
+      </Card>
       <CasePanel runId={runId} caseId={open} onClose={() => setOpen(null)} />
     </Page>
   )

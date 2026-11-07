@@ -130,7 +130,9 @@ export function CollectionsPage() {
     <FilterBar onClear={q ? () => setQ(null) : undefined} end={aging && <span className="tabular">{formatNumber(rows.length)} clientes</span>}>
       <TextField label="Buscar clientes" hideLabel type="search" placeholder="Buscar por cliente, id o sociedad" value={q ?? ''} onChange={(v) => setQ(v || null)} className={styles.search} />
     </FilterBar>
-      {body}
+      <Card padding="none" className={styles.tableCard}>
+        {body}
+      </Card>
       <PartyPanel runId={runId} partyId={open} aging={aging?.parties ?? []} onClose={() => setOpen(null)} />
     </Page>
   )
