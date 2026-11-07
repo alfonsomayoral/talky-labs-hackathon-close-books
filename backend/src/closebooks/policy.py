@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from enum import IntEnum
+from itertools import combinations
 
 CREDIT_NOTES = ("ARC", "APC")
 GRACE_DAYS = 3
@@ -93,12 +94,13 @@ class Evidence(IntEnum):
     BOUNDED = 4  # within the limits POLICIES sets, not exact: an overpayment
     MOVEMENT_MARK = 5  # the bank line marks it as from abroad and the fee is within the limits of POLICIES
     RATE_ON_ALL = 6  # the rate of POLICIES on every invoice, to the rounding of each
-    ONE_DISCOUNT = 7  # the gap is the discount in the terms of one invoice of several
-    ALL_DISCOUNTS = 8  # the gap is the discounts in the terms of all of them
-    EXACT = 9  # the open balances are the cash to the cent
-    PRINTED_DISCOUNT = 10  # a document prints the amount, with no reason: it is the discount in the terms
-    PRINTED_RATE = 11  # a document prints the amount, with no reason: it is a rate where that tax is withheld
-    PRINTED_REASON = 12  # a document prints the amount and why
+    SOME_DISCOUNTS = 7  # the gap is, to the cent, the discounts in the terms of only one set of the invoices
+    ONE_DISCOUNT = 8  # the gap is the discount in the terms of one invoice of several
+    ALL_DISCOUNTS = 9  # the gap is the discounts in the terms of all of them
+    EXACT = 10  # the open balances are the cash to the cent
+    PRINTED_DISCOUNT = 11  # a document prints the amount, with no reason: it is the discount in the terms
+    PRINTED_RATE = 12  # a document prints the amount, with no reason: it is a rate where that tax is withheld
+    PRINTED_REASON = 13  # a document prints the amount and why
 
 
 @dataclass(slots=True)
@@ -346,6 +348,20 @@ def _one_discount(case: Gap) -> Iterator[Hypothesis]:
                              f"the gap is the discount of {item}, the rest paid as they are")
 
 
+def _some_discounts(case: Gap) -> Iterator[Hypothesis]:
+    """Some of the invoices took their discount, each by its own terms: those in time clear, the late ones stay open.
+
+    A set is worth nothing if chance would explain it, as in `_round_share`: 2^n sets, three cents of window."""
+    discounts = _discounts(case) if case.gap > 0 else {}
+    if 2 ** len(discounts) * SHARE_WINDOW > MAX_CHANCE * sum(discounts.values()):
+        return
+    for size in range(2, len(discounts)):
+        for taken in combinations(discounts, size):
+            if abs(sum(discounts[item] for item in taken) - case.gap) <= 1:
+                yield Hypothesis(Evidence.SOME_DISCOUNTS, _discount_taken(case, {i: discounts[i] for i in taken}),
+                                 f"the gap is the discounts of {', '.join(taken)}, the rest paid as they are")
+
+
 def _withheld_on_all(case: Gap) -> Iterator[Hypothesis]:
     invoices = case.invoices
     if case.gap <= 0 or not all(o == t.total_cents and t.country in WITHHOLDING_COUNTRIES for _, o, t in invoices):
@@ -392,7 +408,7 @@ def _round_share(case: Gap) -> Iterator[Hypothesis]:
 
 
 # What can explain a gap. A new hypothesis is a function of a Gap that yields it, added here.
-NODES = (_exact, _beyond_the_balances, _beyond_what_is_cited, _overpaid, _all_discounts, _one_discount,
+NODES = (_exact, _beyond_the_balances, _beyond_what_is_cited, _overpaid, _all_discounts, _one_discount, _some_discounts,
          _withheld_on_all, _bank_fee, _round_share, _what_the_cash_reaches)
 
 

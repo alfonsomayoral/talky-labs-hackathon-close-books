@@ -430,3 +430,28 @@ def test_discount_and_withholding_are_read_in_portuguese_and_french():
     for word in ("RETENÇÃO", "RETENCAO", "RETENUE"):
         assert line(100000, 90000, (-10000, word))[1] == "SHORT_WITHHOLDING"
 
+
+def discounted(item, cents, issued):
+    return (item, cents, Terms(2.0, 10, issued, cents, "ES"))
+
+
+def test_the_gap_is_the_discount_of_some_invoices_one_in_terms_and_one_late():
+    """BT-2025-0139661: 13.803,34 for 9.900,09 (late, 198,00 left), 2.424,73 whole and 1.710,73 in terms (34,21)."""
+    invoices = [discounted("ARI-LATE", 990009, "2024-12-01"), discounted("ARI-WHOLE", 242473, "2025-04-08"),
+                discounted("ARI-IN", 171073, "2025-05-01")]
+    assert allocate(1380334, invoices, "2025-05-12", False) == {
+        "ARI-LATE": (970209, "PARTIAL"), "ARI-WHOLE": (242473, ""), "ARI-IN": (171073, "SHORT_DISCOUNT")}
+
+
+def test_two_sets_of_discounts_that_explain_the_gap_tie_and_neither_is_taken():
+    invoices = [discounted("ARI-1", 100000, "2025-05-01"), discounted("ARI-2", 100000, "2025-05-02"),
+                discounted("ARI-3", 150000, "2025-05-03"), discounted("ARI-4", 50000, "2025-05-04")]
+    out = allocate(396000, invoices, "2025-05-06", False)
+    assert "SHORT_DISCOUNT" not in {exception for _, exception in out.values()}
+
+
+def test_a_set_of_discounts_chance_would_explain_proves_nothing():
+    invoices = [discounted(f"ARI-{n:02}", 200 * 2 ** n, "2025-05-01") for n in range(12)]
+    cash = sum(cents for _, cents, _ in invoices) - 12  # exactly the discounts of the two smallest, 4 and 8
+    out = allocate(cash, invoices, "2025-05-06", False)
+    assert "SHORT_DISCOUNT" not in {exception for _, exception in out.values()}
