@@ -229,11 +229,13 @@ class PartyAmount:
             i: _alnum(r) for i, r in items.filter(pl.col("related_document").is_not_null())
             .select("item_id", "related_document").iter_rows() if i[:3] in CREDIT_NOTES}
         self._known = known
+        self._due = dict(known.filter(pl.col("due_date").is_not_null()).select("item_id", "due_date").iter_rows())
         self.reindex()
 
     def release(self) -> None:
         """Before writing the run: the indexes are the biggest thing in memory and nothing needs them after resolve."""
         self.items, self.by_number, self.by_tail, self.clauses, self.related = {}, {}, {}, {}, {}
+        self._due = {}
         self.parties = None
         self._known = None
 
@@ -266,7 +268,7 @@ class PartyAmount:
             if taught:
                 return taught
         parties = self.parties.find(txn, kind)
-        results = [r for party in parties if (r := self._match(party, txn, cash, currency, balances))]
+        results = [r for party in parties if (r := self._or_netted(party, txn, cash, currency, balances))]
         if len(results) == 1:
             return results[0]
         homonym = self._only_homonym_with_the_cash(results, cash, currency, balances)
@@ -292,6 +294,47 @@ class PartyAmount:
         else:
             return self._credit_payout(txn, cash, currency, balances)
         return None
+
+    def _or_netted(self, party: str, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
+        """The match of the party; when it is only what the text cites and the cash does not explain, the cited
+        invoices completed with credit notes (`_netted_cited`). The one place this block is called from.
+
+        From PR 117 of lorenzo-redolfi, restricted to the cobros that cite an invoice. Why it generalizes: the text
+        cites the invoices and the arithmetic closes the credit note (POLICIES §5.9: a customer pays its invoices net
+        of its credit notes), so the batch is read from the citation and the cash to the cent, with no constant taken
+        from the data; the only bounds are the engine's own, MAX_FULL_SEARCH and MAX_CHANCE."""
+        found = self._match(party, txn, cash, currency, balances)
+        if found is None or found.rule != "REF-TEXT" or _net(
+                [((i,), balances.open(i)) for i, _ in found.lines]) == cash:
+            return found
+        return self._netted_cited(party, txn, cash, currency, found, balances) or found
+
+    def _netted_cited(self, party: str, txn: dict, cash: int, currency: str, cited: Proposal,
+                      balances) -> Proposal | None:
+        """The only set of the party's open credit notes and invoices that fell due, with the cited invoices, that adds
+        up to the cash. Never credit notes alone: it needs a cited invoice and at least one credit note."""
+        named = {i for i, _ in cited.lines}
+        if not any(i[:3] == "ARI" for i in named) or any(balances.open(i) <= 0 for i in named):
+            return None  # a cited item already settled is a second payment (PARTY-DUPLICATE), not a batch
+        booked = txn["booking_date"]
+        pool = []
+        for i in self.items.get(party, ()):
+            open_cents = balances.open(i[0])
+            if i[2] > booked or i[3] != currency or i[0] in named or not self.is_free(i, open_cents, balances):
+                continue
+            if i[0][:3] in CREDIT_NOTES or self._due.get(i[0], booked) <= booked:
+                pool.append((i, open_cents))
+        target = cash - _net([((i,), balances.open(i)) for i in named])
+        ordered = sorted(pool, key=lambda x: (x[0][2], x[0][0]))
+        signed = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered]
+        if target <= 0 or len(signed) > MAX_FULL_SEARCH:
+            return None
+        if _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE:
+            return None
+        chosen = _unique_subset(signed, target, 1)
+        if not chosen or not any(i[:3] in CREDIT_NOTES for i in [*chosen, *named]):
+            return None
+        return self._proposal("PARTY-NETTED", party, [*named, *chosen], by_cash=True, confidence=0.85)
 
     def _credit_payout(self, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
         """POLICIES §5.9: a transfer back to a customer settles its credit note, not a supplier invoice."""

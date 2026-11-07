@@ -24,15 +24,17 @@ def masters(customers=(), suppliers=()):
 
 
 def item(item_id, party, number, cents, issued="2024-01-01", open_cents=None, name=None, po=None, currency="EUR",
-         entity="E1", related=None):
+         entity="E1", related=None, due=None):
     return {"item_id": item_id, "item_type": item_id[:3], "entity": entity, "party_id": party,
             "party_name": name or party,
             "document_number": number, "issue_date": issued, "currency": currency, "total_cents": cents,
-            "open_cents": cents if open_cents is None else open_cents, "customer_po": po, "related_document": related}
+            "open_cents": cents if open_cents is None else open_cents, "customer_po": po, "related_document": related,
+            "due_date": due}
 
 
 def engine(items, customers=(("C1", "E1", "Wellness Garrido S.L.", None, "ES11", None, None, None),), suppliers=()):
-    table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String, "related_document": pl.String})
+    table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String, "related_document": pl.String,
+                                                                      "due_date": pl.String})
     phase = SimpleNamespace(items=table, masters=masters(customers, suppliers), start="2021-01-01")
     balances = OpenBalances(dict(zip(table["item_id"], table["open_cents"], strict=True)))
     return PartyAmount(phase, reserved={}), balances
@@ -934,3 +936,72 @@ def test_two_invoices_less_their_own_credit_notes_with_the_same_net_are_not_gues
     rule, balances = engine(rows)
     found = rule(txn(59939, NAME), balances)
     assert found is None or found.rule != "PARTY-NOTE-NET"
+
+
+def _cited_batch(n_due=10, n_later=20):
+    """A customer with `n_due` invoices that fell due before the payment and `n_later` that fall due after it."""
+    due = [item(f"ARI-D{i}", "C1", f"FAC{i:03d}", 20000 + 913 * i * i + 7 * i, f"2024-03-{i + 1:02d}",
+                due="2024-05-15") for i in range(n_due)]
+    later = [item(f"ARI-L{i:02d}", "C1", f"LAT{i:03d}", 15000 + 877 * i * i + 11 * i, f"2024-05-{i + 1:02d}",
+                  due="2024-08-01") for i in range(n_later)]
+    return due, later
+
+
+PAID = (1, 3, 5, 7, 8)  # invoice 1 is the one the text cites
+
+
+def test_netted_cited_completes_a_partial_citation_with_the_credit_note_that_closes_the_cash():
+    due, later = _cited_batch()
+    credit = item("ARC-1", "C1", "AB007", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    cash = sum(due[i]["total_cents"] for i in PAID) - 31337
+    found = rule(txn(cash, f"{NAME} FAC001", date="2024-06-01"), balances)
+    assert found.rule == "PARTY-NETTED"
+    assert lines(found) == {f"ARI-D{i}" for i in PAID} | {"ARC-1"}
+
+
+def test_netted_cited_ignores_invoices_not_yet_due_that_would_make_the_sum_ambiguous():
+    due, later = _cited_batch()
+    later[0]["total_cents"] = later[0]["open_cents"] = due[3]["total_cents"]  # a twin of an invoice that is paid
+    credit = item("ARC-1", "C1", "AB007", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    cash = sum(due[i]["total_cents"] for i in PAID) - 31337
+    assert lines(rule(txn(cash, f"{NAME} FAC001", date="2024-06-01"), balances)) == {
+        f"ARI-D{i}" for i in PAID} | {"ARC-1"}
+
+
+def test_netted_cited_abstains_when_two_combinations_close_the_cash():
+    due, later = _cited_batch()
+    due[9]["total_cents"] = due[9]["open_cents"] = due[3]["total_cents"]  # a due twin: either one closes the cash
+    credit = item("ARC-1", "C1", "AB007", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    cash = sum(due[i]["total_cents"] for i in PAID) - 31337
+    found = rule(txn(cash, f"{NAME} FAC001", date="2024-06-01"), balances)
+    assert found.rule == "REF-TEXT" and lines(found) == {"ARI-D1"}
+
+
+def test_netted_cited_does_not_act_without_a_citation():
+    due, later = _cited_batch()
+    credit = item("ARC-1", "C1", "AB007", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    cash = sum(due[i]["total_cents"] for i in PAID) - 31337
+    assert rule(txn(cash, NAME, date="2024-06-01"), balances) is None
+
+
+def test_netted_cited_does_not_act_when_the_text_cites_only_credit_notes():
+    due, later = _cited_batch()
+    credit = item("ARC-1", "C1", "AB007", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    found = rule(txn(777, f"{NAME} AB007", date="2024-06-01"), balances)
+    assert found.rule == "REF-TEXT" and lines(found) == {"ARC-1"}
+
+
+def test_netted_cited_does_not_read_a_payment_of_an_invoice_already_settled_as_a_batch():
+    # The text cites an invoice that is closed and the cash is its total: a second payment, not a netted batch.
+    due, later = _cited_batch()
+    credit = item("ARC-1", "C1", "AB007", 31337, "2024-05-20")
+    batch = sum(due[i]["total_cents"] for i in (3, 5, 7)) - 31337
+    due[1]["total_cents"], due[1]["open_cents"] = batch, 0
+    rule, balances = engine(due + later + [credit])
+    found = rule(txn(batch, f"{NAME} FAC001", date="2024-06-01"), balances)
+    assert found is None or found.rule != "PARTY-NETTED"
