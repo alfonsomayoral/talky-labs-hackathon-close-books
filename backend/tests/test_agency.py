@@ -54,6 +54,15 @@ def test_named_debtor_with_two_open_invoices_of_the_amount_stays_unmatched():
     assert rule(txn(1198618, "VIR SEPA RECU", name=AGENCY, remit=CUT_NAME), balances) is None
 
 
+def test_agency_naming_a_debtor_settles_the_only_set_of_its_old_invoices_that_sums_the_receipt():
+    # BT-2025-0017900 (holdout): the agency pays 4144.84 = 3323.32 + 821.52 of the debtor it names.
+    invoices = [item("ARI-1", "C1", "FA220100793", 332332), item("ARI-2", "C1", "FA220100644", 82152),
+                item("ARI-3", "C1", "FA220100650", 50000)]
+    rule, balances = engine(invoices, customers=DEBTOR)
+    assert lines(rule(txn(414484, "VIR SEPA RECU", name=AGENCY, remit=CUT_NAME), balances)) == {"ARI-1", "ARI-2"}
+    assert rule(txn(414485, "VIR SEPA RECU", name=AGENCY, remit=CUT_NAME), balances) is None
+
+
 def test_a_tail_shared_by_two_open_invoices_of_the_amount_stays_unmatched():
     invoices = [item("ARI-1", "C1", "FV21-0215074", 1198618), item("ARI-2", "C2", "FV22-0215074", 1198618)]
     rule, balances = engine(invoices, customers=DEBTOR)
