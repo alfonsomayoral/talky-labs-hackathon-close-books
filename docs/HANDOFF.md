@@ -86,3 +86,65 @@ PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/capture.mjs htt
 - Consola FINAL, ejecución fallida y validación con errores: enseñan el mensaje y dejan empezar otra. La fallida, también con un fallo real: un zip con datos rotos. Se enseña la causa, no el traceback. Un zip sin `bank_transactions.csv.gz` se rechaza al subir; ese 422 sale en la consola del navegador. La validación con errores, solo forzando la respuesta.
 - Consola FINAL con un zip: el contenido de `sample` en un zip, subido, ejecutado en 3,8 s y validado (8.499 de 8.499 movimientos, 1,1 MB de 60 MB). Sale el nombre del zip como fase. Lo escrito en `db/<zip>/` y `runs/<zip>-…/` se queda: hay que borrarlo a mano tras ensayar.
 - `Draft.to` es `null` porque el maestro no trae correos: «Para» enseña el nombre y avisa. No se puede corregir la dirección: `PUT …/drafts` solo guarda asunto y cuerpo.
+
+## Backend
+
+Todo se ejecuta desde `backend/` con `uv`. Código en `backend/src/closebooks/`; `backend/README.md` tiene los comandos y la nota de memoria.
+
+### Una sola medición pesada a la vez
+
+La noche del 6 al 7 hubo dos pánicos de kernel con la memoria agotada por procesos Python, sin identificar cuál. Por eso:
+
+- No lances dos ejecuciones a la vez, ni TRAIN con `serve` y el navegador arriba.
+- Lo largo, con `nohup` y salida a fichero: una sesión cortada no lo pierde.
+- Mide el pico con `/usr/bin/time -l`; `run.json` trae además `peakRssMb` por etapa.
+
+### Ejecutar y medir
+
+```bash
+uv run closebooks run --phase live --out ../runs/live-envio
+```
+
+```bash
+uv run closebooks validate ../runs/live-envio/submission.csv.gz --phase live
+```
+
+```bash
+uv run closebooks score ../runs/holdout-a --compare ../runs/holdout-b
+```
+
+```bash
+uv run closebooks diff ../runs/holdout-a --segment ar_ref_noise
+```
+
+```bash
+uv run closebooks serve ../runs/live-envio
+```
+
+`validate` aplica los límites oficiales (60 MB); `score` los relaja para poder puntuar TRAIN. Usa siempre `--out`: `runs/` es compartida y lo más reciente puede ser de otra ejecución.
+
+### El día de FINAL
+
+1. Descomprime en `db/final/`, con `masters_final/` dentro. `load` lo prefiere sobre los maestros del paquete y lee `db/train` y `db/live` como fases anteriores.
+2. Sube a mano los ficheros si `db/final` no tiene la forma esperada: `phase_dir` busca `bank_transactions.csv.gz`.
+3. `run --phase final --out ../runs/final-1`, y compara `byRule` con LIVE en `run.json`: ZA01 no puede salir todo `UNIDENTIFIED`.
+4. `validate`, y que el envío lo haga **una persona**. Ninguna herramienta del repo envía nada.
+
+### Dónde está cada cosa
+
+| Pieza | Fichero |
+| --- | --- |
+| Reglas con fichero | `rules/payment_runs.py`, `dd_batches.py`, `card_settlements.py`, `cheque_deposits.py`, `advices.py` |
+| Motor por fecha (tercero, saldo, números) | `rules/party_amount.py`, `rules/parties.py` |
+| Categorías | `rules/categories.py`, `data/category_codes.csv` |
+| Importe y excepción | `policy.py` |
+| Hechos de documentos | `documents/advices.py`, `documents/pdfs.py` (parsers, sin modelo) |
+| Casos, preguntas, borradores | `cases.py`, `drafts.py` |
+| API | `api/` |
+
+### Lo que no hay
+
+- `memory.py` no existe: `--memory` no está en `closebooks run`, así que las reglas guardadas en `human/` **no se aplican todavía** en la ejecución siguiente.
+- El proveedor de modelo y su caché no están hechos: toda la extracción es por parsers. No hay ninguna llamada a modelo.
+- `facts/parties.parquet` va vacío.
+- El holdout mutado no incluye el drift (d), avisos reescritos al xlsx nuevo, y ZA01 conserva la numeración original en avisos y PDFs.
