@@ -98,7 +98,7 @@ function Result({ a, b }: { a: Run; b: Run }) {
             size="sm"
             icon={<GitCompare />}
             title="Una de las dos no tiene puntuación"
-            description="Solo las fases con golden se puntúan. Abajo se comparan igualmente las filas por regla."
+            description="Solo se puntúan las fases con respuestas, como TRAIN y holdout. Abajo se comparan igualmente las filas por regla."
           />
         </Card>
       )}

@@ -85,7 +85,7 @@ export function PoliciesTab() {
   return (
     <div className={styles.wrap}>
       <p className={styles.source}>
-        Resumen de las políticas con las que se etiqueta el golden, hecho a mano. El texto completo, y el que manda, está en <Mono>{SOURCE}</Mono>; el
+        Resumen de las políticas con las que se etiquetan las respuestas oficiales, hecho a mano. El texto completo, y el que manda, está en <Mono>{SOURCE}</Mono>; el
         paquete oficial no se versiona ni lo sirve la API. Una regla de memoria nunca cambia estas políticas: solo ayuda a aplicarlas.
       </p>
       <PolicyTable title="Importe de cada fila" description="Cuánto se liquida de cada partida (§2)." head="Caso" rows={AMOUNTS} />

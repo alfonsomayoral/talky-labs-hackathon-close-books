@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { ArrowUpRight, CircleAlert } from 'lucide-react'
 import { Amount, Badge, ButtonLink, EmptyState, KeyValue, Mono, SidePanel, Skeleton } from '@/components'
 import { useCase } from '@/data'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, PRIORITY_LABEL, caseKindLabel } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_TONE, PRIORITY_LABEL, caseKindLabel, ruleDescription } from '@/domain'
 import { formatDate } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { CaseActions } from '@/features/shared'
@@ -66,7 +66,7 @@ export function CasePanel({ runId, caseId, onClose }: CasePanelProps) {
               { label: 'Tercero', value: c.partyName },
               { label: 'Sociedad', value: c.entity, mono: true },
               { label: 'Movimiento', value: c.bookingDate ? formatDate(c.bookingDate) : null },
-              { label: 'Regla', value: c.rule ? <Mono>{c.rule}</Mono> : null },
+              { label: 'Regla', value: c.rule ? <Mono title={ruleDescription(c.rule)}>{c.rule}</Mono> : null },
               { label: 'Caso', value: c.caseId, mono: true },
             ]}
           />

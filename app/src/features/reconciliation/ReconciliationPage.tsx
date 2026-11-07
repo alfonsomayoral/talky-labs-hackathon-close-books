@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { SearchX, CloudOff } from 'lucide-react'
 import type { TxnRow } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_TONE, ruleDescription } from '@/domain'
 import { Amount, Badge, ConfidenceBand, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, type Column } from '@/components'
 import { useActiveRun, useAccounts, useRunStats, useTransactions } from '@/data'
 import { formatDate, formatNumber } from '@/lib/format'
@@ -35,7 +35,7 @@ const COLUMNS: Column<TxnRow>[] = [
     },
     sortValue: (t) => t.rowCount,
   },
-  { id: 'rule', header: 'Regla', width: 176, cell: (t) => <Mono>{t.rule}</Mono>, sortValue: (t) => t.rule },
+  { id: 'rule', header: 'Regla', width: 176, cell: (t) => <Mono title={ruleDescription(t.rule)}>{t.rule}</Mono>, sortValue: (t) => t.rule },
   { id: 'confidence', header: 'Confianza', width: 96, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
   {
     id: 'caseStatus',

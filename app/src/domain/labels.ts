@@ -93,3 +93,57 @@ export const caseKindLabel = (kind: string) => CASE_KIND_LABEL[kind as CaseKind]
 
 /** Share of movements closed with no intervention, 0..1. */
 export const autoRate = (s: Pick<RunStats, 'txns' | 'txnsAuto'>) => (s.txns > 0 ? s.txnsAuto / s.txns : null)
+
+const RULE_DESCRIPTION: Record<string, string> = {
+  'FILE-DD-BATCH': 'Remesa de recibos: el fichero dice qué facturas cobra',
+  'FILE-DD-RETURN': 'Recibo devuelto: el fichero de la remesa dice cuál',
+  'FILE-CARD': 'Liquidación de tarjetas: el fichero dice qué ventas paga',
+  'FILE-CARD-CHARGEBACK': 'Contracargo de tarjeta, según el fichero de liquidación',
+  'FILE-CHEQUE': 'Ingreso de cheques: el fichero dice qué facturas cobra',
+  'FILE-CHEQUE-RETURN': 'Cheque devuelto, según el fichero del ingreso',
+  'FILE-PAYMENT-RUN': 'Remesa de pagos: el fichero dice qué facturas de proveedor paga',
+  'FILE-PAYMENT-RETURN': 'Transferencia a proveedor devuelta por el banco',
+  'REF-TEXT': 'El texto del banco cita los números de factura',
+  'REF-NUMBER': 'El texto del banco cita un número que corresponde a la factura',
+  'REF-SUBSET': 'Las facturas citadas en el texto suman el importe del movimiento',
+  'REF-COMPLETED': 'El texto cita parte de las facturas; las demás completan el importe',
+  'PARTY-AMOUNT': 'Sin referencia: una partida abierta del tercero tiene ese importe',
+  'PARTY-SUBSET': 'Sin referencia: varias partidas abiertas del tercero suman ese importe',
+  'PARTY-SHORT': 'Sin referencia: pago del tercero por menos del saldo de una partida',
+  'PARTY-PLAN': 'Sin referencia: plazo de un pago fraccionado del tercero',
+  'CAT-CODE': 'Sin partida: la categoría sale del código del banco',
+  'CAT-TEXT': 'Sin partida: la categoría sale del texto del movimiento',
+  'CAT-SUPPLIER-REFUND': 'Reembolso de un proveedor sin abono asociado',
+  'FALLBACK-UNIDENTIFIED': 'Sin evidencia: se deja como cobro sin identificar, no se fuerza',
+  'FALLBACK-CATEGORY': 'Sin evidencia de partida: categoría por defecto',
+  'MEMORY-RULE': 'Aplicada una regla que enseñó una persona',
+}
+
+const RULE_FAMILY: Record<string, string> = {
+  ADVICE: 'Aviso de remesa: el documento del cliente dice qué paga',
+  FILE: 'Fichero de detalle: dice qué partidas liquida',
+  REF: 'Referencia: el texto del banco cita la partida',
+  PARTY: 'Tercero e importe: sin referencia, cuadra con sus partidas abiertas',
+  HISTORY: 'Historia de la partida: pago repetido o reabierto',
+  CAT: 'Sin partida: categoría del movimiento',
+  FALLBACK: 'Sin evidencia: no se fuerza ninguna casación',
+}
+
+/** What a rule means, for a tooltip next to its code. The family covers rules this list does not know yet. */
+export const ruleDescription = (rule: string): string | undefined => RULE_DESCRIPTION[rule] ?? RULE_FAMILY[rule.split('-')[0]]
+
+const PARTY_HOW_LABEL: Record<string, string> = {
+  counterparty: 'Por el nombre del ordenante',
+  iban: 'Por el IBAN del ordenante',
+  name: 'Por parecido del nombre',
+  mandate: 'Por el mandato del recibo',
+  group: 'Por el grupo del cliente',
+  confirming: 'Por el confirming',
+  agency: 'Por la agencia que paga',
+  factor: 'Por el factor que paga',
+  file: 'Por un fichero de detalle',
+  advice: 'Por un aviso de remesa',
+  memoryRule: 'Por una regla de memoria',
+}
+
+export const partyHowLabel = (how: string) => PARTY_HOW_LABEL[how] ?? how

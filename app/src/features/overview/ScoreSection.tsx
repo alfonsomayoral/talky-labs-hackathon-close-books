@@ -7,7 +7,7 @@ import styles from './ScoreSection.module.css'
 /** Local score against the golden (only phases that have one): total, its three parts, and the segments from worst to best. */
 export function ScoreSection({ score }: { score: Score }) {
   return (
-    <Section title="Puntuación contra el golden" description="Evaluador oficial; los segmentos van del peor al mejor.">
+    <Section title="Puntuación contra las respuestas de la fase" description="Evaluador oficial; los segmentos van del peor al mejor.">
       <div className={styles.grid}>
         <Card>
           <div className={styles.metrics}>

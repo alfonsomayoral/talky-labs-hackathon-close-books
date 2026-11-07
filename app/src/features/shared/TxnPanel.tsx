@@ -2,7 +2,7 @@ import { Fragment, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowLeft, CloudOff } from 'lucide-react'
 import type { BankLine, RelatedTxn, TxnDetail } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_TONE, ruleDescription, partyHowLabel } from '@/domain'
 import { Amount, Badge, Button, ConfidenceBand, EmptyState, KeyValue, Mono, SidePanel, Skeleton } from '@/components'
 import { useActiveRun, useTransaction } from '@/data'
 import { formatDate, formatNumber, formatPercent } from '@/lib/format'
@@ -118,7 +118,7 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
           {decision.rules.length > 0 ? decision.rules.map((r, i) => (
             <Fragment key={r}>
               {i > 0 && ', '}
-              <Mono>{r}</Mono>
+              <Mono title={ruleDescription(r)}>{r}</Mono>
             </Fragment>
           )) : 'Sin regla'}
           {decision.confidence != null && <> con confianza {formatPercent(decision.confidence, { decimals: 0 })}</>}
@@ -175,7 +175,7 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
               { label: 'Id', value: party.partyId, mono: true },
               { label: 'Tipo', value: PARTY_KIND_LABEL[party.partyKind] },
               { label: 'Ordenante', value: party.payerName },
-              { label: 'Cómo se resolvió', value: party.how, mono: true },
+              { label: 'Cómo se resolvió', value: partyHowLabel(party.how) },
               { label: 'Confianza', value: <ConfidenceBand value={party.confidence} showValue /> },
               ...party.alternatives.map((a, i) => ({
                 label: i === 0 ? 'Alternativas' : '',
