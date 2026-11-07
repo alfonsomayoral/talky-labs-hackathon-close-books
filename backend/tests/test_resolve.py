@@ -107,11 +107,34 @@ def test_fx_difference_is_shown_but_needs_nobody():
 
 
 def test_low_confidence_needs_review_and_the_case_lists_every_item_of_the_line():
-    case = _case([_row(exception="PARTIAL", confidence=0.8), _row(item="API-2")])[0]
+    case = _case([_row(item="ARI-1", exception="PARTIAL", confidence=0.8), _row(item="ARI-2")])[0]
     assert case["status"] == "needs_review"
-    assert case["itemIds"] == ["API-1", "API-2"]
+    assert case["itemIds"] == ["ARI-1", "ARI-2"]
+
+
+def test_bulk_payment_opens_one_case_per_supplier_invoice_with_an_incident_at_its_amount():
+    rows = [_row(item="API-1", exception="PARTIAL"), _row(item="API-2"), _row(item="API-3", exception="RETURNED")]
+    rows[0].party_id, rows[2].party_id = "S1", "S3"
+    cases = _case(rows)
+    assert [(c["partyId"], c["itemIds"], c["amountCents"]) for c in cases] == [
+        ("S1", ["API-1"], 1000), ("S3", ["API-3"], 1000)]
+    assert len({c["caseId"] for c in cases}) == 2
+
+
+def test_category_settled_with_evidence_opens_no_case():
+    row = Row("BT-1", None, None, None, "BANK_FEES", None, "CAT-CODE", 1.0)
+    assert _case([row]) == []
 
 
 def test_amounts_of_a_case_are_magnitudes():
     case = _case([_row(exception="PARTIAL")])[0]
     assert (case["amountCents"], case["amountEur"]) == (1000, 1000)
+
+
+def test_return_of_a_payment_made_before_the_data_starts_never_opens_more_than_the_total():
+    b = OpenBalances({"ARI-1": 0}, totals={"ARI-1": 1000})
+    b.apply("ARI-1", 1000, "RETURNED", "BT-1", "2025-01-01")
+    assert b.open("ARI-1") == 1000
+    b = OpenBalances({"ARI-2": 1000}, totals={"ARI-2": 1000})
+    b.apply("ARI-2", 1000, "RETURNED", "BT-1", "2025-01-01")
+    assert b.open("ARI-2") == 1000

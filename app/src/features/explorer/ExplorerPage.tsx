@@ -56,6 +56,7 @@ function ExplorerList({ spec, phase, runId }: { spec: ExplorerSpec; phase: strin
             serverSort
             onEndReached={list.loadMore}
             selectedId={Panel ? open : undefined}
+            onSelectedChange={(id) => open && id && setOpen(id)}
             onOpen={Panel ? (row) => setOpen(view.rowId(row)) : undefined}
             globalKeys
             empty={<EmptyState size="sm" icon={<SearchX />} title="Nada coincide" description={filtered ? 'Prueba con otra búsqueda o quita los filtros.' : 'Esta fase no trae datos de este tipo.'} />}
@@ -63,7 +64,7 @@ function ExplorerList({ spec, phase, runId }: { spec: ExplorerSpec; phase: strin
         )}
       </Card>
       {Panel && (
-        <SidePanel open={open != null} onClose={() => setOpen(null)} title={view.panel!.title} storageKey="explorer-panel">
+        <SidePanel open={open != null} onClose={() => setOpen(null)} title={view.panel!.title} aria-label={`Detalle: ${view.panel!.title.toLowerCase()}`} storageKey="explorer-panel">
           {open != null && <Panel id={open} phase={phase} runId={runId} />}
         </SidePanel>
       )}

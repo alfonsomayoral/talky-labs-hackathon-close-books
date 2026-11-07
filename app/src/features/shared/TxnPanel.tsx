@@ -23,6 +23,8 @@ const RELATION_LABEL: Record<string, string> = {
   duplicateOf: 'Duplicado de',
   representmentOf: 'Reintento de',
   sameBatch: 'Misma remesa',
+  duplicatedBy: 'Duplicado por',
+  sameItem: 'Misma partida',
 }
 
 const BANK_LINE_LABEL: Record<keyof BankLine, string> = {

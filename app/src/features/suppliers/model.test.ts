@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { OpenItem } from '@/domain'
-import { agingSegments, emailState, listKinds, listStatuses, affectedAmount, orderItems, sortFromParam } from './model'
+import { agingSegments, emailState, listKinds, listStatuses, orderItems, sortFromParam } from './model'
 
 const item = (itemId: string) => ({ itemId }) as OpenItem
 
@@ -34,14 +34,6 @@ describe('emailState', () => {
     expect(emailState({ status: 'needs_review', draftId: 'D1', suggestedAction: 'email_supplier' })).toBe('draft')
     expect(emailState({ status: 'needs_review', draftId: null, suggestedAction: 'email_supplier' })).toBe('none')
     expect(emailState({ status: 'needs_review', draftId: 'D1', suggestedAction: 'review' })).toBe('none')
-  })
-})
-
-describe('affectedAmount', () => {
-  it('says when it adds only the largest cases and not all of them', () => {
-    const rows = [{ amountEur: 100 }, { amountEur: 250 }]
-    expect(affectedAmount(rows, 2)).toEqual({ cents: 350, label: 'Importe afectado' })
-    expect(affectedAmount(rows, 3049)).toEqual({ cents: 350, label: 'Importe de las 2 mayores' })
   })
 })
 

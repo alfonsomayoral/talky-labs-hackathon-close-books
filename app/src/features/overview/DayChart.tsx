@@ -50,7 +50,7 @@ export function DayChart({ byDay }: { byDay: DayStats[] }) {
           className={styles.plot}
           style={{ height: HEIGHT }}
           tabIndex={0}
-          role="img"
+          role="group"
           aria-label={`Movimientos por día, ${n} días. Flechas izquierda y derecha para recorrerlos.`}
           onPointerMove={onMove}
           onPointerLeave={() => setActive(null)}
@@ -75,8 +75,11 @@ export function DayChart({ byDay }: { byDay: DayStats[] }) {
             })}
             <line className={styles.base} x1={0} x2={n} y1={HEIGHT} y2={HEIGHT} vectorEffect="non-scaling-stroke" />
           </svg>
+          <span className="sr-only" aria-live="polite">
+            {shown && `${formatDate(shown.date)}: ${formatNumber(shown.auto)} cerrados sin intervención, ${formatNumber(shown.queue)} a la cola de revisión`}
+          </span>
           {shown && active != null && (
-            <div className={styles.tip} style={{ left: `${((active + 0.5) / n) * 100}%` }} data-flip={active > n * 0.7 || undefined}>
+            <div className={styles.tip} aria-hiddenstyle={{ left: `${((active + 0.5) / n) * 100}%` }} data-flip={active > n * 0.7 || undefined}>
               <strong>{formatDate(shown.date)}</strong>
               <span>
                 {formatNumber(shown.auto + shown.queue)} movimientos

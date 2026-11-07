@@ -757,6 +757,25 @@ export interface components {
             question: components["schemas"]["Question"] | null;
             draft: components["schemas"]["Draft"] | null;
         };
+<<<<<<< HEAD
+=======
+        /**
+         * CasePage
+         * @description Sum of amountEur over every case matching the filter, not only this page.
+         */
+        CasePage: {
+            /** Items */
+            items: components["schemas"]["CaseRow"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Sumamounteur */
+            sumAmountEur: number;
+        };
+>>>>>>> origin/KPI-7_fe-api-sum
         /** CaseRow */
         CaseRow: {
             /** Caseid */
@@ -1328,6 +1347,7 @@ export interface components {
             /** History */
             history: components["schemas"]["ItemHistoryEntry"][];
         };
+<<<<<<< HEAD
         /** Paged[CaseRow] */
         Paged_CaseRow_: {
             /** Items */
@@ -1339,6 +1359,8 @@ export interface components {
             /** Size */
             size: number;
         };
+=======
+>>>>>>> origin/KPI-7_fe-api-sum
         /** Paged[DataItem] */
         Paged_DataItem_: {
             /** Items */
@@ -1711,6 +1733,11 @@ export interface components {
             modelCostUsd: number;
             /** Score */
             score: number | null;
+<<<<<<< HEAD
+=======
+            /** Served */
+            served: boolean;
+>>>>>>> origin/KPI-7_fe-api-sum
         };
         /** Score */
         Score: {
@@ -1809,12 +1836,26 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+<<<<<<< HEAD
+=======
+        /** ValidationIssue */
+        ValidationIssue: {
+            /** Row */
+            row: number | null;
+            /** Message */
+            message: string;
+        };
+>>>>>>> origin/KPI-7_fe-api-sum
         /** ValidationResult */
         ValidationResult: {
             /** Ok */
             ok: boolean;
             /** Errors */
+<<<<<<< HEAD
             errors: components["schemas"]["ValidationError"][];
+=======
+            errors: components["schemas"]["ValidationIssue"][];
+>>>>>>> origin/KPI-7_fe-api-sum
             /** Sizebytes */
             sizeBytes: number;
             /** Uncompressedbytes */
@@ -2148,7 +2189,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+<<<<<<< HEAD
                     "application/json": components["schemas"]["Paged_CaseRow_"];
+=======
+                    "application/json": components["schemas"]["CasePage"];
+>>>>>>> origin/KPI-7_fe-api-sum
                 };
             };
             /** @description Validation Error */

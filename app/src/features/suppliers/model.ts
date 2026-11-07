@@ -60,14 +60,6 @@ export function emailState(c: Pick<CaseRow, 'status' | 'draftId' | 'suggestedAct
   return c.draftId ? 'draft' : 'none'
 }
 
-/** The API has no total of an arbitrary set of cases, so the figure is the largest incidents and says so. */
-export const TOP_CASES = 200
-
-export function affectedAmount(rows: Pick<CaseRow, 'amountEur'>[], total: number | null): { cents: number; label: string } {
-  const cents = rows.reduce((acc, r) => acc + r.amountEur, 0)
-  return { cents, label: total != null && total > rows.length ? `Importe de las ${rows.length} mayores` : 'Importe afectado' }
-}
-
 /** Items of the supplier with those of the case first, each group in the order received. */
 export function orderItems(items: OpenItem[], caseItemIds: string[]): { item: OpenItem; inCase: boolean }[] {
   const mine = new Set(caseItemIds)

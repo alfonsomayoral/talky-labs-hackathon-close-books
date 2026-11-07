@@ -110,7 +110,8 @@ def test_unidentified_by_code_carries_its_exception():
 
 
 def test_resolve_emits_a_category_row_for_a_category_proposal():
-    items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [1000], "currency": ["EUR"]})
+    items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [1000], "total_cents": [1000], "currency": ["EUR"],
+                          "party_id": ["C1"]})
     for amount, category, exception in ((-1000, "BANK_FEES", None), (1000, "UNIDENTIFIED", "UNIDENTIFIED")):
         t = pl.DataFrame({"bank_txn_id": ["BT-1"], "booking_date": ["2025-01-01"], "amount_cents": [amount],
                           "currency": ["EUR"], "bank": ["PENA"], "bank_code": ["17"], "bank_subcode": ["310"],

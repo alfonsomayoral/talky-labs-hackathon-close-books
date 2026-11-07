@@ -8,7 +8,7 @@ import { useEntityScope, useListParam, useOpenObject, useTextParam } from '@/lib
 import { TextField } from '@/features/shared'
 import { AgingStrip } from './AgingStrip'
 import { CasePanel } from './CasePanel'
-import { DEFAULT_SORT, SUPPLIER_KINDS, SUPPLIER_STATUSES, ageDays, ageLabel, emailState, listKinds, listStatuses, TOP_CASES, affectedAmount, sortFromParam, sortToParam, type EmailState } from './model'
+import { DEFAULT_SORT, SUPPLIER_KINDS, SUPPLIER_STATUSES, ageDays, ageLabel, emailState, listKinds, listStatuses, sortFromParam, sortToParam, type EmailState } from './model'
 import styles from './SuppliersPage.module.css'
 
 const ROW_HEIGHT = 60
@@ -50,9 +50,8 @@ export function SuppliersPage() {
     sort: orden ?? DEFAULT_SORT,
   })
   // Header figures ignore the search and the facets: they are what is open for the scope.
-  const openAll = useCases(runId, { status: OPEN_STATUSES, kind: SUPPLIER_KINDS.join(','), entity, sort: '-amountEur', size: TOP_CASES })
+  const openAll = useCases(runId, { status: OPEN_STATUSES, kind: SUPPLIER_KINDS.join(','), entity, size: 1 })
   const openCredits = useCases(runId, { status: OPEN_STATUSES, kind: 'supplier_credit_pending', entity, size: 1 })
-  const affected = affectedAmount(openAll.rows, openAll.total)
 
   const asOf = stats?.periodTo ?? run.createdAt
   const columns = useMemo<Column<CaseRow>[]>(
@@ -178,8 +177,8 @@ export function SuppliersPage() {
         </Card>
         <Card>
           <Metric
-            label={affected.label}
-            value={loadingHeader ? '' : formatMoney(affected.cents, 'EUR', { compact: true })}
+            label="Importe afectado"
+            value={loadingHeader ? '' : formatMoney(openAll.sumAmountEur, 'EUR', { compact: true })}
             loading={loadingHeader}
           />
         </Card>
@@ -187,6 +186,7 @@ export function SuppliersPage() {
           <Metric
             label="Abonos por compensar"
             value={loadingHeader ? '' : formatNumber(openCredits.total)}
+            comparison={openCredits.sumAmountEur ? formatMoney(openCredits.sumAmountEur, 'EUR', { compact: true }) : undefined}
             loading={loadingHeader}
           />
         </Card>
