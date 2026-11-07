@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RunSummary, Score } from '@/domain'
-import { consoleStep, defaultPair, diffCounts, diffMetrics, diffSegments, isDrop, stageList } from './model'
+import { consoleStep, defaultPair, failureCause, diffCounts, diffMetrics, diffSegments, isDrop, stageList } from './model'
 
 const score = (metrics: Record<string, number>, segments: Score['segments'] = {}): Score => ({ score: 0, metrics, segments })
 const run = (runId: string, phase: string, createdAt: string, s: number | null) => ({ runId, phase, createdAt, score: s }) as RunSummary
@@ -98,5 +98,17 @@ describe('stageList', () => {
       ['output', 'pending'],
       ['extra', 'done'],
     ])
+  })
+})
+
+describe('failureCause', () => {
+  it('keeps the cause of a traceback, not its frames', () => {
+    const traceback = 'Traceback (most recent call last):\n  File "cli.py", line 22, in _cmd_run\n    run = run_pipeline()\n          ^^^^^^\npolars.exceptions.ColumnNotFoundError: bank_txn_id\n'
+    expect(failureCause(traceback)).toBe('polars.exceptions.ColumnNotFoundError: bank_txn_id')
+  })
+  it('leaves a one-line message as it is, and nothing as nothing', () => {
+    expect(failureCause('no output')).toBe('no output')
+    expect(failureCause(null)).toBeNull()
+    expect(failureCause('  \n ')).toBeNull()
   })
 })
