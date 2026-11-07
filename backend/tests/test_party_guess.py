@@ -99,3 +99,32 @@ def test_a_guess_whose_leftover_is_beyond_the_limits_has_no_exception():
     items = [invoice("ARI-1", 100000, "2024-02-01"), invoice("ARI-2", 50000, "2024-03-01")]
     rows, _ = run(items, [line(cents=130017, text=NAMED)])
     assert [(r.item_id, r.exception) for r in rows] == [("ARI-1", None)]
+
+
+def test_the_only_invoice_the_cash_overpays_beats_an_older_one_it_would_merely_cover():
+    """BT-2025-0160296: 577,00 paying 477,00 in full, with 148,69 older and still open."""
+    items = [invoice("ARI-OLD", 14869, "2024-02-01"), invoice("ARI-PAID", 47700, "2024-03-01")]
+    rows, balances = run(items, [line(cents=57700, text=NAMED)])
+    assert [(r.item_id, r.amount_cents, r.exception) for r in rows] == [("ARI-PAID", 47700, "OVERPAYMENT")]
+    assert (balances.open("ARI-OLD"), balances.open("ARI-PAID")) == (14869, 0)
+
+
+def test_the_only_invoice_the_cash_overpays_is_taken_when_the_oldest_exceeds_the_cash():
+    items = [invoice("ARI-OLD", 90000, "2024-02-01"), invoice("ARI-PAID", 47700, "2024-03-01")]
+    rows, _ = run(items, [line(cents=57700, text=NAMED)])
+    assert [(r.item_id, r.exception) for r in rows] == [("ARI-PAID", "OVERPAYMENT")]
+
+
+def test_two_invoices_the_cash_could_overpay_tell_nothing_and_the_oldest_stays():
+    items = [invoice("ARI-1", 10000, "2024-02-01"), invoice("ARI-2", 47700, "2024-03-01"),
+             invoice("ARI-3", 52700, "2024-04-01")]
+    rows, _ = run(items, [line(cents=57700, text=NAMED)])
+    assert guessed(rows) == [("ARI-1", 10000), ("ARI-2", 47700)]
+
+
+def test_oldest_invoices_summing_to_the_cash_are_not_replaced_by_an_overpayment():
+    items = [invoice("ARI-1", 20000, "2024-02-01"), invoice("ARI-2", 37700, "2024-03-01"),
+             invoice("ARI-3", 47700, "2024-04-01")]
+    rows, _ = run(items, [line(cents=57700, text=NAMED)])
+    assert guessed(rows) == [("ARI-1", 20000), ("ARI-2", 37700)]
+

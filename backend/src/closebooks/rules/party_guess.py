@@ -8,7 +8,9 @@ named, and the case stays for a person to review. Nothing here is learned from a
 the window is the customer's own previous receipt, and three is a cap on the cost of being wrong.
 
 One invoice and cash left over within the overpayment criterion of `policy`: POLICIES §3 calls that an overpayment of a
-single invoice (cleared in full, the excess on account), so the row says OVERPAYMENT rather than nothing.
+single invoice (cleared in full, the excess on account), so the row says OVERPAYMENT rather than nothing. When the
+oldest invoices do not sum to the cash and exactly one open invoice fits that criterion, that one is the guess: its
+excess says more than its age. Two that fit tie and neither is taken.
 
 Runs last, after PARTY-AMOUNT-LATE, by booking date, so a later receipt does not take what an earlier guess took."""
 from __future__ import annotations
@@ -68,6 +70,10 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
                 break
             chosen.append((item, cents, due_date))
             left -= cents
+        overpays = [(item, cents, due_date) for due_date, _, item, cents in open_now
+                    if cents < cash and _is_overpayment(cash - cents, cents)]
+        if left and len(overpays) == 1:
+            chosen, left = overpays, cash - overpays[0][1]
         if not chosen:
             continue
         txn_id = txn["bank_txn_id"]
