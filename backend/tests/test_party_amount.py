@@ -451,3 +451,69 @@ def test_a_long_legal_form_does_not_lose_the_party_to_a_namesake():
 
 def test_a_different_last_word_is_not_a_legal_form():
     assert _index("Parra y Velasco Jardines").find(txn(1, "SPEI PARRA Y VELASCO PAGO"), "customer") == []
+
+
+def pay(rows, cash, name="Wellness Garrido S.L.", text=""):
+    found_engine, balances = engine(rows)
+    return found_engine(txn(cash, text=text, name=name), balances)
+
+
+def ids(proposal):
+    return sorted(i for i, _ in proposal.lines)
+
+
+# Amounts of BT-2025-0000124 (CAU01000021): 25 invoices of 34 open, by date, leaving one out and no reference at all.
+RUN = [("ARI-1", 606383), ("ARI-2", 48089), ("ARI-3", 87132), ("ARI-4", 172951), ("ARI-5", 733770), ("ARI-6", 107901),
+       ("ARI-7", 34133), ("ARI-8", 301915)]
+RUN_CASH = 48089 + 87132 + 172951 + 107901 + 34133
+
+
+def open_run(*extra):
+    """More open invoices than a whole search can tell apart: only the run can explain the cash."""
+    older = [item(f"ARI-0{n:02d}", "C1", f"FV23-0{n:06d}", 100000 + n * 1000, issued="2023-01-01") for n in range(20)]
+    run = [item(i, "C1", f"FV24-0{n:06d}", cents, issued=f"2024-01-{n + 1:02d}") for n, (i, cents) in enumerate(RUN)]
+    return [*older, *run, *extra]
+
+
+def test_run_of_invoices_by_date_leaving_one_out_settles_with_no_citation():
+    found = pay(open_run(), RUN_CASH)
+    assert found.rule == "PARTY-WINDOW"
+    assert ids(found) == ["ARI-2", "ARI-3", "ARI-4", "ARI-6", "ARI-7"]
+
+
+def test_run_net_of_one_credit_note_leaving_one_out():
+    note = item("ARC-1", "C1", "CN1", 20028, issued="2023-12-01")
+    found = pay(open_run(note), RUN_CASH - 20028)
+    assert found.rule == "PARTY-WINDOW"
+    assert ids(found) == ["ARC-1", "ARI-2", "ARI-3", "ARI-4", "ARI-6", "ARI-7"]
+
+
+def test_two_runs_that_explain_the_cash_are_not_guessed():
+    twins = [item(f"ARI-{n}", "C1", f"FV24-0{n:06d}", cents, issued=f"2024-02-{n + 1:02d}")
+             for n, cents in enumerate((1700, 7000, 5000, 9000, 1700, 7000, 5000, 9000, 1700))]
+    older = [item(f"ARI-0{n:02d}", "C1", f"FV23-0{n:06d}", 10000 + n * 1000, issued="2023-01-01") for n in range(20)]
+    assert pay([*older, *twins], 1700 + 7000 + 9000 + 1700 + 5000) is None
+
+
+def test_window_needs_a_whole_party_name():
+    assert pay(open_run(), RUN_CASH, name=None, text="WELLNESS GARRIDO") is None
+
+
+def test_invoices_cited_and_the_rest_of_their_run_when_the_text_was_cut():
+    found = pay(open_run(), RUN_CASH, text="FRA FV24-0000001 FV24-0000002")
+    assert found.rule == "REF-COMPLETED"
+    assert ids(found) == ["ARI-2", "ARI-3", "ARI-4", "ARI-6", "ARI-7"]
+
+
+def test_a_run_that_leaves_out_a_cited_invoice_is_not_the_answer():
+    found = pay(open_run(), RUN_CASH, text="FRA FV24-0000004")
+    assert found.rule == "REF-TEXT"
+    assert ids(found) == ["ARI-5"]
+
+
+def test_a_unique_set_among_twenty_open_invoices_settles():
+    values = [1000003 + 7919 * 2 ** n % 999983 for n in range(20)]
+    rows = [item(f"ARI-{n:02d}", "C1", f"N{n}", v, issued=f"2024-02-{n + 1:02d}") for n, v in enumerate(values)]
+    found = pay(rows, values[1] + values[9] + values[14] + values[3] + values[17])
+    assert found.rule == "PARTY-SUBSET"
+    assert ids(found) == ["ARI-01", "ARI-03", "ARI-09", "ARI-14", "ARI-17"]
