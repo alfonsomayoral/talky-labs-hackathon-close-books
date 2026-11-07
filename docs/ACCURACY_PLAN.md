@@ -78,11 +78,30 @@ Orden recomendado: 1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9. Congelaci�
 - Nunca se envía nada a la clasificación; nunca se escribe en `db/` salvo `db/holdout*/`; `runs/` con nombres propios (`runs/acc-*`).
 - Cada afirmación en el ESTADO con su medida; lo no medido se dice.
 
-## 6. Línea base de generalización (rellenar en el bloque 1)
+## 6. Línea base de generalización (bloque 1, medido el 7 nov a las 11:43)
 
-| Prueba | Holdout | Sin sociedad X en lo aprendido | Sin banco Y en la tabla | Con layout de aviso inventado |
-| --- | --- | --- | --- | --- |
-| Score | 91,37 | | | |
-| `ar_ref_noise` | | | | |
-| `nonitem_*` | | | | |
-| `ar_1toN_remittance` | | | | |
+Holdout con el código de `main`. Cada columna cambia una sola cosa. Pico de 6,96 a 7,49 GB por ejecución, una cada vez.
+
+| Prueba | Holdout | Tabla sin fuga (`--before 2025-01-01`) | Sin bancos MONC y MEZQ en la tabla | Con layout de aviso inventado | Drift reconstruido |
+| --- | --- | --- | --- | --- | --- |
+| Score | 91,37 | 91,37 | 91,37 | **83,04** | 91,08 |
+| Exactitud por movimiento | 0,9370 | 0,9370 | 0,9369 | 0,9251 | 0,9335 |
+| Macro-F1 de excepciones | 0,820 | 0,820 | 0,820 | **0,652** | 0,815 |
+| `ar_ref_noise` | 0,902 | 0,902 | 0,902 | 0,894 | 0,900 |
+| `nonitem_*` (13.766) | 1,000 | 1,000 | 1,000 | 1,000 | 1,000 |
+| `ar_1toN_remittance` | 0,988 | 0,988 | 0,988 | **0,427** | 0,973 |
+
+**Sociedad y banco nuevos:** se sustituyó «sociedad excluida» porque nombres y números ya se indexan por fase: lo único aprendido de TRAIN es la tabla de códigos.
+
+| Medida | Valor |
+| --- | --- |
+| MX01 (único banco, MEZQ), con y sin su banco en la tabla | 0,948 en ambas |
+| MONC, con y sin su banco en la tabla | 0,8726 → 0,8712 |
+| ZA01 en drift, frente a MA01 en holdout | 0,9177 frente a 0,9626 |
+
+**Qué se lee**
+
+- **La tabla de códigos no es un riesgo.** La fuga no mueve nada y quitar dos bancos solo baja `customer_refund` (1,000 → 0,958, n = 354). `nonitem_*` se mantiene en 1,000 por las reglas de texto.
+- **El layout inventado es el mayor riesgo medido: −8,33 puntos.** Reescribe las cabeceras de los 2.815 avisos csv y xlsx de 6.762, así que es el peor caso, no una predicción. `_columns` los rechaza y se pierden `ar_1toN_remittance`, `ar_short_dispute` (0,801 → 0,319) y `ar_dispute_settlement` (0,860 → 0,523).
+- **ZA01 en drift es pesimista.** Los avisos y PDF conservan la numeración FA/AV y sus importes sin doblar, y las partidas previas de TRAIN siguen como MA01. Parte de la diferencia viene del mutador, sin separar cuánta.
+- **El 90,06 anterior era del mutador viejo.** El drift reconstruido da 91,08, y esa es la base de la puerta desde ahora.
