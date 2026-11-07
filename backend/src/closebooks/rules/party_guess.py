@@ -17,6 +17,10 @@ of it, or 100 of the currency): a looser excess fits unidentified receipts by ch
 The oldest invoices that add up to the cash to the cent go first, however many (up to `MAX_SEARCH`), leaving out at most
 one: a sum of many balances does not land on the cent by chance. Without an exact sum, the cap of three stands.
 
+Whole invoices already due and one more at a round share (`policy.ROUND_FRACTIONS`) that make up the cash in one way
+only are taken too, the share `PARTIAL`: no document says which invoice stays open, so it is an inference, to review.
+Searched only among `MAX_SHARE_SEARCH` due invoices at most.
+
 Runs last, after PARTY-AMOUNT-LATE, by booking date, so a later receipt does not take what an earlier guess took."""
 from __future__ import annotations
 
@@ -27,10 +31,10 @@ import polars as pl
 
 from ..load import Phase
 from ..model import Row
-from ..policy import ROUND_OVERPAYMENT_RATIO, _is_overpayment
+from ..policy import ROUND_FRACTIONS, ROUND_OVERPAYMENT_RATIO, _is_overpayment
 from ..state import OpenBalances
 from .late_party_amount import _by_start, _by_words, _name_words
-from .party_amount import PartyAmount
+from .party_amount import _MANY, PartyAmount, _sums
 from .split_invoice import _COLUMNS
 
 RULE = "PARTY-GUESS"
@@ -61,6 +65,7 @@ def _says_who_paid(entry: tuple, cash: int, date: str) -> bool:
     due_date, _, _, cents = entry
     excess = cash - cents
     return due_date <= date and (excess <= cents * ROUND_OVERPAYMENT_RATIO + 1 or excess <= MAX_NAMED_EXCESS_CENTS)
+MAX_SHARE_SEARCH = 16  # due invoices searched for a set with a round share: a bound on the work, 2^n sums per receipt
 MAX_SEARCH = 40  # open invoices searched for an exact sum: a bound on the work, not a learned threshold
 
 
@@ -94,6 +99,31 @@ def _oldest_exact(ordered: list[tuple], cash: int) -> list[tuple]:
             return ordered[:left_out] + ordered[left_out + 1:position + 1]
         at_cents.setdefault(cents, position)
     return []
+
+
+def _whole_and_share(due_now: list[tuple], cash: int) -> list[tuple]:
+    """The one way to make up the cash with whole invoices and another at a round share, a cent either way: (item,
+    cents, due date) of each, the share last. Empty if there is none or more than one, whole invoices alone included."""
+    if not 2 <= len(due_now) <= MAX_SHARE_SEARCH:
+        return []
+    sums = _sums([(entry, entry[3]) for entry in due_now])
+    if cash in sums:
+        return []
+    found = set()
+    for position, entry in enumerate(due_now):
+        for fraction in range(1, ROUND_FRACTIONS):
+            share = round(entry[3] * fraction / ROUND_FRACTIONS)
+            for applied in (share - 1, share, share + 1):
+                mask = sums.get(cash - applied)
+                if mask is _MANY:
+                    return []
+                if mask and not mask >> position & 1:
+                    found.add((position, applied, mask))
+    if len(found) != 1:
+        return []
+    position, applied, mask = found.pop()
+    whole = [(e[2], e[3], e[0]) for bit, e in enumerate(due_now) if mask >> bit & 1]
+    return [*whole, (due_now[position][2], applied, due_now[position][0])]
 
 
 def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAmount) -> None:
@@ -145,10 +175,13 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
                 left -= cents
         overpays = [(item, cents, due_date) for due_date, _, item, cents in open_now
                     if cents < cash and _is_overpayment(cash - cents, cents)]
+        partial = None
         # a guessed overpayment needs the invoice due by the receipt date or an excess within 10 % of it
         if left and len(overpays) == 1 and (overpays[0][2] <= date
                                             or cash - overpays[0][1] <= overpays[0][1] * ROUND_OVERPAYMENT_RATIO):
             chosen, left = overpays, cash - overpays[0][1]
+        elif left and (split := _whole_and_share([c for c in open_now if c[0] <= date], cash)):
+            chosen, left, partial = split, 0, split[-1][0]
         if not chosen:
             every = [(due_date, item, cents) for due_date, _, item, cents in sorted(open_now)]
             if exact := _exact(every[:MAX_SEARCH], cash):
@@ -159,12 +192,14 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
         overpaid = len(chosen) == 1 and left > 0 and _is_overpayment(left, chosen[0][1])
         said = "OVERPAYMENT" if overpaid else None
         for item, cents, _ in chosen:
-            balances.apply(item, cents, said or "", txn_id, date)
+            balances.apply(item, cents, said or ("PARTIAL" if item == partial else ""), txn_id, date)
         guesses[at[txn_id]] = [Row(
-            txn_id, item, cents, currency, None, said, RULE, 0.3, party, None, [{"kind": "customer", "ref": party}],
+            txn_id, item, cents, currency, None, said or ("PARTIAL" if item == partial else None), RULE, 0.3, party,
+            None, [{"kind": "customer", "ref": party}],
             [{"itemId": item, "amountCents": cents, "currency": currency,
               "why": f"inferred overpayment: the cash clears it with an excess within limits, {party} named; to review"
-              if overpaid else "inferred: the only homonym whose oldest invoices add up to the cash"
+              if overpaid else "inferred: whole invoices due and one at a round share add up to the cash; to review"
+              if partial else "inferred: the only homonym whose oldest invoices add up to the cash"
               if homonym and added_up else
               "inferred: the oldest invoices due of the only customer named add up to the cash; to review"
               if added_up else
