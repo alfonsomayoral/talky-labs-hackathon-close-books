@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { CloudOff } from 'lucide-react'
 import { Amount, Badge, EmptyState, KeyValue, Mono, Section, Skeleton, type KeyValueItem } from '@/components'
 import { useDataItems, useDocument, useParty } from '@/data'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, caseKindLabel, type OpenItem } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, caseKindLabel, type OpenItem } from '@/domain'
 import { formatDate } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { facetLabel } from './facetLabel'
@@ -181,7 +181,7 @@ export function PartyPanel({ id, runId }: PanelProps) {
                 rowTo={(c) => withParams(scoped('/bandeja'), { ver: c.caseId })}
                 columns={[
                   { header: 'Caso', cell: (c) => caseKindLabel(c.kind) },
-                  { header: 'Estado', width: '110px', cell: (c) => <Badge tone={CASE_STATUS_TONE[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge> },
+                  { header: 'Estado', width: '110px', cell: (c) => <Badge emphasis={CASE_STATUS_EMPHASIS[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge> },
                   { header: 'Importe', width: '120px', align: 'right', cell: (c) => <Amount cents={c.amountCents} currency={c.currency} /> },
                 ]}
               />

@@ -8,7 +8,7 @@ export function ExceptionTerm({ exception, badge }: { exception: string; badge?:
   return (
     <Tooltip content={`${exception}: ${EXCEPTION_DEFINITION[exception] ?? label}`}>
       <span className={styles.term} tabIndex={0}>
-        {badge ? <Badge tone={exception === 'UNIDENTIFIED' ? 'danger' : 'warn'}>{label}</Badge> : label}
+        {badge ? <Badge emphasis="medium">{label}</Badge> : label}
       </span>
     </Tooltip>
   )

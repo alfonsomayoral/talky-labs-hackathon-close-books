@@ -6,7 +6,7 @@ export type Risk = 'high' | 'medium' | 'low'
 
 export const RISK_LABEL: Record<Risk, string> = { high: 'Alto', medium: 'Medio', low: 'Bajo' }
 
-export const RISK_TONE = { high: 'danger', medium: 'warn', low: 'neutral' } as const
+export const RISK_EMPHASIS = { high: 'strong', medium: 'medium', low: 'quiet' } as const
 
 export const RISK_HEURISTIC =
   'Heurística de esta pantalla, no un dato del paquete: alto si más de la mitad del saldo lleva más de 60 días o hay más de una disputa; medio si hay saldo de más de 30 días; bajo en el resto.'

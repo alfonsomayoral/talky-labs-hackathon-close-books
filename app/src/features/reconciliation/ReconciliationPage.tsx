@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { SearchX, CloudOff } from 'lucide-react'
 import type { TxnRow } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, evidenceOf, ruleDescription } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, evidenceOf, ruleDescription } from '@/domain'
 import { Amount, Badge, ConfidenceBand, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, type Column } from '@/components'
 import { useActiveRun, useAccounts, useRunStats, useTransactions } from '@/data'
 import { formatDate, formatNumber } from '@/lib/format'
@@ -42,7 +42,7 @@ const COLUMNS: Column<TxnRow>[] = [
     id: 'caseStatus',
     header: 'Caso',
     width: 116,
-    cell: (t) => (t.caseStatus ? <Badge tone={CASE_STATUS_TONE[t.caseStatus]}>{CASE_STATUS_LABEL[t.caseStatus]}</Badge> : <span className={styles.muted}>—</span>),
+    cell: (t) => (t.caseStatus ? <Badge emphasis={CASE_STATUS_EMPHASIS[t.caseStatus]}>{CASE_STATUS_LABEL[t.caseStatus]}</Badge> : <span className={styles.muted}>—</span>),
     sortValue: (t) => t.caseStatus,
   },
   // Last: the account is also a filter and the panel's header, so it is what falls off a narrow screen, not the rule.

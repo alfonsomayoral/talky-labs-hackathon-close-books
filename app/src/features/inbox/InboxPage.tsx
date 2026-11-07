@@ -10,7 +10,7 @@ import { CasePanel } from './CasePanel'
 import { DEFAULT_SORT, ageDays, ageLabel, sortFromParam, sortToParam } from './model'
 import styles from './InboxPage.module.css'
 
-const PRIORITY_TONE = { 1: 'danger', 2: 'warn', 3: 'neutral' } as const
+const PRIORITY_EMPHASIS = { 1: 'strong', 2: 'medium', 3: 'quiet' } as const
 const ROW_HEIGHT = 60
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -63,9 +63,9 @@ export function InboxPage() {
       {
         id: 'priority',
         header: 'Prioridad',
-        width: 96,
+        width: 104,
         sortValue: (c) => c.priority,
-        cell: (c) => <Badge tone={PRIORITY_TONE[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>,
+        cell: (c) => <Badge emphasis={PRIORITY_EMPHASIS[c.priority]}>{PRIORITY_LABEL[c.priority]}</Badge>,
       },
       {
         id: 'case',
@@ -79,7 +79,7 @@ export function InboxPage() {
         ),
       },
       { id: 'party', header: 'Tercero', width: 'minmax(120px, 1.2fr)', cell: (c) => <span className={styles.truncate}>{c.partyName ?? '—'}</span> },
-      { id: 'entity', header: 'Sociedad', width: 80, cell: (c) => <Mono>{c.entity}</Mono> },
+      { id: 'entity', header: 'Sociedad', width: 92, cell: (c) => <Mono>{c.entity}</Mono> },
       {
         id: 'amountEur',
         header: 'Importe',

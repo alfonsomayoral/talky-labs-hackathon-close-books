@@ -8,7 +8,7 @@ import { useEntityScope, useOpenObject, useTextParam } from '@/lib/urlState'
 import { TextField } from '@/features/shared'
 import { AgingBar, AgingLegend } from './AgingBar'
 import { PartyPanel } from './PartyPanel'
-import { RISK_HEURISTIC, RISK_TONE, filterParties, riskOf, RISK_LABEL, sortFromParam, sortToParam } from './model'
+import { RISK_HEURISTIC, RISK_EMPHASIS, filterParties, riskOf, RISK_LABEL, sortFromParam, sortToParam } from './model'
 import styles from './CollectionsPage.module.css'
 
 const RISK_RANK = { low: 0, medium: 1, high: 2 }
@@ -55,7 +55,7 @@ export function CollectionsPage() {
         sortValue: (p) => RISK_RANK[riskOf(p)],
         cell: (p) => {
           const risk = riskOf(p)
-          return <Badge tone={RISK_TONE[risk]}>{RISK_LABEL[risk]}</Badge>
+          return <Badge emphasis={RISK_EMPHASIS[risk]}>{RISK_LABEL[risk]}</Badge>
         },
       },
     ],

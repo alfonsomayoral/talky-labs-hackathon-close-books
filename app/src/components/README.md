@@ -28,7 +28,7 @@ Import everything from `@/components`. Tokens: `src/design/tokens.css` (Talky br
 
 **Status**
 - `StatusDot` — `tone`, `label` (pass `""` when text sits next to it), `pulse` for in-progress.
-- `Badge` — `tone`, `variant` soft|outline, `dot`, `icon`. Domain labels and tones (severity, match status) live in `@/data` (`SEVERITY`, `MATCH_STATUS`): use them, don't recolour.
+- `Badge` — `tone`, `variant` soft|outline, `dot`, `icon`. For priority, case status, risk and exceptions use `emphasis` strong (filled `--action`)|medium (outlined green)|quiet (text only) instead of `tone`: never red or yellow there (`CASE_STATUS_EMPHASIS`, `RISK_EMPHASIS`). Domain labels and tones (severity, match status) live in `@/data` (`SEVERITY`, `MATCH_STATUS`): use them, don't recolour.
 - `Pill` — rounded tag for metadata/counts: `tone`, `icon`, `count`, `onRemove`.
 - `ConfidenceBand` — `value` 0..1|null, `showValue`.
 

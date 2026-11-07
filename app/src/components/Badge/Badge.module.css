@@ -66,3 +66,23 @@
   border-color: var(--line);
   color: var(--ink-2);
 }
+
+/* Emphasis: priority, case status and risk. Deep green only, never a status colour (ARCHITECTURE.md §5.4). */
+.strong,
+.medium,
+.quiet {
+  border-radius: var(--radius-pill);
+}
+.strong {
+  background: var(--action);
+  color: var(--action-ink);
+}
+.medium {
+  background: transparent;
+  border-color: var(--brand-ink);
+  color: var(--brand-ink);
+}
+.quiet {
+  padding: 0;
+  color: var(--ink-2);
+}

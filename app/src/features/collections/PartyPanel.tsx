@@ -2,13 +2,13 @@ import { useMemo, useRef } from 'react'
 import { CircleAlert } from 'lucide-react'
 import { Amount, Badge, DataTable, EmptyState, KeyValue, Mono, Section, SidePanel, Skeleton, type Column } from '@/components'
 import { useCase, useOpenItems, useParty } from '@/data'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, caseKindLabel, type AgingParty, type CaseRow, type OpenItem } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, caseKindLabel, type AgingParty, type CaseRow, type OpenItem } from '@/domain'
 import { formatDate, formatNumber } from '@/lib/format'
 import { Link } from 'react-router'
 import { useScopedTo } from '@/lib/urlState'
 import { CaseActions } from '@/features/shared'
 import { AgingBar } from './AgingBar'
-import { RISK_HEURISTIC, RISK_LABEL, RISK_TONE, riskOf } from './model'
+import { RISK_HEURISTIC, RISK_LABEL, RISK_EMPHASIS, riskOf } from './model'
 import styles from './PartyPanel.module.css'
 
 interface PartyPanelProps {
@@ -87,7 +87,7 @@ export function PartyPanel({ runId, partyId, aging, onClose }: PartyPanelProps) 
               <AgingBar buckets={row.buckets} label="Saldo del cliente por tramo de vencimiento" size="md" />
               {risk && (
                 <p className={styles.risk}>
-                  <Badge tone={RISK_TONE[risk]}>Riesgo {RISK_LABEL[risk].toLowerCase()}</Badge>
+                  <Badge emphasis={RISK_EMPHASIS[risk]}>Riesgo {RISK_LABEL[risk].toLowerCase()}</Badge>
                   <span>{RISK_HEURISTIC}</span>
                 </p>
               )}
@@ -169,7 +169,7 @@ function CaseLine({ c }: { c: CaseRow }) {
     <li className={styles.case}>
       <div className={styles.caseHead}>
         <span className={styles.kind}>{caseKindLabel(c.kind)}</span>
-        <Badge tone={CASE_STATUS_TONE[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge>
+        <Badge emphasis={CASE_STATUS_EMPHASIS[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge>
         <Amount cents={c.amountCents} currency={c.currency} className={styles.end} />
       </div>
       <p className={styles.caseSummary}>{c.summary}</p>

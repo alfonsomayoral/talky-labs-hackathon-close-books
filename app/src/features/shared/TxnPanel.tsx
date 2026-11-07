@@ -2,7 +2,7 @@ import { Fragment, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowLeft, CloudOff } from 'lucide-react'
 import type { BankLine, RelatedTxn, TxnDetail } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, ruleDescription, partyHowLabel, statementFormatLabel } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, ruleDescription, partyHowLabel, statementFormatLabel } from '@/domain'
 import { Amount, Badge, Button, ConfidenceBand, EmptyState, KeyValue, Mono, SidePanel, Skeleton } from '@/components'
 import { useActiveRun, useTransaction } from '@/data'
 import { formatDate, formatNumber, formatPercent } from '@/lib/format'
@@ -126,7 +126,7 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
         </p>
         <div className={styles.chips}>
           <ConfidenceBand value={decision.confidence} />
-          {detail.case && <Badge tone={CASE_STATUS_TONE[detail.case.status]}>{CASE_STATUS_LABEL[detail.case.status]}</Badge>}
+          {detail.case && <Badge emphasis={CASE_STATUS_EMPHASIS[detail.case.status]}>{CASE_STATUS_LABEL[detail.case.status]}</Badge>}
         </div>
         {detail.case && (
           <div className={styles.case}>

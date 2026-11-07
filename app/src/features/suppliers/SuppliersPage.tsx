@@ -17,10 +17,10 @@ const OPEN_STATUSES = listStatuses([])
 
 const KIND_OPTIONS = SUPPLIER_KINDS.map((kind) => ({ value: kind, label: caseKindLabel(kind) }))
 const STATE_OPTIONS = SUPPLIER_STATUSES.map((s) => ({ value: s, label: CASE_STATUS_LABEL[s] }))
-const EMAIL_LABEL: Record<EmailState, { tone: 'neutral' | 'info' | 'ok'; label: string }> = {
-  none: { tone: 'neutral', label: 'Sin correo' },
-  draft: { tone: 'info', label: 'Con correo' },
-  closed: { tone: 'ok', label: 'Gestionado' },
+const EMAIL_LABEL: Record<EmailState, { emphasis: 'medium' | 'quiet'; label: string }> = {
+  none: { emphasis: 'quiet', label: 'Sin correo' },
+  draft: { emphasis: 'medium', label: 'Con correo' },
+  closed: { emphasis: 'quiet', label: 'Gestionado' },
 }
 
 export function SuppliersPage() {
@@ -80,7 +80,7 @@ export function SuppliersPage() {
           </span>
         ),
       },
-      { id: 'entity', header: 'Sociedad', width: 80, cell: (c) => <Mono>{c.entity}</Mono> },
+      { id: 'entity', header: 'Sociedad', width: 92, cell: (c) => <Mono>{c.entity}</Mono> },
       {
         id: 'amountEur',
         header: 'Importe',
@@ -103,7 +103,7 @@ export function SuppliersPage() {
         width: 116,
         cell: (c) => {
           const state = EMAIL_LABEL[emailState(c)]
-          return <Badge tone={state.tone}>{state.label}</Badge>
+          return <Badge emphasis={state.emphasis}>{state.label}</Badge>
         },
       },
     ],
