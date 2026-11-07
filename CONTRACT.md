@@ -9,7 +9,7 @@ Lo que entrega el backend en cada ejecución y lo que la plataforma le devuelve.
 - Una ejecución es una carpeta `runs/<fase>-<YYYYMMDD-HHMMSS>/` (ignorada por git). `<fase>` es `sample`, `train`, `holdout`, `holdout-drift`, `live`, `final` o el nombre de un zip subido.
 - Dentro del backend, los importes van en **céntimos enteros** con su `currency`. En los ficheros de la ejecución y en la API, `amountCents` (entero) + `currency`, y `amountEur` (entero, céntimos de EUR al tipo del día) donde haga falta ordenar o sumar entre divisas. Solo `submission.csv.gz` escribe decimales.
 - JSON con claves en `camelCase`. Fechas `YYYY-MM-DD`; instantes ISO 8601 con zona.
-- Ids: `bankTxnId` (`BT-…`), `itemId` (`ARI-|ARC-|API-|APC-…`), `partyId` (`C…`/`S…` del maestro), `caseId` (`CASE-<bankTxnId>` o `CASE-<kind>-<n>`), `questionId`, `draftId`, `ruleId` (`MR-<n>`).
+- Ids: `bankTxnId` (`BT-…`), `itemId` (`ARI-|ARC-|API-|APC-…`), `partyId` (`C…`/`S…` del maestro), `caseId` (`CASE-<bankTxnId>`; por partida, `CASE-<bankTxnId>-<itemId>`; agregados, `CASE-<kind>-<n>`), `questionId`, `draftId`, `ruleId` (`MR-<n>`).
 - `rule`: `<FAMILIA>-<CASO>` en mayúsculas (`FILE-DD-BATCH`, `ADVICE-CSV`, `REF-EXACT`, `PARTY-AMOUNT`, `HISTORY-DUPLICATE`, `CAT-CODE`, `MEMORY-RULE`, `ARBITER`, `FALLBACK-UNIDENTIFIED`, `FALLBACK-CATEGORY`).
 - `SourceRef`: `{ "kind", "ref", "label"? }` con `kind` ∈ `remittanceAdvice`, `directDebitBatch`, `cardSettlement`, `chequeDeposit`, `paymentRun`, `pdf`, `customer`, `supplier`, `bankAccount`, `fxRate`, `bankLine`, `memoryRule`, `humanDecision`; `ref` es un id del dataset o una ruta relativa a la carpeta de la fase.
 
