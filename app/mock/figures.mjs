@@ -5,15 +5,23 @@ const get = async (path) => (await fetch(`${base}/api${path}`)).json()
 const runs = await get('/runs')
 const run = runs.find((r) => r.served) ?? runs[0]
 const stats = await get(`/runs/${run.runId}/stats`)
+// The queues of the inbox, as app/src/domain/queues.ts defines them: every open case that is not a question nor Reclamar is Revisar.
+const RECLAMAR = 'short_payment,dispute,overdue_customer,overpayment,duplicate_payment,supplier_invoice_mismatch,supplier_credit_pending'
+const count = async (filter) => (await get(`/runs/${run.runId}/cases?size=1&${filter}`)).total
+const decidir = await count('status=question')
+const open = await count('status=needs_review,fallback')
+const reclamar = await count(`status=needs_review,fallback&kind=${RECLAMAR}`)
 const es = (n, digits = 0) => n.toLocaleString('es-ES', { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: 'always' })
 const rows = [
-  ['Ejecución', run.runId],
-  ['<X> % cerrado sin intervención', `${es((stats.txnsAuto / stats.txns) * 100, 1)} %`],
+  ['Ejecución, <ejecución> (DEMO)', run.runId],
+  ['<X> % cerrado sin intervención, <auto> (DEMO)', `${es((stats.txnsAuto / stats.txns) * 100, 1)} %`],
   ['<N> movimientos (SUBMISSION)', es(stats.txns)],
-  ['<N> casos en cola (DEMO, paso 1)', es(stats.reviewQueue)],
+  ['<decisiones> (DEMO)', es(decidir)],
+  ['<por revisar> (DEMO)', es(open - reclamar)],
+  ['<cobros> (DEMO)', es(reclamar)],
   ['Identificado', `${es(stats.identifiedEur / 1e8, 1)} M€ de ${es(stats.totalEur / 1e8, 1)} M€`],
   ['<Y>/<C> dólares de modelo', es(run.modelCostUsd, 2)],
-  ['<M> llamadas a modelo', es(run.modelCalls)],
+  ['<M> llamadas a modelo, <llamadas> (DEMO)', es(run.modelCalls)],
   ['<T>/<Z> minutos de la ejecución', es(run.durationMs / 60000, 1)],
   ['Filas de la entrega', es(run.rows)],
   ['Puntuación local (solo si la fase tiene golden)', run.score == null ? 'sin golden' : es(run.score, 2)],
