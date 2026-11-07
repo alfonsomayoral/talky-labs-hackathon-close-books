@@ -190,7 +190,7 @@ def prior_dirs(folder: Path, name: str) -> list[Path]:
         try:
             found.append(phase_dir(prior))
         except FileNotFoundError:
-            continue
+            print(f"warning: prior phase {prior} not found: {name} runs without it", file=sys.stderr)
     return found
 
 
