@@ -107,13 +107,13 @@ export function AccountsPage() {
     <Page fill>
       <PageHeader title="Cuentas bancarias" subtitle="Las cuentas del grupo, su formato, su neto y su conciliación. Pulsa una cuenta para ver sus movimientos." />
       <div className={styles.metrics}>
-        <Card padding="sm" data-surface="feature">
+        <Card padding="sm">
           <Metric label="Cuentas" value={formatNumber(summary.accounts)} loading={accounts.isPending} />
         </Card>
-        <Card padding="sm" data-surface="feature">
+        <Card padding="sm">
           <Metric label="Bancos" value={formatNumber(summary.banks)} loading={accounts.isPending} />
         </Card>
-        <Card padding="sm" data-surface="feature">
+        <Card padding="sm">
           <Metric
             label="Con cambio de formato"
             value={formatNumber(summary.formatChanges)}

@@ -41,3 +41,6 @@ export function sortFromParam(param: string | null): SortState | null {
 }
 
 export const sortToParam = (sort: SortState | null) => (sort ? `${sort.direction === 'desc' ? '-' : ''}${sort.columnId}` : null)
+
+/** The customers that can be chased first, each group in the order it came. */
+export const chaseFirst = (parties: AgingParty[]): AgingParty[] => [...parties.filter((p) => p.caseId), ...parties.filter((p) => !p.caseId)]

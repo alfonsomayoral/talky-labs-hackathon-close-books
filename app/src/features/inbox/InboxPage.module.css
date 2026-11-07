@@ -73,3 +73,24 @@
     display: none;
   }
 }
+
+.kpi {
+  padding: var(--space-3);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow var(--duration-fast) ease;
+}
+
+.kpi:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.kpi:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 2px;
+}

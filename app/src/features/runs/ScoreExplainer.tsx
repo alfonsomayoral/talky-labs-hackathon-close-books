@@ -23,7 +23,7 @@ export function ScoreExplainer({ score, runs }: { score: Score | null; runs: Run
       ) : (
         <p className={styles.note}>
           Esta fase no tiene respuestas oficiales: su puntuación solo se conoce al enviarla.
-          {reference && ` Referencia en holdout, una parte de TRAIN reservada: ${formatNumber(reference.score, { decimals: 2 })}.`}
+          {reference && ` Referencia, la ejecución abierta ${reference.runId}: ${formatNumber(reference.score, { decimals: 2 })}.`}
         </p>
       )}
     </div>

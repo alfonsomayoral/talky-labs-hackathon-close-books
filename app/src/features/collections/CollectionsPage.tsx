@@ -8,7 +8,7 @@ import { useEntityScope, useOpenObject, useTextParam } from '@/lib/urlState'
 import { TextField } from '@/features/shared'
 import { AgingBar, AgingLegend } from './AgingBar'
 import { PartyPanel } from './PartyPanel'
-import { RISK_HEURISTIC, RISK_EMPHASIS, filterParties, riskOf, RISK_LABEL, sortFromParam, sortToParam } from './model'
+import { RISK_HEURISTIC, RISK_EMPHASIS, chaseFirst, filterParties, riskOf, RISK_LABEL, sortFromParam, sortToParam } from './model'
 import styles from './CollectionsPage.module.css'
 
 const RISK_RANK = { low: 0, medium: 1, high: 2 }
@@ -21,7 +21,7 @@ export function CollectionsPage() {
   const [open, setOpen] = useOpenObject()
 
   const { data: aging, error, isPending } = useAging(runId, entity, 'customer')
-  const rows = useMemo(() => filterParties(aging?.parties ?? [], q), [aging, q])
+  const rows = useMemo(() => chaseFirst(filterParties(aging?.parties ?? [], q)), [aging, q])
 
   // The API returns the top 200 by overdue balance: these two are counts over them.
   const disputes = useMemo(() => (aging?.parties ?? []).reduce((n, p) => n + p.disputes, 0), [aging])
@@ -100,11 +100,6 @@ export function CollectionsPage() {
       <PageHeader
         title="Cobros"
         subtitle="A qué clientes reclamar hoy, cuánto y qué hay abierto con cada uno."
-        filters={
-          <FilterBar onClear={q ? () => setQ(null) : undefined} end={aging && <span className="tabular">{formatNumber(rows.length)} clientes</span>}>
-            <TextField label="Buscar clientes" hideLabel type="search" placeholder="Buscar por cliente, id o sociedad" value={q ?? ''} onChange={(v) => setQ(v || null)} className={styles.search} />
-          </FilterBar>
-        }
       />
       <Card padding="md" data-surface="feature">
         <div className={styles.metrics}>
@@ -132,6 +127,9 @@ export function CollectionsPage() {
           </div>
         </Card>
       )}
+    <FilterBar onClear={q ? () => setQ(null) : undefined} end={aging && <span className="tabular">{formatNumber(rows.length)} clientes</span>}>
+      <TextField label="Buscar clientes" hideLabel type="search" placeholder="Buscar por cliente, id o sociedad" value={q ?? ''} onChange={(v) => setQ(v || null)} className={styles.search} />
+    </FilterBar>
       {body}
       <PartyPanel runId={runId} partyId={open} aging={aging?.parties ?? []} onClose={() => setOpen(null)} />
     </Page>

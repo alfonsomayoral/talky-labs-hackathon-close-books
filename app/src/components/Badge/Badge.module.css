@@ -67,15 +67,20 @@
   color: var(--ink-2);
 }
 
-/* Emphasis: priority, case status and risk. Deep green only, never a status colour (ARCHITECTURE.md §5.4). */
+/* Emphasis: priority, case status and risk. Green reads as healthy, so what needs a person is ink; never a status colour (ARCHITECTURE.md §5.4). */
+.positive,
 .strong,
 .medium,
 .quiet {
   border-radius: var(--radius-pill);
 }
-.strong {
+.positive {
   background: var(--action);
   color: var(--action-ink);
+}
+.strong {
+  background: var(--ink);
+  color: var(--bg);
 }
 .medium {
   background: transparent;

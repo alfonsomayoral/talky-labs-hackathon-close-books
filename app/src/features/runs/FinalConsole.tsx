@@ -66,10 +66,10 @@ function EventFacts() {
       <Card padding="sm" data-surface="feature">
         <Metric label="Reloj del evento" value="18:00 – 19:30" comparison={eventClock(now)} hint="A las 18:00 se publican los datos de FINAL y a las 19:30 se cierran los envíos." />
       </Card>
-      <Card padding="sm" data-surface="feature">
+      <Card padding="sm">
         <Metric label="Tamaño máximo" value={formatBytes(SUBMISSION_LIMIT_BYTES)} comparison="sin comprimir" />
       </Card>
-      <Card padding="sm" data-surface="feature">
+      <Card padding="sm">
         <Metric label="Filas máximas" value={formatNumber(SUBMISSION_LIMIT_ROWS)} comparison="en el fichero" />
       </Card>
     </div>
@@ -196,7 +196,7 @@ export function FinalConsole() {
                   {validation ? 'Validar de nuevo' : 'Validar'}
                 </Button>
                 {validate.error && <span className={styles.error}>{validate.error.message}</span>}
-                {validation && <Badge {...(validation.ok ? { emphasis: 'medium' as const } : { tone: 'danger' as const })}>{validation.ok ? 'Válido' : 'No válido'}</Badge>}
+                {validation && <Badge {...(validation.ok ? { emphasis: 'positive' as const } : { tone: 'danger' as const })}>{validation.ok ? 'Válido' : 'No válido'}</Badge>}
               </div>
               {validation && (
                 <>

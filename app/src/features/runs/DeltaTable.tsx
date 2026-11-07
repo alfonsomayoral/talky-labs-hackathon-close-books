@@ -50,7 +50,7 @@ export function DeltaTable({ head, rows, label, format, formatDelta, judge, a, b
                   </Badge>
                 )}
                 {rise && (
-                  <Badge emphasis="medium" className={styles.badge}>
+                  <Badge emphasis="positive" className={styles.badge}>
                     Sube
                   </Badge>
                 )}

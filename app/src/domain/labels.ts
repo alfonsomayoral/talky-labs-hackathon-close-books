@@ -26,12 +26,18 @@ export const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
   done: 'Gestionado',
 }
 
-export const CASE_STATUS_EMPHASIS: Record<CaseStatus, 'strong' | 'medium' | 'quiet'> = {
-  auto: 'quiet',
+export const CASE_STATUS_EMPHASIS: Record<CaseStatus, 'positive' | 'strong' | 'medium' | 'quiet'> = {
+  auto: 'positive',
   needs_review: 'medium',
   question: 'strong',
   fallback: 'strong',
   done: 'quiet',
+}
+
+/** A closed movement that still has an email to write is not done: the system opened that case on its own. */
+export function caseStatusBadge(c: { status: CaseStatus; suggestedAction: string }) {
+  if (c.status === 'auto' && c.suggestedAction.startsWith('email_')) return { label: 'Abierto por el sistema', emphasis: 'medium' as const }
+  return { label: CASE_STATUS_LABEL[c.status], emphasis: CASE_STATUS_EMPHASIS[c.status] }
 }
 
 export const PRIORITY_LABEL: Record<CasePriority, string> = { 1: 'Alta', 2: 'Media', 3: 'Baja' }
