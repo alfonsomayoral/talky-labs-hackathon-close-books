@@ -124,7 +124,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     write_explanations(run, rows)
     txns = {t["bank_txn_id"]: t for t in phase.txns.select(
         "bank_txn_id", "entity", "booking_date", "amount_cents", "currency", "amount_eur_cents", "text",
-        "counterparty_name").iter_rows(named=True)}
+        "counterparty_name", "counterparty_account").iter_rows(named=True)}
     created_at = started.isoformat(timespec="seconds")
     cases = build_cases(rows, txns, created_at)
     names, countries = _party_book(phase)

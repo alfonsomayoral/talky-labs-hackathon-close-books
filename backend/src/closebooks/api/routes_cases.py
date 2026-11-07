@@ -157,8 +157,9 @@ def _write_outbox(run: RunData, draft_id: str, status: str, by: str | None, edit
         raise Problem(409, "Draft already closed", f"{draft_id} is {draft['status']}")
     run.human.append("outbox.jsonl", {
         "draftId": draft_id, "status": status, "subject": edit.subject if edit else draft["subject"],
-        "body": edit.body if edit else draft["body"], "to": draft["to"], "attachments": draft.get("attachments", []),
-        "by": by, "at": now_iso()})
+        "body": edit.body if edit else draft["body"],
+        "to": edit.to if edit and "to" in edit.model_fields_set else draft["to"],
+        "attachments": draft.get("attachments", []), "by": by, "at": now_iso()})
     return _draft(run, draft_id)
 
 

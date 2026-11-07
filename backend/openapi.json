@@ -4347,6 +4347,17 @@
           "body": {
             "type": "string",
             "title": "Body"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
           }
         },
         "type": "object",

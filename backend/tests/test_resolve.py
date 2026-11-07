@@ -225,15 +225,12 @@ def test_an_abstention_becomes_a_question_with_its_options_and_turns_its_case_in
     assert (cases[0]["kind"], cases[0]["status"], cases[0]["questionId"]) == ("ambiguous_match", "question", "Q-000001")
 
 
-def test_a_party_question_offers_the_parties_and_a_debit_gets_no_customer_rule():
+def test_a_party_question_offers_the_parties():
     options = {"BT-1": {"reason": "parties", "options": [{"partyId": "C1", "items": [("ARI-1", 100)]},
                                                          {"partyId": "C2", "items": [("ARI-2", 100)]}]}}
     names = {"C1": "Acme", "C2": "Beta"}
     q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda ids: INFO, names, "now")[0]
     assert [o["id"] for o in q["options"]] == ["C1", "C2", "none"] and q["question"].startswith("¿De qué cliente")
-    debit = {**TXN, "amount_cents": -300, "amount_eur_cents": -300}
-    q = attach_questions(_fallback_case(), options, {"BT-1": debit}, lambda ids: INFO, {}, "now")[0]
-    assert q["rulePreview"] is None
 
 
 def test_a_party_option_names_only_the_first_invoices():
@@ -242,6 +239,31 @@ def test_a_party_option_names_only_the_first_invoices():
     options = {"BT-1": {"reason": "parties", "options": [{"partyId": "C1", "items": [(i, 100) for i in ids]}]}}
     q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: info, {"C1": "Acme"}, "now")[0]
     assert q["options"][0]["label"] == "Acme · FV1, FV2, FV3 y 2 más · 5,00 EUR"
+
+
+def test_every_question_with_a_counterparty_previews_its_rule_by_name_or_by_account():
+    options = _abstention()
+    by_name = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: INFO, {}, "now")[0]["rulePreview"]
+    assert by_name["payerName"] == "ACME SL" and "iban" not in by_name and "cobros de ACME SL" in by_name["description"]
+    nameless = {**TXN, "counterparty_name": None, "counterparty_account": "ES9100"}
+    p = attach_questions(_fallback_case(), options, {"BT-1": nameless}, lambda _: INFO, {}, "now")[0]["rulePreview"]
+    assert p["iban"] == "ES9100" and "payerName" not in p and p["partyId"] == "<la opción elegida>"
+    debit = {**nameless, "amount_cents": -300, "amount_eur_cents": -300}
+    p = attach_questions(_fallback_case(), options, {"BT-1": debit}, lambda _: INFO, {}, "now")[0]["rulePreview"]
+    assert p["kind"] == "payer_is_customer" and "pagos a ES9100" in p["description"]
+    bare = {**TXN, "counterparty_name": None}
+    q = attach_questions(_fallback_case(), options, {"BT-1": bare}, lambda _: INFO, {}, "now")[0]
+    assert q["rulePreview"] is None
+
+
+def test_a_combined_option_reads_with_documents_nets_credit_notes_and_names_the_party():
+    info = {"ARI-1": {"number": "FV1", "party_name": "Acme", "due_date": None, "currency": "EUR"},
+            "ARC-1": {"number": "AB1", "party_name": "Acme", "due_date": None, "currency": "EUR"}}
+    options = {"BT-1": {"reason": "subsets", "options": [
+        {"partyId": "C9", "items": [("ARC-1", 100), ("ARI-1", 400)]}, {"partyId": "C9", "items": [("ARI-1", 300)]}]}}
+    q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: info, {}, "now")[0]
+    combined = next(o for o in q["options"] if "+" in o["id"])
+    assert combined == {"id": "ARC-1+ARI-1", "label": "AB1 + FV1 · 3,00 EUR · Acme"}
 
 
 def test_questions_are_capped_by_amount(monkeypatch):
