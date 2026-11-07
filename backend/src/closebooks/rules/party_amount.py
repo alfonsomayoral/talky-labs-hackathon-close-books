@@ -662,6 +662,10 @@ class PartyAmount:
         if len(found) != 1:
             return None
         chosen = sorted(found.pop())
+        paid = [f for f in free if f[0][0] in chosen]
+        others = [f for f in free if f[0][0][:3] in CREDIT_NOTES and f[0][0] not in chosen]
+        if self._notes_for(others, _net(paid) - cash, {i[6] for i, _ in paid}):  # a note of that difference: not tax
+            return None
         return chosen if any(i[:3] not in CREDIT_NOTES for i in chosen) else None
 
     def _paid_again(self, mine: list, open_now: dict, cash: int, party: str, balances) -> Proposal | None:

@@ -69,6 +69,13 @@ def test_an_invoice_whose_pdf_explains_its_own_shortfall_is_not_taxed():
     assert rule(txn(CASH, TEXT), balances) is None
 
 
+def test_an_open_credit_note_that_is_the_whole_difference_explains_the_cash_instead_of_the_tax():
+    rule, balances = engine([item("ARI-1", "C1", "FV25-050538", 100000), item("ARI-2", "C1", "FV25-050539", 120000),
+                             item("ARC-1", "C1", "ND25-000337", 22000)], customers=CUSTOMER)
+    rule.countries = {"C1": "BR"}
+    assert rule(txn(198000, TEXT), balances) is None
+
+
 def test_two_sets_net_of_the_rate_are_no_evidence():
     rule, balances = withheld_engine([item("ARI-7", "C1", "FV25-050544", 130003)])
     assert rule(txn(CASH, TEXT), balances) is None
