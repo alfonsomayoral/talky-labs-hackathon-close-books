@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { FilePlus2, Paperclip } from 'lucide-react'
 import { Badge, Button, Pill, toast } from '@/components'
-import { useDraftActions } from '@/data'
+import { useDecideCase, useDraftActions } from '@/data'
 import type { CaseDetail, Draft } from '@/domain'
 import { TextField } from './TextField'
 import { recipientLine } from './model'
@@ -44,12 +44,13 @@ export function DraftEditor({ caseDetail, runId }: DraftEditorProps) {
 }
 
 function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
+  const decide = useDecideCase(runId)
   const [subject, setSubject] = useState(draft.subject)
   const [body, setBody] = useState(draft.body)
   const actions = useDraftActions(runId)
   const closed = draft.status !== 'draft'
   const dirty = subject !== draft.subject || body !== draft.body
-  const busy = actions.save.isPending || actions.send.isPending || actions.manual.isPending
+  const busy = actions.save.isPending || actions.send.isPending || actions.manual.isPending || decide.isPending
 
   const fail = (title: string) => (error: Error) => toast.error(title, { description: error.message })
 
@@ -65,11 +66,16 @@ function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
     }
   }
 
-  const takeManually = () =>
-    actions.manual.mutate(draft.draftId, {
-      onSuccess: () => toast.success('Anotado: lo llevas tú'),
-      onError: fail('No se ha podido anotar'),
-    })
+  // A person takes it from here, so it leaves the queue: the draft's own action only writes the outbox.
+  const takeManually = async () => {
+    try {
+      await actions.manual.mutateAsync(draft.draftId)
+      await decide.mutateAsync({ caseId: draft.caseId, action: 'manual' })
+      toast.success('Anotado: lo llevas tú')
+    } catch (error) {
+      fail('No se ha podido anotar')(error as Error)
+    }
+  }
 
   return (
     <div className={styles.editor}>

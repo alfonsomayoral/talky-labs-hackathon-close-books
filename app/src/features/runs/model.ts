@@ -104,3 +104,9 @@ export function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${formatNumber(bytes / 1024 / 1024, { decimals: 1 })} MB`
   return `${formatNumber(Math.round(bytes / 1024))} KB`
 }
+
+/** What a person can act on from a failed run: the error is the tail of the process output, often a traceback. */
+export function failureCause(error: string | null | undefined): string | null {
+  const lines = (error ?? '').split('\n').map((l) => l.trim()).filter(Boolean)
+  return lines.at(-1) ?? null
+}

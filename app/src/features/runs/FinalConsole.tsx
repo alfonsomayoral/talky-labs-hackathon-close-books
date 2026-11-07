@@ -5,7 +5,7 @@ import { Badge, Button, Card, KeyValue, Mono, ProgressBar, SegmentedControl, Sta
 import { useCurrentRun, useRun, useRunStatus, useRuns, useStartRun, useUpload, useValidateRun } from '@/data'
 import { formatDuration, formatNumber } from '@/lib/format'
 import { useTextParam } from '@/lib/urlState'
-import { STAGE_LABEL, SUBMISSION_LIMIT_BYTES, consoleStep, formatBytes, stageList } from './model'
+import { STAGE_LABEL, SUBMISSION_LIMIT_BYTES, consoleStep, formatBytes, stageList, failureCause } from './model'
 import styles from './FinalConsole.module.css'
 
 const PHASES = ['live', 'holdout', 'final']
@@ -159,7 +159,7 @@ export function FinalConsole() {
                   </li>
                 ))}
               </ul>
-              {status.data?.status === 'failed' && <p className={styles.error}>La ejecución ha fallado{status.data.error ? `: ${status.data.error}` : '.'}</p>}
+              {status.data?.status === 'failed' && <p className={styles.error}>La ejecución ha fallado{status.data.error ? `: ${failureCause(status.data.error)}` : '.'}</p>}
             </>
           )}
         </Step>
