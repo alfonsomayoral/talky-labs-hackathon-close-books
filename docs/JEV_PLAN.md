@@ -1,6 +1,6 @@
 # Plan: juicios de Jev en el pipeline, con Claude solo para excepciones
 
-Estado: **plan, sin implementar**. Escrito el 7 nov 2026 a las 12:10, con el backend en holdout 91,77 (main c44e505) y la sesión de Exactitud a mitad de su plan. Nada de esto entra hoy antes de la congelación de reglas de las 17:00 salvo decisión expresa; el piloto de §6 es lo único que cabe en una hora.
+Estado: **en ejecución desde las 13:20** (autorización de Alfonso para enviar datos del paquete a TypeSafe; clave en `backend/.env`, fuera del repo). Lectura aplicada de CLAUDE.md §5: Jev extrae qué número cita el texto, como un parser; el importe y la partida abierta deciden la casación. Escrito el 7 nov 2026 a las 12:10, con el backend en holdout 91,77 (main c44e505) y la sesión de Exactitud a mitad de su plan. Nada de esto entra hoy antes de la congelación de reglas de las 17:00 salvo decisión expresa; el piloto de §6 es lo único que cabe en una hora.
 
 ## 1. Objetivo
 
