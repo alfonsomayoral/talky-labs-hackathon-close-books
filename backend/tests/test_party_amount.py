@@ -4,7 +4,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import polars as pl
+import pytest
 
+from closebooks.resolve import resolve
 from closebooks.rules.parties import PartyIndex, normalize
 from closebooks.rules.party_amount import PartyAmount, _chance
 from closebooks.state import OpenBalances
@@ -197,6 +199,141 @@ def test_full_number_cited_explains_a_partial_payment():
     proposal = rule(txn(400, NAME, remit="A CUENTA FV23-0111433"), balances)
     assert lines(proposal) == {"ARI-1"}
     assert proposal.by_cash
+
+
+def test_noisy_reference_yields_to_one_exact_invoice_of_a_certain_party():
+    rule, balances = engine([item("ARI-1", "C1", "FV24-000001", 15000),
+                             item("ARI-2", "C1", "FV24-000002", 10000)])
+    found = rule(txn(10000, name="Wellness Garrido S.L.", remit="FV24-000001"), balances)
+    assert lines(found) == {"ARI-2"}
+    assert found.rule == "PARTY-REF-NOISE"
+
+
+@pytest.mark.parametrize("cash,amounts", [(10000, [15000, 10000, 10000]), (10100, [10000, 10100])])
+def test_ambiguous_alternative_or_explained_overpayment_keeps_the_reference(cash, amounts):
+    rule, balances = engine([item(f"ARI-{n}", "C1", f"FV24-{n:06}", amount)
+                             for n, amount in enumerate(amounts, 1)])
+    assert lines(rule(txn(cash, name="Wellness Garrido S.L.", remit="FV24-000001"), balances)) == {"ARI-1"}
+
+
+def test_noisy_reference_does_not_override_an_explained_discount_or_pdf_plan():
+    rule, balances = engine([item("ARI-1", "C1", "FV24-000001", 10000),
+                             item("ARI-2", "C1", "FV24-000002", 9800)])
+    rule.terms_pct = {"ARI-1": 2.0}
+    wire = txn(9800, name="Wellness Garrido S.L.", remit="FV24-000001")
+    assert lines(rule(wire, balances)) == {"ARI-1"}
+    rule.terms_pct = {}
+    rule.clauses = {"ARI-1": {"instalments": {"amounts": [9800, 200]}}}
+    assert lines(rule(wire, balances)) == {"ARI-1"}
+
+
+def test_noisy_reference_is_not_overridden_from_a_truncated_party_name():
+    rule, balances = engine([item("ARI-1", "C1", "FV24-000001", 15000),
+                             item("ARI-2", "C1", "FV24-000002", 10000)])
+    assert lines(rule(txn(10000, "WELLNESS GARR", remit="FV24-000001"), balances)) == {"ARI-1"}
+
+
+@pytest.mark.parametrize("reason", ["A CUENTA", "PARTIAL PAYMENT", "INSTALMENT 2/6"])
+def test_explicit_partial_keeps_its_reference_even_when_another_invoice_has_the_cash(reason):
+    rule, balances = engine([item("ARI-1", "C1", "FV24-000001", 15000),
+                             item("ARI-2", "C1", "FV24-000002", 10000)])
+    wire = txn(10000, name="Wellness Garrido S.L.", remit=f"{reason} FV24-000001")
+    assert lines(rule(wire, balances)) == {"ARI-1"}
+
+
+@pytest.mark.parametrize("text", ["INSTALMENT 2/6", "PLAZO 2 DE 6", "PRESTAÇÃO 2/6", "ECHEANCE 2 SUR 6"])
+def test_explicit_instalment_without_pdf_explains_a_unique_invoice(text):
+    rule, balances = engine([item("ARI-1", "C1", "F1", 60000)])
+    found = rule(txn(10000, name="Wellness Garrido S.L.", remit=text), balances)
+    assert lines(found) == {"ARI-1"}
+    assert found.rule == "PARTY-INSTALMENT"
+
+
+@pytest.mark.parametrize("text", ["INSTALMENT 0/6", "INSTALMENT 7/6", "INSTALMENT 1/1", "REF 2/6",
+                                      "INSTALMENT 2/6 AND PLAZO 2/3"])
+def test_missing_invalid_or_conflicting_instalments_are_not_guessed(text):
+    rule, balances = engine([item("ARI-1", "C1", "F1", 60000)])
+    assert rule(txn(10000, name="Wellness Garrido S.L.", remit=text), balances) is None
+
+
+def test_instalment_needs_unique_invoice_certain_party_and_no_contradicting_pdf():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 60000), item("ARI-2", "C1", "F2", 60000)])
+    wire = txn(10000, name="Wellness Garrido S.L.", remit="INSTALMENT 2/6")
+    assert rule(wire, balances) is None
+    rule, balances = engine([item("ARI-1", "C1", "F1", 60000)])
+    assert rule(txn(10000, "WELLNESS GARR", remit="INSTALMENT 2/6"), balances) is None
+    rule.clauses = {"ARI-1": {"instalments": {"amounts": [30000, 30000]}}}
+    assert rule(wire, balances) is None
+
+
+def test_instalment_rounding_uses_cents_and_never_exceeds_the_open_balance():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 10000)])
+    assert lines(rule(txn(3333, name="Wellness Garrido S.L.", remit="PLAZO 1/3"), balances)) == {"ARI-1"}
+    balances.apply("ARI-1", 8000, "PARTIAL", "BT-0", "2024-05-01")
+    assert rule(txn(3333, name="Wellness Garrido S.L.", remit="PLAZO 3/3"), balances) is None
+
+
+def test_outgoing_transfer_settles_the_cited_customer_credit_note():
+    rule, balances = engine([item("ARC-1", "C1", "AV24-000001", 10000)])
+    found = rule(txn(-10000, name="Wellness Garrido S.L.", remit="AV24-000001"), balances)
+    assert lines(found) == {"ARC-1"}
+    assert found.rule == "CREDIT-PAYOUT"
+    assert found.lines == [("ARC-1", 10000)]
+
+
+def test_customer_credit_note_payout_can_be_supported_by_its_pdf():
+    rule, balances = engine([item("ARC-1", "C1", "AV24-000001", 10000)])
+    rule.clauses = {"ARC-1": {"rappel_payout": {}}}
+    assert lines(rule(txn(-10000, name="Wellness Garrido S.L."), balances)) == {"ARC-1"}
+
+
+@pytest.mark.parametrize("variation", ["no_evidence", "short", "closed", "future", "foreign", "offset", "reserved",
+                                          "uncertain", "ambiguous"])
+def test_credit_note_payout_rejects_missing_or_ambiguous_evidence(variation):
+    note = item("ARC-1", "C1", "AV24-000001", 10000,
+                open_cents=0 if variation == "closed" else 10000,
+                issued="2024-07-01" if variation == "future" else "2024-01-01",
+                currency="USD" if variation == "foreign" else "EUR")
+    notes = [note] + ([item("ARC-2", "C1", "AV24-000002", 10000)] if variation == "ambiguous" else [])
+    rule, balances = engine(notes)
+    if variation in ("offset", "ambiguous"):
+        clause = "rappel_offset" if variation == "offset" else "rappel_payout"
+        rule.clauses = {n["item_id"]: {clause: {}} for n in notes}
+    if variation == "reserved":
+        rule.reserved = {"ARC-1": {"BT-0"}}
+    remit = None if variation in ("no_evidence", "ambiguous") else "AV24-000001"
+    wire = txn(-9900 if variation == "short" else -10000, "WELLNESS GARR" if variation == "uncertain" else "",
+               name=None if variation == "uncertain" else "Wellness Garrido S.L.", remit=remit)
+    assert rule(wire, balances) is None
+
+
+@pytest.mark.parametrize("case", ["reference", "instalment", "credit"])
+def test_new_evidence_rules_resolve_amount_exception_and_remaining_balance(case):
+    if case == "reference":
+        items = [item("ARI-1", "C1", "FV24-000001", 15000), item("ARI-2", "C1", "FV24-000002", 10000)]
+        wire = txn(10000, name="Wellness Garrido S.L.", remit="FV24-000001")
+        expected = ("ARI-2", 10000, None, 0)
+    elif case == "instalment":
+        items = [item("ARI-1", "C1", "FV24-000001", 60000)]
+        wire = txn(10000, name="Wellness Garrido S.L.", remit="INSTALMENT 2/6")
+        expected = ("ARI-1", 10000, "PARTIAL", 50000)
+    else:
+        items = [item("ARC-1", "C1", "AV24-000001", 10000)]
+        wire = txn(-10000, name="Wellness Garrido S.L.", remit="AV24-000001")
+        expected = ("ARC-1", 10000, None, 0)
+    rule, _ = engine(items)
+    book = masters(customers=(("C1", "E1", "Wellness Garrido S.L.", None, None, None, None, None),))
+    book["customers"] = book["customers"].with_columns(pl.lit("ES").alias("country"))
+    book["payment_terms"] = pl.DataFrame(schema=dict.fromkeys(
+        ["code", "early_payment_discount_pct", "discount_days"], pl.String))
+    phase = SimpleNamespace(items=rule._known.with_columns(pl.lit(None, pl.String).alias("payment_terms")),
+                            masters=book, txns=pl.DataFrame([dict(wire, bank="B", bank_code="", bank_subcode="",
+                                                                amount_eur_cents=wire["amount_cents"])],
+                                                           schema_overrides={"orig_cents": pl.Int64}))
+    rows, balances = resolve(phase, {}, rule)
+    assert len(rows) == 1
+    row = rows[0]
+    assert (row.item_id, row.amount_cents, row.exception, balances.open(row.item_id)) == expected
 
 
 def test_big_pool_still_finds_up_to_four_items_if_they_are_the_only_ones():
