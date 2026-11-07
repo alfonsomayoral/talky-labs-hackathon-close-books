@@ -242,7 +242,11 @@ const decisionId = () => `DEC-${String(human.decisions.length + 1).padStart(6, '
 function startRun(body) {
   const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14)
   const runId = `${body.phase}-${stamp.slice(0, 8)}-${stamp.slice(8)}`
-  const copy = { ...run, runId, phase: body.phase, createdAt: now(), memoryRulesApplied: human.memoryRules.filter((r) => r.active).length }
+  // Not a verbatim copy, so that comparing it with the sample run has something to show: another score and some rows moved between rules.
+  const [first, second] = Object.keys(run.byRule)
+  const byRule = { ...run.byRule, [first]: run.byRule[first] - 20, [second]: run.byRule[second] + 20 }
+  const score = run.score && { ...run.score, score: 74.2, segments: { ...run.score.segments, ar_ref_noise: { n: 410, accuracy: 0.61 }, ar_1to1: { n: 320, accuracy: 0.93 } } }
+  const copy = { ...run, runId, phase: body.phase, createdAt: now(), byRule, score, memoryRulesApplied: human.memoryRules.filter((r) => r.active).length }
   const status = { runId, status: 'running', stage: 'load', stages: {}, startedAt: now(), finishedAt: null, error: null }
   runs.set(runId, { run: copy, status })
   const stages = Object.keys(run.stages)
