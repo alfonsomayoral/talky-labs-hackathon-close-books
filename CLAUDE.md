@@ -49,7 +49,7 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 ```
 
 - **Lógica (`backend/`, `app/src/data/`, `app/src/domain/`):** TDD. Primero el test, y lo ves fallar por la razón correcta; luego el mínimo código que lo pone en verde; luego refactor sin salir del verde. «Detecta pagos duplicados» se convierte en «test con un movimiento real de TRAIN que paga otra vez una factura ya liquidada, que falla; luego hazlo pasar».
-- **Reglas de casación:** además del test, la puntuación local con el evaluador oficial sobre `sample/` o TRAIN, antes y después, por segmento. Una regla que sube un segmento y baja otro no está terminada.
+- **Reglas de casación:** además del test, la puntuación local con el evaluador oficial sobre holdout (y drift si hay slot), antes y después. **Decide la nota total:** una regla que sube la nota entra aunque baje la precisión de pares o de un segmento; la tabla por segmento sirve para diagnosticar, no para vetar. Una regla que baja la nota total no está terminada.
 - **Pantallas:** se miran en el navegador con los datos cargados, con cero errores en consola.
 - **Cada test tiene que poder pillar un bug.** Si rompes la lógica y el test sigue en verde, sobra. Un test por comportamiento, más los bordes que romperían con datos reales (referencias cortadas o con erratas, varias divisas, pagos duplicados, devoluciones).
 - Nada de smoke tests («renderiza», «no lanza», «el módulo existe»), snapshots, tests que repiten la implementación ni tests que solo comprueban que se llamó a un mock.
@@ -59,7 +59,8 @@ Convierte cada tarea en un criterio comprobable y, si tiene varios pasos, escrib
 
 - **Las reglas deciden; los modelos solo extraen.** Un modelo convierte PDFs y avisos de remesa en hechos, con caché; nunca elige una casación.
 - **Cada fila de la entrega lleva su evidencia:** la regla que la produjo y sus fuentes (aviso de remesa, fichero de remesa o liquidación, PDF, maestro, otro movimiento), como dice `CONTRACT.md`.
-- **No se fuerza ninguna casación.** Sin evidencia, la fila sale de una regla `FALLBACK-*`: `UNIDENTIFIED` si es un cobro, o la categoría que digan su código y su texto. Nunca el candidato «más parecido».
+- **Sin evidencia se puede proponer, si suma.** Esto no es una aplicación crítica: un cobro sin identificar puntúa cero en pares y como `UNIDENTIFIED`, así que una regla que adivina (el cliente nombrado, las facturas vencidas más antiguas) entra si la nota total sube en holdout o en LIVE, aunque falle una parte. La fila lleva confianza baja, caso «por revisar» y su `why` dice que es una inferencia. Lo que sigue prohibido es aprender del golden: ninguna constante, lista ni umbral sacado de él. Sin regla que sume, la fila sale de `FALLBACK-*`.
+- **Las PR de los compañeros se fusionan y se confían.** Una PR de otro miembro del equipo que pasa el CI se fusiona sin exigirle la medición de las sesiones; se mide después, en la LIVE siguiente, y nunca se revierte ni se propone revertirla por la precisión de un segmento. Si la LIVE baja, se avisa a Alfonso con la cifra y decide él.
 - **Ningún movimiento sin fila.** Un movimiento que falta es un fallo seguro en la puntuación.
 - **Importes en céntimos enteros, siempre con su moneda.** Nunca se suman monedas distintas. El `amount` del CSV va en la divisa de la partida, con dos decimales, y solo se formatea al escribirlo.
 - **Todo objeto lleva su sociedad.** Ninguna regla mezcla sociedades sin decirlo; los cruces legítimos (la fábrica de pagos de ES00, la matriz que paga por sus filiales) se nombran en la regla.
