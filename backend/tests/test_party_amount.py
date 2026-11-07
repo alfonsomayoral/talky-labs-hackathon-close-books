@@ -588,3 +588,40 @@ def test_invoice_of_a_returned_batch_stays_reserved_while_a_re_presentation_is_t
     balances.apply("ARI-1", 75407, "", "BT-0", "2024-05-01")
     balances.apply("ARI-1", 75407, "RETURNED", "BT-00", "2024-05-10")
     assert rule(txn(75407, NAME), balances) is None
+
+
+# BT-2025-0000058: eleven customers named the same in AU01. Another one's invoice starts like the cut number.
+HOMONYMS = (("C1", "E1", "Hydro Port Ellery Pty Ltd", None, None, None, None, None),
+            ("C2", "E1", "Hydro Port Ellery Pty Ltd", None, None, None, None, None))
+HOMONYM = "DIRECT CREDIT HYDRO PORT ELLERY PT INV# INV24-0223"
+
+
+def test_of_two_customers_named_the_same_the_one_whose_invoice_is_the_cash_settles():
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 171730), item("ARI-2", "C2", "INV24-0223999", 90000)],
+                            customers=HOMONYMS)
+    found = rule(txn(171730, HOMONYM, name="Hydro Port Ellery Pty Ltd"), balances)
+    assert lines(found) == {"ARI-1"}
+    assert found.party_id == "C1"
+    assert [c["itemId"] for c in found.candidates] == ["ARI-2"]
+    assert {"kind": "customer", "ref": "C2"} in found.sources
+
+
+def test_customers_with_different_names_are_not_homonyms_even_if_one_has_the_cash():
+    # The bank cut the name: both start the same, and the cut does not say which one paid.
+    customers = (("C1", "E1", "Hydro Port Ellery Pty Ltd", None, None, None, None, None),
+                 ("C2", "E1", "Hydro Port Ellery North Pty Ltd", None, None, None, None, None))
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 171730), item("ARI-2", "C2", "INV24-0223999", 90000)],
+                            customers=customers)
+    assert rule(txn(171730, "DIRECT CREDIT HYDRO PORT ELLE INV# INV24-0223"), balances) is None
+
+
+def test_of_two_customers_named_the_same_both_with_the_cash_nothing_is_guessed():
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 171730),
+                             item("ARI-2", "C2", "INV24-0223999", 171730)], customers=HOMONYMS)
+    assert rule(txn(171730, HOMONYM, name="Hydro Port Ellery Pty Ltd"), balances) is None
+
+
+def test_of_two_customers_named_the_same_a_citation_that_explains_nothing_settles_nothing():
+    rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 80000), item("ARI-2", "C2", "INV24-0223999", 90000)],
+                            customers=HOMONYMS)
+    assert rule(txn(171730, HOMONYM, name="Hydro Port Ellery Pty Ltd"), balances) is None
