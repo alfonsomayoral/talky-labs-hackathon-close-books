@@ -1195,6 +1195,45 @@ def test_two_sets_that_close_the_cash_leave_only_what_the_text_cites(monkeypatch
     assert lines(found) == {"ARI-FA240129304", "ARI-FA240130191", "ARI-FA240130104"}
 
 
+CARMONA = (("C1", "E1", "Jardines Carmona Hermanos S.Coop.", None, "ES11", None, None, None),)
+CARMONA_TEXT = "TRANSFERENCIA SEPA | 66214796-JARDINES CARMONA HERMANOS S.C | O | TRANSFERENCIA"
+CARMONA_INVOICES = {"ARI-2024-0141337": (435462, "2025-01-09"), "ARI-2024-0707022": (157952, "2024-12-13"),
+                    "ARI-2024-4499654": (21418, "2025-01-12"), "ARI-2024-7607541": (19298, "2025-01-01"),
+                    "ARI-2024-7836986": (132297, "2024-11-03")}
+
+
+def _carmona(*extra):
+    invoices = [item(i, "C1", f"FV24-03{n}", cents, due=due)
+                for n, (i, (cents, due)) in enumerate(CARMONA_INVOICES.items())]
+    rule, balances = engine([*invoices, *extra], customers=CARMONA)
+    rule._subset = lambda *a, **k: None
+    rule._consecutive = lambda *a, **k: None
+    return rule, balances
+
+
+def test_a_receipt_citing_nothing_settles_the_only_due_set_less_a_credit_note(monkeypatch):
+    """BT-2025-0029024 of holdout: five invoices less AB24-0300854, which names none of them."""
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    rule, balances = _carmona(item("ARC-2024-7048917", "C1", "AB24-0300854", 130638))
+    found = rule(txn(635789, CARMONA_TEXT, date="2025-01-31"), balances)
+    assert found.rule == "PARTY-NET-DUE"
+    assert lines(found) == {*CARMONA_INVOICES, "ARC-2024-7048917"}
+
+
+def test_a_note_that_names_an_invoice_not_there_stays_out_of_the_set(monkeypatch):
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    rule, balances = _carmona(item("ARC-2024-7048917", "C1", "AB24-0300854", 130638, related="FV24-0399999"))
+    found = rule(txn(635789, CARMONA_TEXT, date="2025-01-31"), balances)
+    assert found is None or found.rule != "PARTY-NET-DUE"
+
+
+def test_two_notes_that_each_close_the_cash_with_a_set_leave_the_receipt_alone(monkeypatch):
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    rule, balances = _carmona(item("ARC-A", "C1", "AB24-1", 130638), item("ARC-B", "C1", "AB24-2", 130638 - 19298))
+    found = rule(txn(635789, CARMONA_TEXT, date="2025-01-31"), balances)
+    assert found is None or found.rule != "PARTY-NET-DUE"
+
+
 def test_sixty_items_are_searched_in_under_a_second():
     from time import perf_counter
 

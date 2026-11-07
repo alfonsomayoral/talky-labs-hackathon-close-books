@@ -46,6 +46,7 @@ MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
 # on holdout, unique sets and errors: 1,548 and 7 at +7 days, 1,528 and 2 at +10.
 DUE_TOLERANCE_DAYS = 7
 MAX_DUE_SEARCH_BYTES = 200_000_000  # the search holds one big integer per item, of as many bits as cents in the cash
+MAX_NOTES_PAIRED = 6  # a bound on the work per line: pairs of credit notes are only tried up to this many
 ANY_DUE_DATE = "9999-12-31"
 MAX_WIDE_SEARCH = 30  # a bound on the work per line: 2**15 sums per half of the search
 NUMBER_ALONE_TOLERANCE = 0.05
@@ -538,7 +539,7 @@ class PartyAmount:
         if withheld:
             return self._proposal("PARTY-WITHHELD", party, withheld, by_cash=True, confidence=0.85)
         if not self.parties.certain:
-            return self._due_subset(free, cash, party, date)
+            return self._due_subset(free, cash, party, date) or self._due_net_subset(free, cash, party, date)
         fraction = self._round_fraction(free, cash, open_now, mine)
         if fraction:
             return Proposal("PARTY-FRACTION", [(fraction, cash)], confidence=0.85, party_id=party)
@@ -554,8 +555,37 @@ class PartyAmount:
         wide = self._wide_subset(free, cash, party) if not strong and not weak else None
         if wide:
             return wide
+        due_net = self._due_net_subset(free, cash, party, date)
+        if due_net:
+            return due_net
         # Last: what open documents can explain is more certain than a second payment of a closed one.
         return self._paid_again(mine, open_now, cash, party, balances)
+
+    def _due_net_subset(self, free: list, cash: int, party: str, booked: str) -> Proposal | None:
+        """The only set of due invoices, less one or two of the customer's free credit notes (POLICIES §5.9), that adds
+        up to the cash. A note that names an invoice takes it along; if that invoice is not there, the note is out."""
+        notes = [(i[0], o) for i, o in free if i[0][:3] == "ARC"]
+        if not notes or len(free) > MAX_WIDE_SEARCH:
+            return None
+        limit = (Date.fromisoformat(booked) + timedelta(days=DUE_TOLERANCE_DAYS)).isoformat()
+        due = {i[6]: (i[0], o) for i, o in free if i[0][:3] == "ARI" and self._due.get(i[0], "9") <= limit}
+        pairs = combinations(notes, 2) if len(notes) <= MAX_NOTES_PAIRED else ()
+        found: list[list[str]] = []
+        for combo in (*combinations(notes, 1), *pairs):
+            named = [self.related[n] for n, _ in combo if n in self.related]
+            if any(number not in due for number in named):
+                continue
+            taken = {due[number][0]: due[number][1] for number in named}
+            target = cash + sum(o for _, o in combo) - sum(taken.values())
+            others = [f for f in free if f[0][0] not in taken]
+            found += [[*taken, *(n for n, _ in combo), *rest] for rest in self._invoice_sets(others, target, limit)[0]]
+            if len(found) > 1:
+                return None
+        if not found:
+            return None
+        proposal = self._proposal("PARTY-NET-DUE", party, found[0], confidence=0.85)
+        proposal.sources = [{"kind": "customer", "ref": party, "label": f"única suma neta entre {len(free)} partidas"}]
+        return proposal
 
     def _due_subset(self, free: list, cash: int, party: str, booked: str) -> Proposal | None:
         """What nothing else explained: the only set of due invoices, with no credit notes, that adds up to it."""
