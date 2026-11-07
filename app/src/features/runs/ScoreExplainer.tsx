@@ -28,7 +28,7 @@ export function ScoreExplainer({ score, official, runs }: { score: Score | null;
       ) : (
         <p className={styles.note}>
           Esta fase no tiene respuestas oficiales: su puntuación solo se conoce al enviarla.
-          {reference && ` Referencia, la ejecución abierta ${reference.runId}: ${formatNumber(reference.score, { decimals: 2 })}.`}
+          {reference && ` Referencia, la ejecución que sirve la API, ${reference.runId}: ${formatNumber(reference.score, { decimals: 2 })}.`}
         </p>
       )}
     </div>
