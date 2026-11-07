@@ -70,6 +70,32 @@ def test_returned_transfer_is_a_reversal_of_the_documents_of_that_transfer(tmp_p
     assert proposal.lines == [("API-2025-0000001", 1368140)]
 
 
+def _rejected(tmp_path, text, booked="2025-05-29"):
+    phase = _phase_with_a_run(tmp_path, text, 1368140)
+    phase.txns = phase.txns.with_columns(pl.lit(booked).alias("booking_date"))
+    return payment_runs.propose(phase)
+
+
+def test_rejected_transfer_with_no_reference_is_found_by_its_reason_code_amount_and_beneficiary(tmp_path):
+    # BT-2025-0027691: the bank cites no run, only the reason and the supplier.
+    proposal = _rejected(tmp_path, "DEVOLUCION TRANSFERENCIA MD07 | ROTULACION TECH S.R.L.")["BT-1"]
+    assert proposal.rule == "FILE-PAYMENT-RETURN" and proposal.returned
+    assert proposal.lines == [("API-2025-0000001", 1368140)]
+    assert proposal.reference == "PR010125052693-0302"
+
+
+def test_credit_of_that_amount_and_supplier_with_no_reason_code_is_not_a_rejection(tmp_path):
+    assert _rejected(tmp_path, "REEMBOLSO PAGO DOBLE | ROTULACION TECH S.R.L.") == {}
+
+
+def test_rejection_of_another_supplier_is_not_this_transfer(tmp_path):
+    assert _rejected(tmp_path, "DEVOLUCION TRANSFERENCIA MD07 | OTRO PROVEEDOR S.L.") == {}
+
+
+def test_rejection_before_the_transfer_was_made_is_not_this_transfer(tmp_path):
+    assert _rejected(tmp_path, "DEVOLUCION TRANSFERENCIA MD07 | ROTULACION TECH S.R.L.", booked="2025-05-20") == {}
+
+
 def test_debit_citing_a_run_we_do_not_have_stays_unresolved(tmp_path):
     phase = _phase_with_a_run(tmp_path, "PAGO CONFIRMING | REMESA CF010121062515 3 PROVEEDORES", -1368140)
     assert payment_runs.propose(phase) == {}

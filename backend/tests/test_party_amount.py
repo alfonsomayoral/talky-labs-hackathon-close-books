@@ -33,7 +33,7 @@ def engine(items, customers=(("C1", "E1", "Wellness Garrido S.L.", None, "ES11",
     table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String})
     phase = SimpleNamespace(items=table, masters=masters(customers, suppliers), start="2021-01-01")
     balances = OpenBalances(dict(zip(table["item_id"], table["open_cents"], strict=True)))
-    return PartyAmount(phase, reserved=set()), balances
+    return PartyAmount(phase, reserved={}), balances
 
 
 def txn(amount, text="", name=None, remit=None, iban=None, date="2024-06-01", entity="E1", currency="EUR", orig=None,
@@ -149,7 +149,7 @@ def test_foreign_payment_is_compared_in_the_currency_of_the_invoice():
 
 def test_invoice_reserved_by_a_document_rule_is_not_eaten_by_an_uncited_payment():
     rule, balances = engine([item("ARI-1", "C1", "FV1234", 1000)])
-    rule.reserved = {"ARI-1"}
+    rule.reserved = {"ARI-1": {"BT-0"}}
     assert rule(txn(1000, NAME), balances) is None
     assert lines(rule(txn(1000, NAME, remit="FRA FV1234"), balances)) == {"ARI-1"}
 
@@ -311,26 +311,39 @@ def test_amount_that_nothing_explains_is_not_guessed_even_with_a_known_party():
     assert rule(txn(80407, NAME), balances) is None
 
 
+def settled(*rows):
+    """An engine where these items were settled by an earlier line of this run."""
+    rule, balances = engine(list(rows))
+    for row in rows:
+        balances.apply(row["item_id"], row["total_cents"], "", "BT-0", "2024-05-01")
+    return rule, balances
+
+
 def test_exact_total_of_the_one_invoice_of_the_party_already_settled_is_a_duplicate():
     # BT-2025-0080327: paid twice with no reference. Nothing is open for that amount and only one closed item has it.
-    rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
+    rule, balances = settled(item("ARI-1", "C1", "F1", 228043))
     found = rule(txn(228043, NAME), balances)
     assert found.rule == "PARTY-DUPLICATE" and lines(found) == {"ARI-1"}
 
 
+def test_invoice_closed_before_this_run_may_just_look_like_the_cash():
+    # BT-2025-0162197, unidentified_lookalike: nothing in the run says this invoice was ever paid.
+    rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
+    assert rule(txn(228043, NAME), balances) is None
+
+
 def test_two_settled_invoices_with_that_total_are_not_guessed():
-    rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0),
-                             item("ARI-2", "C1", "F2", 228043, open_cents=0)])
+    rule, balances = settled(item("ARI-1", "C1", "F1", 228043), item("ARI-2", "C1", "F2", 228043))
     assert rule(txn(228043, NAME), balances) is None
 
 
 def test_settled_credit_note_of_that_amount_is_not_a_duplicate():
-    rule, balances = engine([item("ARC-1", "C1", "A1", 228043, open_cents=0)])
+    rule, balances = settled(item("ARC-1", "C1", "A1", 228043))
     assert rule(txn(228043, NAME), balances) is None
 
 
 def test_duplicate_needs_a_whole_party_name():
-    rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
+    rule, balances = settled(item("ARI-1", "C1", "F1", 228043))
     assert rule(txn(228043, "WELLNESS GARRIDO"), balances) is None
 
 
@@ -558,9 +571,20 @@ def test_a_run_among_too_many_open_invoices_is_not_taken():
     assert pay(many, 5000 + 5 * 3) is None
 
 
-def test_a_rate_short_of_the_invoice_is_withholding_only_for_a_customer_of_those_countries():
-    rule, balances = engine([item("ARI-1", "C1", "F1", 100000)])
-    rule.countries = {"C1": "ES"}
-    assert rule(txn(90000, NAME), balances) is None
-    rule.countries = {"C1": "MX"}
-    assert lines(rule(txn(90000, NAME), balances)) == {"ARI-1"}
+def test_invoice_reserved_by_a_batch_is_free_again_once_the_batch_returned_it():
+    # BT-2025-0014588: direct debit returned, the customer then pays by transfer with no reference.
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
+    rule.reserved = {"ARI-1": {"BT-0", "BT-00"}}
+    assert rule(txn(75407, NAME), balances) is None
+    balances.apply("ARI-1", 75407, "", "BT-0", "2024-05-01")
+    assert rule(txn(75407, NAME), balances).rule == "PARTY-DUPLICATE"
+    balances.apply("ARI-1", 75407, "RETURNED", "BT-00", "2024-05-10")
+    assert lines(rule(txn(75407, NAME), balances)) == {"ARI-1"}
+
+
+def test_invoice_of_a_returned_batch_stays_reserved_while_a_re_presentation_is_to_come():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
+    rule.reserved = {"ARI-1": {"BT-0", "BT-00", "BT-000"}}
+    balances.apply("ARI-1", 75407, "", "BT-0", "2024-05-01")
+    balances.apply("ARI-1", 75407, "RETURNED", "BT-00", "2024-05-10")
+    assert rule(txn(75407, NAME), balances) is None

@@ -10,7 +10,7 @@ import polars as pl
 from ..documents.pdfs import phase_clauses
 from ..load import cancelled_item_ids
 from ..model import Proposal
-from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, WITHHOLDING_COUNTRIES, cross_border
+from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, cross_border
 from ..state import OpenBalances
 from .parties import PartyIndex, normalize
 
@@ -223,6 +223,13 @@ class PartyAmount:
             self._abstain(txn, "subsets", self._pending, balances)
         return None
 
+    def _returned(self, item_id: str, balances: OpenBalances) -> bool:
+        """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the
+        item any other way; while one is still to come (a re-presented batch), the item stays reserved."""
+        history = balances.history(item_id)
+        return bool(history) and history[-1]["exception"] == "RETURNED" and (
+            self.reserved[item_id] <= {move["bankTxnId"] for move in history})
+
     def _taught(self, txn: dict, kind: str, cash: int, currency: str, balances) -> Proposal | None:
         """What a person taught goes first; the amount still has to be explained, or the line goes on as usual."""
         memory = self.memory
@@ -262,7 +269,8 @@ class PartyAmount:
             return None
         open_now = {i[0]: balances.open(i[0]) for i in mine}
         free = [(i, open_now[i[0]]) for i in mine
-                if open_now[i[0]] > 0 and i[0] not in self.reserved and i[2] >= self.unknown_before]
+                if open_now[i[0]] > 0 and i[2] >= self.unknown_before and (
+                    i[0] not in self.reserved or self._returned(i[0], balances))]
         tokens = self._tokens(txn)
         strong, weak = self._cited(mine, tokens)
         by_reference = self._by_reference(strong, weak, free, open_now, cash, party, {_alnum(t) for t in tokens})
@@ -292,7 +300,7 @@ class PartyAmount:
         if run:
             return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
         # Last: what open documents can explain is more certain than a second payment of a closed one.
-        return self._paid_again(mine, open_now, cash, party)
+        return self._paid_again(mine, open_now, cash, party, balances)
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
@@ -431,12 +439,13 @@ class PartyAmount:
     def _is_month(clause: dict | None, month: int, year: int | None) -> bool:
         return bool(clause) and clause["month"] == month and (year is None or clause["year"] == year)
 
-    def _paid_again(self, mine: list, open_now: dict, cash: int, party: str) -> Proposal | None:
-        """A whole party, nothing open that the cash explains, and one settled invoice with exactly that total."""
-        settled = [i for i in mine if open_now[i[0]] <= 0 and i[4] == cash and i[0][:3] not in CREDIT_NOTES]
-        if len(settled) != 1:
+    def _paid_again(self, mine: list, open_now: dict, cash: int, party: str, balances) -> Proposal | None:
+        """A whole party, nothing open that the cash explains, and one invoice with exactly that total that a line of
+        this run settled. One closed before the run may only look like the cash (POLICIES §3, unidentified)."""
+        closed = [i for i in mine if open_now[i[0]] <= 0 and i[4] == cash and i[0][:3] not in CREDIT_NOTES]
+        if len(closed) != 1 or not balances.history(closed[0][0]):
             return None
-        return self._proposal("PARTY-DUPLICATE", party, [settled[0][0]], by_cash=True, confidence=0.85)
+        return self._proposal("PARTY-DUPLICATE", party, [closed[0][0]], by_cash=True, confidence=0.85)
 
     def _explained_by_state(self, free: list, cash: int, party: str) -> Proposal | None:
         """No exact amount: only what the invoice's own PDF expects. Anything looser was measured and rejected."""
@@ -504,14 +513,13 @@ class PartyAmount:
         from_abroad = cross_border(txn.get("bank_code"), txn["text"])
         foreign_payer = from_abroad and party in self.countries and self.countries[party] not in SEPA_COUNTRIES
         eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if txn.get("amount_eur_cents") else 1.0
-        withholds = self.countries.get(party, WITHHOLDING_COUNTRIES[0]) in WITHHOLDING_COUNTRIES
         for item, open_cents in free:
             if item[0][:3] in CREDIT_NOTES or open_cents != item[4]:
                 continue
             pct = self.terms_pct.get(item[0])
             if pct and abs(item[4] - round(item[4] * pct / 100) - cash) <= 1:
                 hits.append(item[0])
-            elif withholds and any(abs(item[4] - round(item[4] * r) - cash) <= 1 for r in _WITHHOLDING):
+            elif any(abs(item[4] - round(item[4] * r) - cash) <= 1 for r in _WITHHOLDING):
                 hits.append(item[0])
             elif foreign_payer and 0 < item[4] - cash <= item[4] * FEE_LIMIT_RATIO and (
                     (item[4] - cash) * eur_per_cent <= FEE_LIMIT_EUR_CENTS):
