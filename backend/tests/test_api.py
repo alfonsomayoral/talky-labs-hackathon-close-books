@@ -474,6 +474,15 @@ def test_only_the_served_run_is_marked_and_opened(env):
     assert store._runs.keys() <= {RUN}  # nothing else was opened by listing
 
 
+def test_run_id_is_the_folder_name_so_a_copy_is_not_a_duplicate(env):
+    import shutil
+    client, runs, _ = env
+    shutil.copytree(runs / RUN, runs / "copy-of-run")  # run.json inside still says RUN
+    listed = [r["runId"] for r in client.get("/api/runs").json()]
+    assert sorted(listed) == sorted([RUN, "copy-of-run", "p-20250101-000000"])
+    assert client.get("/api/runs/copy-of-run").json()["runId"] == "copy-of-run"
+
+
 def test_cases_sum_amount_eur_covers_the_whole_filter_not_the_page(api):
     everything = get(api, "/cases", size=2)
     assert len(everything["items"]) == 2 and everything["total"] == 5

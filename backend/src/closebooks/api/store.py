@@ -39,7 +39,7 @@ class Store:
         path = self.runs_dir / run_id / "run.json"
         if not path.exists():
             raise not_found("Run", run_id)
-        return orjson.loads(path.read_bytes())
+        return {**orjson.loads(path.read_bytes()), "runId": run_id}  # the folder is the id, not what run.json says
 
     def run(self, run_id: str) -> RunData:
         self.run_meta(run_id)
