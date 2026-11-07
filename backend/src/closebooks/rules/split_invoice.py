@@ -54,8 +54,10 @@ def _citing_receipts(phase: Phase, claimed: dict[str, Proposal]) -> list[_Receip
     engine = PartyAmount(phase, reserved={})
     found = []
     for txn in phase.txns.filter(pl.col("amount_cents") > 0).select(_COLUMNS).iter_rows(named=True):
+        if txn["bank_txn_id"] in claimed:
+            continue
         parties = engine.parties.find(txn, "customer")
-        if txn["bank_txn_id"] in claimed or len(parties) != 1:
+        if len(parties) != 1:
             continue
         cash, currency = engine._cash(txn)
         issued = [i for i in engine.items.get(parties[0], ()) if i[3] == currency and i[2] <= txn["booking_date"]
