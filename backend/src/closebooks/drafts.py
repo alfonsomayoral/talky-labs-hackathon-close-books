@@ -227,7 +227,10 @@ def render(case: dict, facts: dict, exception: str | None = None) -> dict | None
     language = language_of(facts.get("country"))
     text = _TEXT[language]
     subject, body = text[template]
-    docs = _docs(facts["items"], language, with_amount=template in ("overdue", "dispute", "credit"))
+    items = facts["items"]
+    if template == "dispute":  # the line may settle hundreds of invoices: the deduction is on those left open
+        items = [i for i in items if i["open_cents"] > 0] or items
+    docs = _docs(items, language, with_amount=template in ("overdue", "dispute", "credit"))
     if template == "credit":
         amount = sum(i["open_cents"] for i in facts["items"]) or case["amountCents"]
     else:

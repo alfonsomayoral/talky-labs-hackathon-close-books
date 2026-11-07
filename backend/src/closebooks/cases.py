@@ -189,7 +189,7 @@ def _option(option: dict, info: dict[str, dict], names: dict[str, str]) -> dict:
     cents = sum(o for _, o in option["items"])
     currency = info[ids[0]]["currency"]
     if option["kind"] == "party":
-        numbers = ", ".join(info[i]["number"] for i in ids)
+        numbers = ", ".join(info[i]["number"] for i in ids[:3]) + (f" y {len(ids) - 3} más" if len(ids) > 3 else "")
         return {"id": option["partyId"], "label": f"{names.get(option['partyId'], option['partyId'])} · {numbers} · "
                                                   f"{_money(cents, currency)}"}
     if len(ids) == 1:

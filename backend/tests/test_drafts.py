@@ -45,6 +45,13 @@ def test_language_follows_the_country_of_the_party_and_amounts_follow_the_langua
     assert render(case(), facts("DE"))["body"].startswith("Sehr geehrte")
 
 
+def test_a_dispute_lists_only_the_invoices_still_open():
+    its = facts()["items"]
+    its[0]["open_cents"] = 0
+    body = render(case("dispute"), {**facts(), "items": its})["body"]
+    assert "FV1" not in body and "- FV2 · vence 2025-01-02 · 20,00 EUR" in body
+
+
 def test_long_lists_are_cut_and_say_how_many_more():
     body = render(case(), facts(n=20))["body"]
     assert body.count("\n- ") == 13 and "… y 8 más" in body

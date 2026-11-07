@@ -229,6 +229,14 @@ def test_a_party_question_offers_the_parties_and_a_debit_gets_no_customer_rule()
     assert q["rulePreview"] is None
 
 
+def test_a_party_option_names_only_the_first_invoices():
+    ids = [f"ARI-{n}" for n in range(1, 6)]
+    info = {i: {**INFO["ARI-1"], "number": f"FV{i[-1]}"} for i in ids}
+    options = {"BT-1": {"reason": "parties", "options": [{"partyId": "C1", "items": [(i, 100) for i in ids]}]}}
+    q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: info, {"C1": "Acme"}, "now")[0]
+    assert q["options"][0]["label"] == "Acme · FV1, FV2, FV3 y 2 más · 5,00 EUR"
+
+
 def test_questions_are_capped_by_amount(monkeypatch):
     monkeypatch.setattr("closebooks.cases.MAX_QUESTIONS", 1)
     rows = [Row(t, None, None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED", 0.0)
