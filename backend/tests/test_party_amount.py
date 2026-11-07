@@ -277,6 +277,35 @@ def test_unknown_ordering_party_still_finds_the_whole_name_of_who_it_pays_for():
     assert _index("Rubio Aguas S.A.").find(moved, "customer") == ["C0"]
 
 
+def test_the_space_after_a_whole_name_does_not_make_a_longer_name_win():
+    # "S.L." is whole here; "S.L.U." only gets further by the space after the word. Both are real customers: abstain.
+    moved = txn(1, "TRANSF. A SU FAVOR | 75081474-MOLINOS ARRAYAN S.L. | PLAZO 4/4")
+    index = _index("Molinos Arrayan S.L.", "Molinos Arrayan S.L.U.")
+    assert index.find(moved, "customer") == ["C0", "C1"]
+    assert not index.certain
+
+
+def test_a_whole_name_beats_a_longer_one_the_bank_would_have_cut_mid_name():
+    moved = txn(1, "TRANSF. 75081474-MOLINOS ARRAYAN S.L.")
+    index = _index("Molinos Arrayan S.L.", "Molinos Arrayan S.L. Export")
+    assert index.find(moved, "customer") == ["C0"]
+    assert index.certain
+
+
+def test_a_customer_with_its_legal_form_cut_by_the_bank_is_still_found_but_not_certain():
+    moved = txn(1, "TRANSF. A SU FAVOR | MOLINOS ARRAYAN S.L. | PLAZO 4/4")
+    index = _index("Molinos Arrayan S.L.U.")
+    assert index.find(moved, "customer") == ["C0"]
+    assert not index.certain
+
+
+def test_the_longer_name_written_whole_wins_over_the_shorter_one():
+    moved = txn(1, "TRANSF. A SU FAVOR | MOLINOS ARRAYAN S.L.U. | PLAZO 4/4")
+    index = _index("Molinos Arrayan S.L.", "Molinos Arrayan S.L.U.")
+    assert index.find(moved, "customer") == ["C1"]
+    assert index.certain
+
+
 def test_uncited_small_shortfall_outside_sepa_is_found_for_the_only_invoice_it_fits():
     rule, balances = engine([item("ARI-1", "C1", "FV1234", 2556975), item("ARI-2", "C1", "FV1235", 9000)],
                             customers=(("C1", "E1", "Wellness Garrido S.L.", None, None, None, None, None),))
