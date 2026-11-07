@@ -185,7 +185,7 @@ def main_bank_and_currency(masters: Path, entity: str) -> tuple[str, str]:
 
 
 def build(source_name: str, dest_name: str, entity: str, new_entity: str, new_bank: str, new_currency: str,
-          new_format: str, with_rate: bool = True) -> Path:
+          new_format: str, with_rate: bool = True, with_history: bool = True) -> Path:
     source = phase_dir(source_name)
     out = _fresh(DB / dest_name)
     masters = masters_dir(source)
@@ -199,6 +199,8 @@ def build(source_name: str, dest_name: str, entity: str, new_entity: str, new_ba
         path = source / f"{name}.csv.gz"
         if path.exists():
             table = rename.items(load_table(path))
+            if name == "open_items_at_start" and not with_history:  # as ZA01 arrives: nothing carried over
+                table = table.filter(pl.col("entity") != new_entity)
             _write_gz(table, out / f"{name}.csv.gz")
             if name == "open_items_at_start":
                 opening = table
@@ -265,6 +267,7 @@ def main() -> None:
     made.add_argument("--new-currency", default="HUF")
     made.add_argument("--new-format", default="mt940x")
     made.add_argument("--no-rate", action="store_true", help="the new currency has no line in the FX file")
+    made.add_argument("--no-history", action="store_true", help="the new entity carries nothing from earlier phases")
     told = sub.add_parser("report")
     told.add_argument("base", type=Path)
     told.add_argument("final", type=Path)
@@ -273,7 +276,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.command == "build":
         print(build(args.source, args.dest, args.entity, args.new_entity, args.new_bank, args.new_currency,
-                    args.new_format, not args.no_rate))
+                    args.new_format, not args.no_rate, not args.no_history))
     else:
         report(args.base, args.final, args.phase, args.new_entity)
 
