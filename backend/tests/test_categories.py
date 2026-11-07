@@ -193,7 +193,8 @@ def refund_phase(note_overrides=None, **txn_overrides):
             "currency": "EUR", "total_cents": 15547, "issue_date": "2025-05-14", **(note_overrides or {})}
     receipt = {"bank_txn_id": "BT-1", "entity": "ES01", "currency": "EUR", "amount_cents": 15547,
                "booking_date": "2025-06-02", "text": "TRANSFERENCIA SEPA | 81734825-FILTROS PENA S.L. | ABONO",
-               "ref1": None, "ref2": None, "end_to_end_id": None, "remittance_info": None, **txn_overrides}
+               "ref1": None, "ref2": None, "end_to_end_id": None, "remittance_info": None, "counterparty_name": None,
+               **txn_overrides}
     suppliers = pl.DataFrame({"supplier_id": ["SES01000001"], "name": ["FILTROS PENA S.L."]})
     return SimpleNamespace(items=pl.DataFrame([note]), txns=pl.DataFrame([receipt]), masters={"suppliers": suppliers})
 
@@ -247,3 +248,17 @@ def test_supplier_refunds_on_the_sample_are_precise(sample):
     assert len(claimed) > 50
     right = sum(1 for t, p in claimed.items() if (t, p.lines[0][0]) in pairs)
     assert right / len(claimed) > 0.995
+
+
+def test_supplier_named_only_as_the_ordering_party_settles_its_credit_note():
+    # BT-2025-0002445: "DEVOLUCION SALDO A FAVOR", and the supplier only in the counterparty.
+    phase = refund_phase(text="SEPA-UEBERWEISUNG EREF+NOTPROVIDED SVWZ+DEVOLUCION SALDO A FAVOR",
+                         counterparty_name="FILTROS PENA S.L.")
+    assert rules.propose_supplier_refunds(phase)["BT-1"].lines == [("APC-2025-0000001", None)]
+
+
+def test_supplier_written_without_its_accents_by_the_bank_settles_its_credit_note():
+    # BT-2025-0002848: the bank prints LOGISTICA for Logística.
+    phase = refund_phase({"party_name": "Logística Global S.L."},
+                         text="TRANSFERENCIA SEPA | 3126-LOGISTICA GLOBAL S.L.")
+    assert rules.propose_supplier_refunds(phase)["BT-1"].lines == [("APC-2025-0000001", None)]

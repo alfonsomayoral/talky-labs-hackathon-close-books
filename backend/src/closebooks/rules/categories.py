@@ -1,13 +1,12 @@
 """R6: CAT-CODE and CAT-TEXT. A line that settles no item, when the evidence is strong (POLICIES §4)."""
 from __future__ import annotations
 
-import re
-
 import polars as pl
 
 from ..categories import Codes, load_codes, pure_category, text_category
 from ..load import Phase
 from ..model import Proposal
+from .parties import normalize
 
 NAME_PREFIX = 8  # characters of the supplier name that identify it in a truncated bank text
 
@@ -25,7 +24,7 @@ def claim(txn: dict, codes: Codes) -> Proposal | None:
 
 
 def _norm(text: str | None) -> str:
-    return re.sub(r"[^A-Z0-9]", "", (text or "").upper())
+    return normalize(text).replace(" ", "")
 
 
 def propose_supplier_refunds(phase: Phase) -> dict[str, Proposal]:
@@ -38,8 +37,8 @@ def propose_supplier_refunds(phase: Phase) -> dict[str, Proposal]:
         pl.coalesce("party_name", "master_name").alias("name"))
     credits = phase.txns.filter(pl.col("amount_cents") > 0).select(
         "bank_txn_id", "entity", "currency", "amount_cents", "booking_date",
-        pl.concat_str(["text", "ref1", "ref2", "end_to_end_id", "remittance_info"], separator=" ", ignore_nulls=True)
-        .alias("all_text"))
+        pl.concat_str(["text", "ref1", "ref2", "end_to_end_id", "remittance_info", "counterparty_name"], separator=" ",
+                      ignore_nulls=True).alias("all_text"))
     pairs = credits.join(notes, left_on=["entity", "currency", "amount_cents"],
                          right_on=["entity", "currency", "total_cents"]).filter(
         pl.col("issue_date") <= pl.col("booking_date"))

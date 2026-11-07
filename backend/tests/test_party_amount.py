@@ -733,3 +733,28 @@ def test_a_group_member_whose_invoices_do_not_add_up_to_the_cash_settles_nothing
 def test_a_name_that_is_not_whole_does_not_reach_the_group():
     rule, balances = engine([item("ARI-1", "C2", "F1", 71939)], customers=GROUP)
     assert rule(txn(71939, "HOLDING PORTO"), balances) is None
+
+
+# POLICIES §5.2: BT-2025-0002687, ES00 pays; the same supplier also exists in ES00 with nothing open.
+FACTORY = (("S1", "E1", "Valvulas Castro S.L.", None), ("S2", "E2", "Valvulas Castro S.L.", None))
+
+
+def test_payment_factory_settles_the_invoice_of_the_same_supplier_in_another_entity():
+    rule, balances = engine([item("API-1", "S2", "500", 57297, entity="E2")], customers=(), suppliers=FACTORY)
+    found = rule(txn(-57297, "ADEUDO A SU CARGO | VALVULAS CASTRO S.L. N 7039", entity="E1"), balances)
+    assert found.party_id == "S2" and lines(found) == {"API-1"}
+    assert found.sources == [{"kind": "supplier", "ref": "S2", "label": "paid from E1"}]
+
+
+def test_payment_factory_with_two_entities_that_could_be_paid_is_not_guessed():
+    suppliers = (*FACTORY, ("S3", "E3", "Valvulas Castro S.L.", None))
+    rule, balances = engine([item("API-1", "S2", "500", 57297, entity="E2"),
+                             item("API-2", "S3", "600", 57297, entity="E3")], customers=(), suppliers=suppliers)
+    assert rule(txn(-57297, "ADEUDO A SU CARGO | VALVULAS CASTRO S.L. N 7039", entity="E1"), balances) is None
+
+
+def test_payment_factory_does_not_apply_to_what_customers_pay():
+    customers = (("C1", "E1", "Valvulas Castro S.L.", None, None, None, None, None),
+                 ("C2", "E2", "Valvulas Castro S.L.", None, None, None, None, None))
+    rule, balances = engine([item("ARI-1", "C2", "500", 57297, entity="E2")], customers=customers)
+    assert rule(txn(57297, "TRANSFERENCIA DE VALVULAS CASTRO S.L.", entity="E1"), balances) is None

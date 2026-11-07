@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import date, timedelta
+from itertools import combinations
 
 import polars as pl
 
@@ -16,6 +17,8 @@ RUN_REF = re.compile(r"\b((?:PR|CF)\d{12})(?:-(\d{4}))?\b")
 # A debit in N43 may cut the reference at the end of a 38-character field.
 RUN_REF_CUT = re.compile(r"\b((?:PR|CF)\d{4,11}) \| (\d{1,8})\b")
 REASON_CODE = re.compile(r"\b[A-Z]{2}\d{2}\b")  # ISO 20022 return reason: AC01, MD07, BE04
+SUPPLIERS_IN_TEXT = re.compile(r"\b(\d{1,4}) [A-Z]")  # "8 PROVEEDORES": how many transfers the debit says it pays
+MAX_LEFT_OUT = 2  # transfers of a maturity paid apart; more and the exact sum would prove little
 NAME_CHARS = 20  # the bank cuts a beneficiary's name; the first characters are what survives
 
 
@@ -129,6 +132,18 @@ def propose(phase: Phase) -> dict[str, Proposal]:
     return proposals
 
 
+def _leaving_out(candidates: list[str], transfers: dict, target: int, text: str) -> list[str] | None:
+    """The bank says how many suppliers it pays and the maturity has one or two more, paid on their own: the only set of
+    that many transfers whose exact sum is the debit."""
+    said = SUPPLIERS_IN_TEXT.search(text or "")
+    left = len(candidates) - int(said[1]) if said else 0
+    if not 1 <= left <= MAX_LEFT_OUT:
+        return None
+    excess = sum(transfers[e]["transfer_cents"] for e in candidates) - target
+    apart = [set(c) for c in combinations(candidates, left) if sum(transfers[e]["transfer_cents"] for e in c) == excess]
+    return [e for e in candidates if e not in apart[0]] if len(apart) == 1 else None
+
+
 def _rejected_transfer(txn: dict, sent: dict) -> tuple[str, str] | None:
     """A credit with a return reason and no reference (POLICIES §3): the one transfer of that amount, from that account
     and to the beneficiary the text names, made before it. POLICIES gives no time limit; two candidates are a tie."""
@@ -191,6 +206,10 @@ def _due_group(txn: dict, rows: list[dict], target: int, by_transfer: dict, tran
         if candidates and sum(transfers[e]["transfer_cents"] for e in candidates) == target:
             used.update((account, e) for e in candidates)
             return [row for e in candidates for row in by_transfer[account, e]]
+        kept = _leaving_out(candidates, transfers, target, txn["text"])
+        if kept:
+            used.update((account, e) for e in kept)
+            return [row for e in kept for row in by_transfer[account, e]]
     if re.search(r"\b1 [A-Z]", txn["text"]):
         late = [e for es in groups.values() for e in es if transfers[e]["transfer_cents"] == target]
         if len(late) == 1:

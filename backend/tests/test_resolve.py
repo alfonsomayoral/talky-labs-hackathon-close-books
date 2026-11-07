@@ -363,3 +363,47 @@ def test_cancelled_invoice_paid_by_a_file_with_nothing_before_is_not_a_duplicate
     proposals = {"BT-1": Proposal("FILE-CHEQUE", [("ARI-1", 1000)])}
     rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), proposals)
     assert (rows[0].amount_cents, rows[0].exception) == (1000, None)
+
+
+def _plan_rows(cash, opening, amounts):
+    items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [opening], "total_cents": [sum(amounts)],
+                          "currency": ["EUR"], "party_id": ["C1"], "payment_terms": ["T30"],
+                          "issue_date": ["2025-01-01"]})
+    masters = {"payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None],
+                                              "discount_days": [None]},
+                                             schema_overrides={"early_payment_discount_pct": pl.String,
+                                                               "discount_days": pl.String}),
+               "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["ES"]})}
+    t = pl.DataFrame({"bank_txn_id": ["BT-1"], "booking_date": ["2025-01-02"], "amount_cents": [cash],
+                      "currency": ["EUR"], "bank": ["B"], "bank_code": [""], "bank_subcode": [""], "text": ["X"],
+                      "orig_cents": [None], "orig_currency": [None], "amount_eur_cents": [cash], "entity": ["E1"],
+                      "counterparty_name": [None], "counterparty_account": [None], "remittance_info": [None],
+                      "ref1": [None], "ref2": [None], "end_to_end_id": [None]},
+                     schema_overrides={c: pl.String for c in ("orig_currency", "counterparty_name",
+                                                              "counterparty_account", "remittance_info", "ref1", "ref2",
+                                                              "end_to_end_id")} | {"orig_cents": pl.Int64})
+
+    class Plan:
+        clauses = {"ARI-1": {"instalments": {"amounts": amounts}}}
+
+        def __call__(self, txn, balances):
+            return Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)
+
+    rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), {}, Plan())
+    return rows[0]
+
+
+def test_last_instalment_of_a_plan_has_no_exception_even_if_an_earlier_one_was_not_seen():
+    # POLICIES §3: FV24 at 3 instalments, the first ones missed by the engine: the balance alone would say PARTIAL.
+    row = _plan_rows(30000, 100000, [50000, 20000, 30000])
+    assert (row.amount_cents, row.exception) == (30000, None)
+
+
+def test_an_instalment_that_is_not_the_last_is_partial_even_if_it_clears_the_balance():
+    row = _plan_rows(20000, 20000, [50000, 20000, 30000])
+    assert (row.amount_cents, row.exception) == (20000, "PARTIAL")
+
+
+def test_equal_instalments_do_not_say_which_one_this_is():
+    assert _plan_rows(20000, 20000, [20000, 20000]).exception is None
+    assert _plan_rows(20000, 40000, [20000, 20000]).exception == "PARTIAL"

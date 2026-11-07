@@ -20,6 +20,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
     settled_uncited: set[str] = set()
     # POLICIES §5.7: opens at 0 without having been paid, so paying it is not paying it again.
     cancelled = cancelled_item_ids(items) if "reason" in items.columns else set()
+    plans = getattr(stateful, "clauses", {})
     rows: list[Row] = []
     for txn in phase.txns.select(
         "bank_txn_id", "booking_date", "amount_cents", "currency", "bank", "bank_code", "bank_subcode", "text",
@@ -51,6 +52,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                     item_id, currency[item_id], txn["currency"], balances.open(item_id), applied, proposal.returned,
                     deduction=proposal.deductions.get(item_id), terms=terms_of(item_id),
                     booking_date=txn["booking_date"])
+            exception = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception)
             balance_effect = exception
             doubts_first = item_id in settled_uncited and proposal.rule != "PARTY-DUPLICATE"
             if exception == "DUPLICATE_PAYMENT" and doubts_first:
@@ -65,6 +67,15 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                             proposal.confidence, party[item_id], proposal.reference, proposal.sources,
                             proposal.candidates))
     return rows, balances
+
+
+def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: str) -> str:
+    """POLICIES §3: every instalment but the last is PARTIAL, whatever our balance says (we may have missed one). Only
+    instalments of different amounts say which one is being paid."""
+    amounts = (clauses or {}).get("instalments", {}).get("amounts", ())
+    if lines != 1 or exception not in ("", "PARTIAL") or len(set(amounts)) < 2 or amount not in amounts:
+        return exception
+    return "" if amount == amounts[-1] else "PARTIAL"
 
 
 def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalances, terms_of) -> dict:
