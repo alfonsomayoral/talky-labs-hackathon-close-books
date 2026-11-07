@@ -6,7 +6,7 @@ import type { Run, RunSummary } from '@/domain'
 import { formatNumber, formatPercent } from '@/lib/format'
 import { useTextParam } from '@/lib/urlState'
 import { DeltaTable } from './DeltaTable'
-import { METRIC_LABEL, defaultPair, diffCounts, diffMetrics, diffSegments, isDrop, type Delta } from './model'
+import { METRIC_LABEL, defaultPair, diffCounts, diffMetrics, diffSegments, isDrop, isRise, type Delta } from './model'
 import styles from './CompareTab.module.css'
 
 const signed = (format: (v: number) => string) => (v: number) => (v > 0 ? `+${format(v)}` : format(v))
@@ -44,6 +44,7 @@ function Result({ a, b }: { a: Run; b: Run }) {
   const rules = useMemo(() => diffCounts(a.byRule, b.byRule), [a.byRule, b.byRule])
   const changed = rules.filter((r) => r.delta !== 0)
   const drops = segments.filter(isDrop).length
+  const rises = segments.filter(isRise).length
 
   return (
     <>
@@ -65,7 +66,12 @@ function Result({ a, b }: { a: Run; b: Run }) {
           <Card
             title="Segmentos"
             description="Acierto por tipo de movimiento. Los que bajan van primero."
-            actions={drops > 0 ? <Badge tone="danger">{drops === 1 ? '1 segmento baja' : `${drops} segmentos bajan`}</Badge> : <Badge tone="ok">Ninguno baja</Badge>}
+            actions={
+              <>
+                {rises > 0 && <Badge tone="ok">{rises === 1 ? '1 segmento sube' : `${rises} segmentos suben`}</Badge>}
+                {drops > 0 ? <Badge tone="danger">{drops === 1 ? '1 segmento baja' : `${drops} segmentos bajan`}</Badge> : <Badge tone="ok">Ninguno baja</Badge>}
+              </>
+            }
             padding="none"
           >
             <DeltaTable

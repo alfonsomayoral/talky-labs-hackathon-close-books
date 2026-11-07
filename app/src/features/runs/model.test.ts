@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RunSummary, Score } from '@/domain'
-import { consoleStep, defaultPair, failureCause, diffCounts, diffMetrics, diffSegments, isDrop, stageList } from './model'
+import { consoleStep, defaultPair, failureCause, isRise, diffCounts, diffMetrics, diffSegments, isDrop, stageList } from './model'
 
 const score = (metrics: Record<string, number>, segments: Score['segments'] = {}): Score => ({ score: 0, metrics, segments })
 const run = (runId: string, phase: string, createdAt: string, s: number | null) => ({ runId, phase, createdAt, score: s }) as RunSummary
@@ -52,6 +52,18 @@ describe('diffCounts', () => {
 })
 
 describe('defaultPair', () => {
+  it('compares the served run with the previous one of its phase, scored or not, not with a newer run', () => {
+    const runs = [
+      run('h9', 'holdout', '2026-11-07T06:00:00Z', 90),
+      { ...run('l2', 'live', '2026-11-07T04:00:00Z', null), served: true },
+      run('l1', 'live', '2026-11-07T02:00:00Z', null),
+      run('l3', 'live', '2026-11-07T05:00:00Z', null),
+    ]
+    expect(defaultPair(runs)).toEqual({ a: 'l1', b: 'l2' })
+  })
+  it('leaves the other side empty when the served run is the first of its phase', () => {
+    expect(defaultPair([{ ...run('l1', 'live', '2026-11-07T02:00:00Z', null), served: true }, run('h1', 'holdout', '2026-11-07T01:00:00Z', 80)])).toEqual({ a: null, b: 'l1' })
+  })
   it('compares the latest scored run with the previous scored one of the same phase', () => {
     const runs = [
       run('h3', 'holdout', '2026-11-07T05:00:00Z', 80),
@@ -110,5 +122,14 @@ describe('failureCause', () => {
     expect(failureCause('no output')).toBe('no output')
     expect(failureCause(null)).toBeNull()
     expect(failureCause('  \n ')).toBeNull()
+  })
+})
+
+describe('isRise', () => {
+  it('is only a real improvement', () => {
+    expect(isRise({ key: 'x', a: 0.5, b: 0.6, delta: 0.1 })).toBe(true)
+    expect(isRise({ key: 'x', a: 0.6, b: 0.5, delta: -0.1 })).toBe(false)
+    expect(isRise({ key: 'x', a: 0.5, b: 0.5, delta: 0 })).toBe(false)
+    expect(isRise({ key: 'x', a: null, b: 0.5, delta: null })).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import { Badge } from '@/components'
-import { isDrop, type Delta } from './model'
+import { isDrop, isRise, type Delta } from './model'
 import styles from './DeltaTable.module.css'
 
 export interface DeltaTableProps {
@@ -36,7 +36,7 @@ export function DeltaTable({ head, rows, label, format, formatDelta, judge, a, b
       <tbody>
         {rows.map((r) => {
           const drop = judge && isDrop(r)
-          const rise = judge && r.delta != null && r.delta > 1e-9
+          const rise = judge && isRise(r)
           return (
             <tr key={r.key} className={clsx(drop && styles.drop)}>
               <th scope="row">{label(r)}</th>
@@ -47,6 +47,11 @@ export function DeltaTable({ head, rows, label, format, formatDelta, judge, a, b
                 {drop && (
                   <Badge tone="danger" className={styles.badge}>
                     Baja
+                  </Badge>
+                )}
+                {rise && (
+                  <Badge tone="ok" className={styles.badge}>
+                    Sube
                   </Badge>
                 )}
               </td>
