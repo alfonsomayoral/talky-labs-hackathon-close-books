@@ -433,3 +433,32 @@ def test_an_instalment_that_is_not_the_last_is_partial_even_if_it_clears_the_bal
 def test_equal_instalments_do_not_say_which_one_this_is():
     assert _plan_rows(20000, 20000, [20000, 20000]).exception is None
     assert _plan_rows(20000, 40000, [20000, 20000]).exception == "PARTIAL"
+
+
+def test_a_shortfall_outside_sepa_is_bank_charges_only_if_the_bank_stated_that_fee():
+    # Invented: a Swiss customer, a plain transfer code, and the fee printed by the bank (POLICIES §3).
+    items = pl.DataFrame({"item_id": ["ARI-1"], "item_type": ["ARI"], "entity": ["E1"], "document_number": ["F1"],
+                          "open_cents": [294540], "total_cents": [294540], "currency": ["EUR"], "party_id": ["C1"],
+                          "payment_terms": ["T30"], "issue_date": ["2025-01-01"]})
+    masters = {"payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None],
+                                              "discount_days": [None]},
+                                             schema_overrides={"early_payment_discount_pct": pl.String,
+                                                               "discount_days": pl.String}),
+               "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["CH"]})}
+
+    def resolved(text: str) -> tuple[int, str | None]:
+        t = pl.DataFrame({"bank_txn_id": ["BT-1"], "booking_date": ["2025-02-01"], "amount_cents": [290040],
+                          "currency": ["EUR"], "bank": ["B"], "bank_code": ["NTRF"], "bank_subcode": [""],
+                          "text": [text], "orig_cents": [None], "orig_currency": [None], "amount_eur_cents": [290040],
+                          "entity": ["E1"], "counterparty_name": [None], "counterparty_account": [None],
+                          "remittance_info": [None], "ref1": [None], "ref2": [None], "end_to_end_id": [None]},
+                         schema_overrides={c: pl.String for c in ("orig_currency", "counterparty_name",
+                                                                  "counterparty_account", "remittance_info", "ref1",
+                                                                  "ref2", "end_to_end_id")} | {"orig_cents": pl.Int64})
+        proposal = Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)
+        rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), {"BT-1": proposal})
+        return rows[0].amount_cents, rows[0].exception
+
+    assert resolved("BONIFICO DA ACME AG CAUSALE F1 /CHGS/EUR45,00") == (294540, "SHORT_BANK_CHARGES")
+    assert resolved("BONIFICO DA ACME AG CAUSALE F1 /CHGS/EUR25,00") == (290040, "PARTIAL")
+    assert resolved("BONIFICO DA ACME AG CAUSALE F1 /CHGS/USD45,00") == (290040, "PARTIAL")
