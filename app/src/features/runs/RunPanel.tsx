@@ -46,7 +46,7 @@ function Detail({ run }: { run: Run }) {
         <BarList label="Duración por etapa" items={stages.map((s) => ({ key: s.stage, label: STAGE_LABEL[s.stage] ?? s.stage, value: s.ms!, display: formatDuration(s.ms) }))} />
       </Section>
       {run.score && (
-        <Section title="Puntuación" description="Con el evaluador oficial contra el golden de la fase.">
+        <Section title="Puntuación" description="Con el evaluador oficial, contra las respuestas de la fase.">
           <KeyValue
             labelWidth={190}
             items={[

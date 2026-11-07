@@ -1,5 +1,5 @@
 // Pure logic of the Memoria y reglas screen: what each kind of rule asks for (CONTRACT.md §4).
-import type { MemoryRule, MemoryRuleKind } from '@/domain'
+import { categoryLabel, type MemoryRule, type MemoryRuleKind } from '@/domain'
 
 export interface FieldSpec {
   name: string
@@ -230,7 +230,7 @@ export function describeRule(kind: MemoryRuleKind, p: Params): string {
     case 'always_category': {
       const code = p.bankCode ? `código ${p.bankCode}${p.bankSubcode ? `/${p.bankSubcode}` : ''}` : null
       const filters = [p.bank && `del banco ${p.bank}`, code, p.textPattern && `con «${p.textPattern}»`].filter(Boolean)
-      return `Los movimientos ${filters.join(', ')} van siempre a ${p.category}.`
+      return `Los movimientos ${filters.join(', ')} van siempre a ${categoryLabel(String(p.category))}.`
     }
     case 'ignore_suffix':
       return `En las referencias del tercero ${p.partyId} se ignora el sufijo ${p.regex}.`

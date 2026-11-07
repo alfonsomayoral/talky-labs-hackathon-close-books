@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Amount, ButtonLink, Card, EmptyState, Metric, Mono, Page, PageHeader, Section, Skeleton } from '@/components'
 import { useActiveRun, useRun, useRunStats } from '@/data'
-import { autoRate, categoryLabel, exceptionLabel } from '@/domain'
+import { autoRate, categoryLabel, exceptionLabel, ruleDescription } from '@/domain'
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { DayChart } from './DayChart'
@@ -158,7 +158,7 @@ export function OverviewPage() {
         <Section title="Filas por regla" description="Qué regla produjo cada fila. Abre la conciliación.">
           <Card padding="none">
             {stats.byRule.length ? (
-              <RankList rows={stats.byRule.slice(0, TOP).map((r) => ({ key: r.rule, label: <Mono>{r.rule}</Mono>, value: r.rows, to: to('/conciliacion', ['regla', r.rule]) }))} />
+              <RankList rows={stats.byRule.slice(0, TOP).map((r) => ({ key: r.rule, label: <Mono title={ruleDescription(r.rule)}>{r.rule}</Mono>, value: r.rows, to: to('/conciliacion', ['regla', r.rule]) }))} />
             ) : (
               <EmptyState size="sm" title="Sin filas" />
             )}

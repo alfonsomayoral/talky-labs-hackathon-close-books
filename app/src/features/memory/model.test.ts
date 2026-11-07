@@ -98,7 +98,7 @@ describe('describeRule', () => {
         category: 'BANK_FEES',
         textPattern: 'COMISION',
       }),
-    ).toBe('Los movimientos con «COMISION» van siempre a BANK_FEES.')
+    ).toBe('Los movimientos con «COMISION» van siempre a Comisiones bancarias.')
     expect(
       describeRule('always_category', {
         category: 'BANK_FEES',
@@ -106,7 +106,7 @@ describe('describeRule', () => {
         bankCode: '12',
         bankSubcode: '3',
       }),
-    ).toBe('Los movimientos del banco B1, código 12/3 van siempre a BANK_FEES.')
+    ).toBe('Los movimientos del banco B1, código 12/3 van siempre a Comisiones bancarias.')
   })
   it('prefers the document to the party for an alias', () => {
     expect(
