@@ -17,6 +17,7 @@ _TOKEN = re.compile(r"[A-Z0-9][A-Z0-9/\-]{2,}")
 MIN_SUFFIX = 3
 STRONG_SUFFIX = 5
 MIN_CUT = 6
+LONG_CUT = 8
 MAX_SUBSET_ITEMS = 24
 MAX_FULL_SEARCH = 16  # beyond this, sums collide so often that a unique subset means nothing
 NUMBER_ALONE_TOLERANCE = 0.05
@@ -176,8 +177,9 @@ class PartyAmount:
         open_now = {i[0]: balances.open(i[0]) for i in mine}
         free = [(i, open_now[i[0]]) for i in mine
                 if open_now[i[0]] > 0 and i[0] not in self.reserved and i[2] >= self.unknown_before]
-        strong, weak = self._cited(mine, self._tokens(txn))
-        by_reference = self._by_reference(strong, weak, free, open_now, cash, party)
+        tokens = self._tokens(txn)
+        strong, weak = self._cited(mine, tokens)
+        by_reference = self._by_reference(strong, weak, free, open_now, cash, party, {_alnum(t) for t in tokens})
         if by_reference:
             return by_reference
         same = [i for i, o in free if o == cash and i[0][:3] not in CREDIT_NOTES]
@@ -200,7 +202,7 @@ class PartyAmount:
 
     @staticmethod
     def _cited(items: list[tuple], tokens: set[str]) -> tuple[list[tuple], list[tuple]]:
-        """Items the text cites: strong (the number, whole or barely cut) and weak (a short tail or a cut number)."""
+        """Items the text cites: strong (the number or a long tail) and weak (a short tail or a cut number)."""
         flats = [(token, _alnum(token)) for token in tokens]
         flats = [(t, f) for t, f in flats if len(f) >= MIN_SUFFIX]
         strong, weak = [], []
@@ -222,7 +224,8 @@ class PartyAmount:
                 weak.append(item)
         return strong, weak
 
-    def _by_reference(self, strong: list, weak: list, free: list, open_now: dict, cash: int, party: str):
+    def _by_reference(self, strong: list, weak: list, free: list, open_now: dict, cash: int, party: str,
+                      flats: set[str]):
         """A citation counts when it explains the cash; a whole number counts on its own."""
         make = self._proposal
         cited = [(i, open_now[i[0]]) for i in strong + weak if open_now[i[0]] > 0]
@@ -232,6 +235,12 @@ class PartyAmount:
         if subset:
             return make("REF-SUBSET", party, subset, by_cash=True, confidence=0.95)
         for_strong = [(i, open_now[i[0]]) for i in strong if open_now[i[0]] > 0]
+        if for_strong and _net(for_strong) > cash:
+            named = {i[0] for i, _ in for_strong}
+            notes = [f for f in free if f[0][0] not in named and f[0][0][:3] in CREDIT_NOTES]
+            netted = self._notes_for(notes, _net(for_strong) - cash)
+            if netted:
+                return make("REF-COMPLETED", party, [*named, *netted], by_cash=True, confidence=0.9)
         if for_strong and _net(for_strong) < cash:
             named = {i[0] for i, _ in for_strong}
             rest = self._subset([f for f in free if f[0][0] not in named], cash - _net(for_strong), min_size=1)
@@ -239,10 +248,23 @@ class PartyAmount:
                 return make("REF-COMPLETED", party, [*named, *rest], by_cash=True, confidence=0.9)
         if for_strong:
             return make("REF-TEXT", party, [i[0] for i, _ in for_strong], by_cash=True, confidence=0.9)
+        if not strong and len(cited) == 1 and any(len(t) >= LONG_CUT and cited[0][0][6].startswith(t) for t in flats):
+            return make("REF-TEXT", party, [cited[0][0][0]], by_cash=True, confidence=0.8)
         closed = [i for i in strong if i[4] == cash]
         if len(closed) == 1:
             return make("REF-TEXT", party, [closed[0][0]], by_cash=True, confidence=0.9)
         return None
+
+    @staticmethod
+    def _notes_for(notes: list, gap: int) -> list[str] | None:
+        """Credit notes, not cited, that are exactly what the customer netted from the invoices it cites."""
+        exact = [n[0][0] for n in notes if n[1] == gap]
+        if len(exact) == 1:
+            return exact
+        if len(exact) > 1 or len(notes) > MAX_FULL_SEARCH:
+            return None
+        positive = [((n[0][0], "", "", "", 0, "", "", "", ""), n[1]) for n in notes]
+        return _unique_subset([(i[0], o) for i, o in positive], gap, 2) if positive else None
 
     def _of_month(self, same: list, txn: dict) -> tuple | None:
         """Equal amounts: the text names a month. The PDF names the invoice's; else it is issued the month after."""
@@ -305,7 +327,10 @@ class PartyAmount:
     def _subset(free: list, cash: int, min_size: int = 2) -> list[str] | None:
         """A unique set of items, net of credit notes, that adds up exactly to the cash."""
         ordered = sorted(free, key=lambda x: (x[0][2], x[0][0]))
-        signed_all = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered]
+        credit = sum(o for i, o in ordered if i[0][:3] in CREDIT_NOTES)
+        # An invoice above the cash plus every credit note cannot be part of it.
+        signed_all = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered
+                      if i[0][:3] in CREDIT_NOTES or o <= cash + credit]
         if len(signed_all) <= MAX_FULL_SEARCH:
             return _unique_subset(signed_all, cash, min_size)
         running = 0
@@ -336,5 +361,5 @@ class PartyAmount:
     @staticmethod
     def _proposal(rule: str, party: str | None, items: list[str], *, by_cash: bool = False,
                   confidence: float) -> Proposal:
-        return Proposal(rule=rule, lines=[(i, None) for i in items], confidence=confidence, party_id=party,
+        return Proposal(rule=rule, lines=[(i, None) for i in sorted(items)], confidence=confidence, party_id=party,
                         by_cash=by_cash)

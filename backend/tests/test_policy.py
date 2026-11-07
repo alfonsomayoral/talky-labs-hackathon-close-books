@@ -110,7 +110,9 @@ def test_foreign_currency_partial_keeps_partial():
 
 
 def test_item_with_nothing_open_paid_again_is_a_duplicate_of_what_was_paid():
-    assert allocate(228043, [facts("ARI-1", 0)], "2025-06-05", False) == {"ARI-1": (228043, "DUPLICATE_PAYMENT")}
+    settled = Terms(None, None, "2025-01-01", 228043, "ES")
+    assert allocate(228043, [facts("ARI-1", 0, settled)], "2025-06-05", False) == {
+        "ARI-1": (228043, "DUPLICATE_PAYMENT")}
 
 
 def test_partial_cash_on_several_invoices_goes_to_the_oldest_first():
@@ -129,3 +131,12 @@ def test_cross_border_signal_comes_from_the_iso_code_or_the_bank_text():
     assert cross_border("PMNT/RCDT/XBCT", "WIRE IN /ORG/LAKEVIEW")
     assert cross_border("13", "TRANSFER. EN DIV. | CDDJCBXX | GASTOS SHA")
     assert not cross_border("PMNT/RCDT/ESCT", "ACH CREDIT WATER CARE BLUE")
+
+
+def test_duplicate_needs_the_exact_amount_of_the_settled_item():
+    settled = Terms(None, None, "2025-01-01", 100000, "ES")
+    out = allocate(100000, [facts("ARI-1", 0, settled)], "2025-06-05", False)
+    assert out == {"ARI-1": (100000, "DUPLICATE_PAYMENT")}
+    assert allocate(40000, [facts("ARI-1", 0, settled)], "2025-06-05", False) == {"ARI-1": (40000, "")}
+    assert line(0, 40000, None, terms=settled) == (40000, "")
+    assert line(0, 100000, None, terms=settled) == (100000, "DUPLICATE_PAYMENT")

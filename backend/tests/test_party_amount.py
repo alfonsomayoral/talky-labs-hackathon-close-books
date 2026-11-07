@@ -327,3 +327,38 @@ def test_name_cut_in_the_middle_of_a_word_by_the_field_identifies_the_party():
 def test_name_without_its_legal_form_identifies_the_party():
     moved = txn(1, "TRANSFERENCIAS HIDROTECNIA LOMASECA REF")
     assert _index("Hidrotecnia Lomaseca S.L.").find(moved, "customer") == ["C0"]
+
+
+def test_invoices_bigger_than_the_cash_do_not_use_up_the_search():
+    big = [item(f"ARI-B{i}", "C1", f"B{i}", 9000000 + i, f"2024-01-{(i % 27) + 1:02d}") for i in range(40)]
+    wanted = [item("ARI-1", "C1", "F1", 1173527, "2024-02-01"), item("ARI-2", "C1", "F2", 1708759, "2024-03-01")]
+    rule, balances = engine(big + wanted)
+    assert lines(rule(txn(2882286, NAME), balances)) == {"ARI-1", "ARI-2"}
+
+
+def test_cited_invoices_net_of_a_credit_note_the_text_does_not_cite():
+    # ar_1toN_credit_note: the customer pays invoices minus a credit note and cites only the invoices.
+    rule, balances = engine([item("ARI-1", "C1", "FV22-0110337", 10000), item("ARI-2", "C1", "FV22-0111165", 5000),
+                             item("ARC-1", "C1", "AB22-0100001", 3000), item("ARC-2", "C1", "AB22-0100002", 777)])
+    proposal = rule(txn(12000, NAME, remit="FACTURA FV22-0110337 0111165"), balances)
+    assert lines(proposal) == {"ARI-1", "ARI-2", "ARC-1"}
+
+
+def test_a_long_cut_number_that_only_fits_one_invoice_explains_a_partial():
+    # "FT FT22-01-269": FT22-01-26956 paid in part.
+    rule, balances = engine([item("ARI-1", "C1", "FT22-01-26956", 113861), item("ARI-2", "C1", "FT22-01-30000", 999)])
+    assert lines(rule(txn(68316, NAME, remit="CAUSALE FT FT22-01-269"), balances)) == {"ARI-1"}
+
+
+def test_a_short_cut_number_that_fits_several_invoices_explains_nothing_on_its_own():
+    rule, balances = engine([item("ARI-1", "C1", "FT22-01-26956", 113861), item("ARI-2", "C1", "FT22-01-26999", 999)])
+    assert rule(txn(68316, NAME, remit="CAUSALE FT FT22-01-269"), balances) is None
+
+
+def test_rows_of_a_completed_reference_come_in_a_stable_order():
+    # The CSV must be byte-identical between runs (CONTRACT §3): sets iterate differently in each process.
+    items = [item(f"ARI-{i}", "C1", f"FV22-010000{i}", 1000 + i) for i in range(4)] + [item("ARI-9", "C1", "F9", 7)]
+    rule, balances = engine(items)
+    remit = "FACTURA FV22-0100003 FV22-0100001 FV22-0100002"
+    proposal = rule(txn(1001 + 1002 + 1003 + 1000, NAME, remit=remit), balances)
+    assert [i for i, _ in proposal.lines] == sorted(i for i, _ in proposal.lines)
