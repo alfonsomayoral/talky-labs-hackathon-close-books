@@ -1125,3 +1125,40 @@ def test_the_search_stops_at_two_sets_and_finds_each_item_once():
     assert len(_sets_up_to_two([5, 3, 2, 8], 10)) == 2
     assert _sets_up_to_two([5, 3, 9], 8) == [[0, 1]]
     assert _sets_up_to_two([5, 3], 7) == []
+
+
+LOT = (1, 3, 4, 6, 8, 9)  # a batch of six due invoices with no credit note; the text cites the first only
+
+
+def test_netted_cited_completes_a_partial_citation_without_credit_notes():
+    due, later = _cited_batch()
+    rule, balances = engine(due + later)
+    cash = sum(due[i]["total_cents"] for i in LOT)
+    found = rule(txn(cash, f"{NAME} FAC001", date="2024-06-01"), balances)
+    assert found.rule == "PARTY-NETTED"
+    assert lines(found) == {f"ARI-D{i}" for i in LOT}
+
+
+def test_netted_cited_without_credit_notes_abstains_when_two_combinations_close_the_cash():
+    due, later = _cited_batch()
+    due[0]["total_cents"] = due[0]["open_cents"] = due[3]["total_cents"]  # a due twin: either one closes the cash
+    rule, balances = engine(due + later)
+    cash = sum(due[i]["total_cents"] for i in LOT)
+    found = rule(txn(cash, f"{NAME} FAC001", date="2024-06-01"), balances)
+    assert found.rule == "REF-TEXT" and lines(found) == {"ARI-D1"}
+
+
+def test_netted_cited_without_credit_notes_does_not_act_without_a_citation():
+    due, later = _cited_batch()
+    rule, balances = engine(due + later)
+    cash = sum(due[i]["total_cents"] for i in LOT)
+    assert rule(txn(cash, NAME, date="2024-06-01"), balances) is None
+
+
+def test_netted_cited_without_credit_notes_does_not_act_when_the_citation_already_explains_the_cash():
+    due, later = _cited_batch()
+    rule, balances = engine(due + later)
+    cash = sum(due[i]["total_cents"] for i in LOT)
+    cited = " ".join(f"FAC{i:03d}" for i in LOT)
+    found = rule(txn(cash, f"{NAME} {cited}", date="2024-06-01"), balances)
+    assert found.rule != "PARTY-NETTED" and lines(found) == {f"ARI-D{i}" for i in LOT}
