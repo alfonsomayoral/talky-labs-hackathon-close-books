@@ -104,3 +104,22 @@ def test_polars_returns_freed_memory_to_the_system_unless_told_otherwise():
     chosen = subprocess.run([sys.executable, "-c", code], env={**env, "_RJEM_MALLOC_CONF": "narenas:1"},
                             capture_output=True, text=True, check=True)
     assert "dirty_decay_ms:0" not in chosen.stdout
+
+
+def test_a_bank_line_with_no_rate_stays_at_one_and_says_which_currency(capsys):
+    from closebooks.load import _with_eur
+
+    lines = pl.DataFrame({"booking_date": ["2025-01-02"] * 3, "currency": ["HUF", "HUF", "USD"],
+                          "amount_cents": [500, 300, 110]})
+    rates = pl.DataFrame({"date": ["2025-01-01"], "currency": ["USD"], "units_per_eur": ["1.10"]})
+    assert sorted(_with_eur(lines, rates)["amount_eur_cents"].to_list()) == [100, 300, 500]
+    assert "HUF" in capsys.readouterr().err
+
+
+def test_every_rate_found_says_nothing(capsys):
+    from closebooks.load import _with_eur
+
+    lines = pl.DataFrame({"booking_date": ["2025-01-02"] * 2, "currency": ["EUR", "USD"], "amount_cents": [100, 110]})
+    rates = pl.DataFrame({"date": ["2025-01-01"], "currency": ["USD"], "units_per_eur": ["1.10"]})
+    _with_eur(lines, rates)
+    assert capsys.readouterr().err == ""
