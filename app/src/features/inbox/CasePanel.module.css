@@ -1,0 +1,13 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+.summary {
+  margin: 0;
+  font-size: var(--text-14);
+  line-height: var(--leading);
+  color: var(--ink);
+}
