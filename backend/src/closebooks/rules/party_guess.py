@@ -49,6 +49,24 @@ def _says_who_paid(entry: tuple, cash: int, date: str) -> bool:
     due_date, _, _, cents = entry
     excess = cash - cents
     return due_date <= date and (excess <= cents * ROUND_OVERPAYMENT_RATIO + 1 or excess <= MAX_NAMED_EXCESS_CENTS)
+MAX_SEARCH = 40  # open invoices searched for an exact sum: a bound on the work, not a learned threshold
+
+
+def _exact(candidates: list[tuple[str, str, int]], cash: int) -> list[tuple[str, str, int]]:
+    """The fewest open invoices (up to three), earliest due first, whose balances are the cash to the cent."""
+    for one in candidates:
+        if one[2] == cash:
+            return [one]
+    pairs = [(i, j) for i in range(len(candidates)) for j in range(i + 1, len(candidates))]
+    for i, j in pairs:
+        if candidates[i][2] + candidates[j][2] == cash:
+            return [candidates[i], candidates[j]]
+    for i, j in pairs:
+        need = cash - candidates[i][2] - candidates[j][2]
+        for k in range(j + 1, len(candidates)):
+            if candidates[k][2] == need:
+                return [candidates[i], candidates[j], candidates[k]]
+    return []
 
 
 def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAmount) -> None:
@@ -95,6 +113,10 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
                     if cents < cash and _is_overpayment(cash - cents, cents)]
         if left and len(overpays) == 1:
             chosen, left = overpays, cash - overpays[0][1]
+        if not chosen:
+            every = [(due_date, item, cents) for due_date, _, item, cents in sorted(open_now)]
+            if exact := _exact(every[:MAX_SEARCH], cash):
+                chosen, left = [(item, cents, due_date) for due_date, item, cents in exact], 0
         if not chosen:
             continue
         txn_id = txn["bank_txn_id"]
