@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { FilePlus2, Paperclip } from 'lucide-react'
 import { Badge, Button, Pill, toast } from '@/components'
 import { useDecideCase, useDraftActions } from '@/data'
+import { useScopedTo } from '@/lib/urlState'
 import type { CaseDetail, Draft } from '@/domain'
 import { TextField } from './TextField'
-import { recipientLine } from './model'
+import { recipientLine, attachmentSearch } from './model'
 import styles from './DraftEditor.module.css'
 
 interface DraftEditorProps {
@@ -45,6 +47,7 @@ export function DraftEditor({ caseDetail, runId }: DraftEditorProps) {
 
 function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
   const decide = useDecideCase(runId)
+  const explorer = useScopedTo()('/explorador')
   const [subject, setSubject] = useState(draft.subject)
   const [body, setBody] = useState(draft.body)
   const actions = useDraftActions(runId)
@@ -92,7 +95,9 @@ function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
         <ul className={styles.attachments} aria-label="Adjuntos">
           {draft.attachments.map((a) => (
             <li key={a.ref}>
-              <Pill icon={<Paperclip />}>{a.label ?? a.ref}</Pill>
+              <Link className={styles.attachment} to={{ pathname: explorer.pathname, search: attachmentSearch(explorer.search, a.ref) }} aria-label={`Abrir el adjunto ${a.label ?? a.ref}`}>
+                <Pill icon={<Paperclip />}>{a.label ?? a.ref}</Pill>
+              </Link>
             </li>
           ))}
         </ul>

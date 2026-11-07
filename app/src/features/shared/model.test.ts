@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { primaryAction, recipientLine } from './model'
+import { primaryAction, recipientLine, attachmentSearch } from './model'
 
 describe('primaryAction', () => {
   const base = { status: 'needs_review' as const, suggestedAction: 'review' as const, question: null, draft: null }
@@ -43,5 +43,16 @@ describe('recipientLine', () => {
   it('never prints a missing address: the masters carry no emails', () => {
     expect(recipientLine({ toName: 'Navarro GmbH', to: null })).toBe('Navarro GmbH')
     expect(recipientLine({ toName: null, to: null })).toBe('')
+  })
+})
+
+describe('attachmentSearch', () => {
+  it('opens the document in the Explorer, keeping the run and the entity in the URL', () => {
+    const search = attachmentSearch('?run=live-1&sociedad=ES01', 'pdfs/ES01/ARI X.pdf')
+    const params = new URLSearchParams(search)
+    expect(params.get('tipo')).toBe('documents')
+    expect(params.get('ver')).toBe('pdfs/ES01/ARI X.pdf')
+    expect(params.get('run')).toBe('live-1')
+    expect(params.get('sociedad')).toBe('ES01')
   })
 })
