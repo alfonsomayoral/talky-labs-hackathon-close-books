@@ -1,5 +1,5 @@
-"""A collection agency pays for the customer, inside one entity (POLICIES §5.1: "a collection agency may pay old
-invoices").
+"""A third party pays for the customer, inside one entity: a collection agency, a confirming bank, a factor (POLICIES
+§5.1: "a collection agency may pay old invoices").
 
 Why it generalizes: the official example says "La agencia paga por cuenta del cliente: el ordenante no es cliente, pero
 el concepto nombra al deudor o la factura". No agency is listed: what counts is an ordering party the masters do not
