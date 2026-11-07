@@ -596,8 +596,11 @@ class PartyAmount:
         invoices = [(i, o) for i, o in free if i[0][:3] not in CREDIT_NOTES]
         planned = [i for i, _ in invoices if self._plan_expects(i, cash)]
         if planned:
-            return self._proposal("PARTY-PLAN", party, [min(planned, key=lambda i: (i[2], i[0]))[0]], by_cash=True,
-                                  confidence=0.9)
+            item_id = min(planned, key=lambda i: (i[2], i[0]))[0]
+            found = self._proposal("PARTY-PLAN", party, [item_id], by_cash=True, confidence=0.9)
+            if pdf := self.clauses[item_id].get("_pdf"):
+                found.sources.append({"kind": "pdf", "ref": pdf["path"]})
+            return found
         return None
 
     def _plan_expects(self, item: tuple, cash: int) -> bool:
