@@ -25,6 +25,7 @@ from ..policy import (
     _in_terms,
     cross_border,
     fee_fits,
+    fee_stated,
 )
 from ..state import OpenBalances
 from .agency import paid_by_agency, tail_key
@@ -830,7 +831,8 @@ class PartyAmount:
                 hits.append(item[0])
             elif any(abs(item[4] - round(item[4] * r) - cash) <= 1 for r in _WITHHOLDING):
                 hits.append(item[0])
-            elif foreign_payer and 0 < item[4] - cash <= item[4] * FEE_LIMIT_RATIO and (
+            elif (foreign_payer or fee_stated(txn["text"], txn["currency"], item[4] - cash)) and (
+                    0 < item[4] - cash <= item[4] * FEE_LIMIT_RATIO) and (
                     (item[4] - cash) * eur_per_cent <= FEE_LIMIT_EUR_CENTS) and fee_fits(
                     txn["text"], txn["currency"], item[4] - cash):
                 hits.append(item[0])

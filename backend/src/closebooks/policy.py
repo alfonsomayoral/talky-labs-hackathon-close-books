@@ -18,12 +18,14 @@ SEPA_COUNTRIES = frozenset(
 # Excess the golden's overpayments show. Anything else means the text cited only part of what the cash pays.
 SMALL_OVERPAYMENT_RATIO = 0.02
 ROUND_OVERPAYMENT_RATIO = 0.10
+ROUND_EXCESS_CENTS = 500  # a multiple of 5,00 of the currency
 CROSS_BORDER_MARKS = ("EN DIV", "GASTOS SHA", "GASTOS BEN")
 STATED_FEE = re.compile(r"/CHGS/([A-Z]{3})(\d+)[.,](\d{2})")
 FEE_LIMIT_EUR_CENTS = 6000
 FEE_LIMIT_RATIO = 0.02
-DISCOUNT_WORDS = ("DISCOUNT", "DESCUENTO", "DTO", "SKONTO", "ESCOMPTE", "SCONTO")
-WITHHOLDING_WORDS = ("RET", "RETENCION", "RETENCIÓN", "WITHHOLDING", "WHT", "ISR", "IRRF")
+DISCOUNT_WORDS = ("DISCOUNT", "DESCUENTO", "DESCONTO", "DTO", "SKONTO", "ESCOMPTE", "SCONTO")
+WITHHOLDING_WORDS = ("RET", "RETENCION", "RETENCIÓN", "RETENCAO", "RETENÇÃO", "RETENUE", "WITHHOLDING", "WHT", "ISR",
+                     "IRRF")
 ROUND_FRACTIONS = 20  # a partial pays a round share of the invoice: a multiple of 5 %
 SHARE_WINDOW = 3  # cents a round share may be off by: one either way
 MAX_CHANCE = 0.05  # sets we expect to add up to any cash by chance: above this, one that does proves nothing
@@ -34,6 +36,12 @@ def cross_border(bank_code: str | None, text: str | None) -> bool:
     upper = (text or "").upper()
     return ("XBCT" in (bank_code or "") or any(mark in upper for mark in CROSS_BORDER_MARKS)
             or STATED_FEE.search(upper) is not None)
+
+
+def fee_stated(text: str | None, currency: str, shortfall: int) -> bool:
+    """The movement itself states a fee of exactly the shortfall: then the customer's country has nothing to add."""
+    stated = STATED_FEE.search((text or "").upper())
+    return stated is not None and (stated[1], int(stated[2]) * 100 + int(stated[3])) == (currency, shortfall)
 
 
 def fee_fits(text: str | None, currency: str, shortfall: int) -> bool:
@@ -195,12 +203,13 @@ def _with_fx(item_id: str, foreign: bool, amount: int, exception: str) -> tuple[
 
 
 def allocate(cash: int | None, items: list[tuple[str, int, Terms]], booking_date: str, foreign: bool,
-             eur_per_cent: float | None = None) -> dict[str, tuple[int, str]]:
-    return search(cash, items, booking_date, foreign, eur_per_cent)[0]
+             eur_per_cent: float | None = None, fee_stated: bool = False) -> dict[str, tuple[int, str]]:
+    return search(cash, items, booking_date, foreign, eur_per_cent, fee_stated)[0]
 
 
 def search(cash: int | None, items: list[tuple[str, int, Terms]], booking_date: str, foreign: bool,
-           eur_per_cent: float | None = None) -> tuple[dict[str, tuple[int, str]], list[Hypothesis]]:
+           eur_per_cent: float | None = None, fee_stated: bool = False,
+           ) -> tuple[dict[str, tuple[int, str]], list[Hypothesis]]:
     """No document says how much goes to each item: explain the cash against the open balances. Returns what each item
     takes and the different hypotheses there were, the chosen one first.
 
@@ -216,7 +225,7 @@ def search(cash: int | None, items: list[tuple[str, int, Terms]], booking_date: 
     settled_notes = {item: (open_cents, "") for item, open_cents, _ in notes}
     if not invoices:
         return _with_fx_on(settled_notes, foreign), []
-    case = Gap(net - cash, cash, invoices, notes, booking_date, eur_per_cent)
+    case = Gap(net - cash, cash, invoices, notes, booking_date, eur_per_cent, fee_stated)
     hypotheses = [hypothesis for node in NODES for hypothesis in node(case)]
     chosen = choose(hypotheses)
     return _with_fx_on({**settled_notes, **chosen.lines}, foreign), _considered(chosen, hypotheses, foreign)
@@ -263,10 +272,15 @@ class Gap:
     notes: list[tuple[str, int, Terms]]
     booking_date: str
     eur_per_cent: float | None
+    fee_stated: bool = False
 
 
 def _is_overpayment(excess: int, open_cents: int) -> bool:
-    return excess <= open_cents * SMALL_OVERPAYMENT_RATIO or abs(excess - open_cents * ROUND_OVERPAYMENT_RATIO) <= 1
+    """POLICIES §3: more than the open amount of one invoice, and the excess stays on the customer's account. A small
+    excess, or a round amount smaller than the invoice: what someone rounding up sends. It changes no match, only the
+    exception of a line already settled with one invoice. Any other excess: the text cited part of what it pays."""
+    return (excess <= open_cents * SMALL_OVERPAYMENT_RATIO or abs(excess - open_cents * ROUND_OVERPAYMENT_RATIO) <= 1
+            or (excess % ROUND_EXCESS_CENTS == 0 and excess < open_cents))
 
 
 def _clear(case: Gap) -> dict[str, tuple[int, str]]:
@@ -347,7 +361,7 @@ def _bank_fee(case: Gap) -> Iterator[Hypothesis]:
         return
     item, open_cents, terms = case.invoices[0]
     fee_ok = case.gap * case.eur_per_cent <= FEE_LIMIT_EUR_CENTS and case.gap <= open_cents * FEE_LIMIT_RATIO
-    if fee_ok and terms.country and terms.country not in SEPA_COUNTRIES:
+    if fee_ok and (case.fee_stated or (terms.country and terms.country not in SEPA_COUNTRIES)):
         yield Hypothesis(Evidence.MOVEMENT_MARK, {item: (open_cents, "SHORT_BANK_CHARGES")}, "a fee within the limits")
 
 

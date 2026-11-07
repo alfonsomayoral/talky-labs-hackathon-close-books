@@ -8,7 +8,7 @@ from dataclasses import replace
 from .categories import fallback
 from .load import Phase, cancelled_item_ids
 from .model import Proposal, Row
-from .policy import CREDIT_NOTES, Terms, as_candidates, cross_border, decide, fee_fits, search, weighed
+from .policy import CREDIT_NOTES, Terms, as_candidates, cross_border, decide, fee_fits, fee_stated, search, weighed
 from .rules.party_amount import document_says
 from .state import OpenBalances
 
@@ -135,12 +135,14 @@ def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalanc
         if said is not None:  # the clause wins over any rate the shortfall happens to match (POLICIES §3)
             return {first: (cash, said)}, []
     items = [(item, balances.open(item), terms_of(item)) for item, _ in proposal.lines]
+    shortfall = sum(-o if i[:3] in CREDIT_NOTES else o for i, o, _ in items) - (cash or 0)
     from_abroad = not foreign and cross_border(txn["bank_code"], txn["text"]) and fee_fits(
-        txn["text"], txn["currency"], sum(-o if i[:3] in CREDIT_NOTES else o for i, o, _ in items) - cash)
+        txn["text"], txn["currency"], shortfall)
     eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if from_abroad else None
     if proposal.in_listed_order:
         items = [(item, open_cents, replace(terms, listed_at=at)) for at, (item, open_cents, terms) in enumerate(items)]
-    return search(cash, items, txn["booking_date"], foreign, eur_per_cent)
+    stated = from_abroad and fee_stated(txn["text"], txn["currency"], shortfall)
+    return search(cash, items, txn["booking_date"], foreign, eur_per_cent, stated)
 
 
 def _terms_lookup(phase: Phase):
