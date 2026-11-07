@@ -49,7 +49,7 @@ export const AGING_LABEL: Record<AgingBucket, string> = {
 }
 
 export const EXCEPTION_LABEL: Record<string, string> = {
-  SHORT_DISCOUNT: 'Descuento por pronto pago',
+  SHORT_DISCOUNT: 'Pronto pago',
   SHORT_DISPUTE: 'Disputa',
   SHORT_WITHHOLDING: 'Retención',
   SHORT_BANK_CHARGES: 'Comisión bancaria',

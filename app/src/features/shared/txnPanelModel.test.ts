@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DetailRow } from '@/domain'
-import { decisionOf, distinctParties, sumByCurrency } from './txnPanelModel'
+import { decisionOf, distinctParties, soleParty, sumByCurrency } from './txnPanelModel'
 
 describe('sumByCurrency', () => {
   it('never adds different currencies, and skips rows with no amount', () => {
@@ -36,5 +36,17 @@ describe('distinctParties', () => {
   it('counts the parties of the items: a payment run pays several suppliers', () => {
     const rows = [{ item: { partyId: 'S1' } }, { item: { partyId: 'S2' } }, { item: { partyId: 'S1' } }, { item: null }] as DetailRow[]
     expect(distinctParties(rows)).toBe(2)
+  })
+})
+
+describe('soleParty', () => {
+  it('names the party when all the items are of the same one, as in a remittance advice', () => {
+    const rows = [{ item: { partyId: 'C1', partyName: 'Navarro GmbH' } }, { item: { partyId: 'C1', partyName: 'Navarro GmbH' } }, { item: null }] as DetailRow[]
+    expect(soleParty(rows)).toEqual({ partyId: 'C1', partyName: 'Navarro GmbH' })
+  })
+
+  it('names nobody with several parties or none', () => {
+    expect(soleParty([{ item: { partyId: 'C1', partyName: 'A' } }, { item: { partyId: 'C2', partyName: 'B' } }] as DetailRow[])).toBeNull()
+    expect(soleParty([{ item: null }] as DetailRow[])).toBeNull()
   })
 })
