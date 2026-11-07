@@ -20,8 +20,9 @@ _NOT_ALNUM = re.compile(r"[^A-Z0-9]+")
 def normalize(text: str | None) -> str:
     if not text:
         return ""
-    decomposed = unicodedata.normalize("NFKD", text.upper())
-    plain = "".join(c for c in decomposed if not unicodedata.combining(c))
+    upper = text.upper()
+    plain = upper if upper.isascii() else "".join(
+        c for c in unicodedata.normalize("NFKD", upper) if not unicodedata.combining(c))
     return _NOT_ALNUM.sub(" ", plain).strip()
 
 
