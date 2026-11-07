@@ -2,8 +2,9 @@
 // One run writes for real: against `closebooks serve` it adds lines to runs/<id>/human/. Use a run you can spare.
 //
 //   npm i playwright@1.49.1 (outside the repo), start the API and the app, then:
-//   PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node mock/interactions.mjs http://localhost:5173 [--run <id>] [--human <dir>] [--out <dir>]
+//   PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node mock/interactions.mjs http://localhost:5173 [--run <id>] [--human <dir>] [--out <dir>] [--video]
 //
+// --out keeps a screenshot per step; --video also records it (needs `npx playwright install ffmpeg`).
 // --human is the run's human/ folder, to read when the API is `closebooks serve`. Without it, the mock's GET …/human.
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -16,7 +17,7 @@ const out = option('--out')
 if (out) mkdirSync(out, { recursive: true })
 
 const browser = await chromium.launch({ channel: 'chrome' })
-const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark', ...(out ? { recordVideo: { dir: out, size: { width: 1440, height: 900 } } } : {}) })
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark', ...(out && process.argv.includes('--video') ? { recordVideo: { dir: out, size: { width: 1440, height: 900 } } } : {}) })
 const page = await context.newPage()
 const errors = []
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
