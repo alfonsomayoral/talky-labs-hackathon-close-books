@@ -24,15 +24,17 @@ def masters(customers=(), suppliers=()):
 
 
 def item(item_id, party, number, cents, issued="2024-01-01", open_cents=None, name=None, po=None, currency="EUR",
-         entity="E1", related=None):
+         entity="E1", related=None, due=None):
     return {"item_id": item_id, "item_type": item_id[:3], "entity": entity, "party_id": party,
             "party_name": name or party,
             "document_number": number, "issue_date": issued, "currency": currency, "total_cents": cents,
-            "open_cents": cents if open_cents is None else open_cents, "customer_po": po, "related_document": related}
+            "open_cents": cents if open_cents is None else open_cents, "customer_po": po, "related_document": related,
+            "due_date": due}
 
 
 def engine(items, customers=(("C1", "E1", "Wellness Garrido S.L.", None, "ES11", None, None, None),), suppliers=()):
-    table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String, "related_document": pl.String})
+    table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String, "related_document": pl.String,
+                                                  "due_date": pl.String})
     phase = SimpleNamespace(items=table, masters=masters(customers, suppliers), start="2021-01-01")
     balances = OpenBalances(dict(zip(table["item_id"], table["open_cents"], strict=True)))
     return PartyAmount(phase, reserved={}), balances
@@ -858,3 +860,80 @@ def test_a_round_fraction_needs_a_party_known_for_certain_not_a_name_the_bank_cu
     rule, balances = engine([item("ARI-1", "C1", "NF0125000182", 198144)])
     assert lines(rule(txn(59443, "TRANSFERENCIA DE WELLNESS GARRIDO S.L."), balances)) == {"ARI-1"}
     assert rule(txn(59443, "ACH CREDIT WELLNESS GARR"), balances) is None
+
+
+def _due_and_not_due(n_due=10, n_later=20):
+    """A customer with `n_due` invoices that fell due before the payment and `n_later` that fall due after it."""
+    due = [item(f"ARI-D{i:02d}", "C1", f"FD{i}", 20000 + 913 * i * i + 7 * i, f"2024-03-{i + 1:02d}",
+                due="2024-05-15") for i in range(n_due)]
+    later = [item(f"ARI-L{i:02d}", "C1", f"FL{i}", 15000 + 877 * i * i + 11 * i, f"2024-05-{i + 1:02d}",
+                  due="2024-08-01") for i in range(n_later)]
+    return due, later
+
+
+def test_netted_pool_settles_the_overdue_invoices_net_of_a_credit_note_among_many_candidates():
+    # 31 open items: too many for a whole search, but only the 10 due ones can be what the customer pays.
+    due, later = _due_and_not_due()
+    credit = item("ARC-1", "C1", "A1", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    paid = [due[1], due[3], due[4], due[7], due[9]]
+    cash = sum(i["total_cents"] for i in paid) - 31337
+    found = rule(txn(cash, NAME, date="2024-06-01"), balances)
+    assert lines(found) == {i["item_id"] for i in paid} | {"ARC-1"}
+    assert found.rule == "PARTY-NETTED"
+
+
+def test_netted_pool_leaves_out_invoices_not_yet_due_that_would_make_the_sum_ambiguous():
+    due, later = _due_and_not_due(10, 3)
+    later[0]["total_cents"] = due[4]["total_cents"]  # swapping it for due[4] would give a second solution
+    later[0]["open_cents"] = due[4]["total_cents"]
+    credit = item("ARC-1", "C1", "A1", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    paid = [due[1], due[4], due[7]]
+    found = rule(txn(sum(i["total_cents"] for i in paid) - 31337, NAME, date="2024-06-01"), balances)
+    assert lines(found) == {i["item_id"] for i in paid} | {"ARC-1"}
+
+
+def test_netted_pool_completes_what_the_text_cites_when_that_does_not_explain_the_cash():
+    due, later = _due_and_not_due()
+    credit = item("ARC-1", "C1", "A1", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    paid = [due[1], due[3], due[4], due[7], due[9]]
+    cash = sum(i["total_cents"] for i in paid) - 31337
+    found = rule(txn(cash, f"{NAME} PAGO FD3", date="2024-06-01"), balances)
+    assert lines(found) == {i["item_id"] for i in paid} | {"ARC-1"}
+
+
+def test_netted_pool_does_not_force_a_sum_without_a_credit_note():
+    due, later = _due_and_not_due()
+    rule, balances = engine(due + later)
+    paid = [due[1], due[3], due[4], due[7], due[9]]
+    assert rule(txn(sum(i["total_cents"] for i in paid), NAME, date="2024-06-01"), balances) is None
+
+
+def test_netted_pool_does_not_force_a_pool_where_a_sum_proves_nothing():
+    # 40 overdue invoices: 2^40 subsets over a few million cents, any cash is reached by chance.
+    due, _ = _due_and_not_due(40, 0)
+    credit = item("ARC-1", "C1", "A1", 31337, "2024-05-20")
+    rule, balances = engine(due + [credit])
+    paid = due[2:9] + due[12:14] + [credit]
+    cash = sum(i["total_cents"] for i in paid[:-1]) - 31337
+    assert rule(txn(cash, NAME, date="2024-06-01"), balances) is None
+
+
+def test_netted_pool_can_be_switched_off(monkeypatch):
+    due, later = _due_and_not_due()
+    credit = item("ARC-1", "C1", "A1", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    cash = sum(i["total_cents"] for i in [due[1], due[3], due[4], due[7], due[9]]) - 31337
+    monkeypatch.setenv("CLOSEBOOKS_NETTED_POOL", "0")
+    assert rule(txn(cash, NAME, date="2024-06-01"), balances) is None
+
+
+def test_netted_pool_ignores_old_credit_notes_that_only_make_a_sum_by_chance():
+    due, later = _due_and_not_due()
+    old = [item(f"ARC-O{i}", "C1", f"AO{i}", 4000 + 311 * i, "2021-01-05") for i in range(6)]
+    rule, balances = engine(due + later + old)
+    paid = [due[1], due[3], due[4], due[7], due[9]]
+    cash = sum(i["total_cents"] for i in paid) - sum(o["total_cents"] for o in old[:3])
+    assert rule(txn(cash, NAME, date="2024-06-01"), balances) is None

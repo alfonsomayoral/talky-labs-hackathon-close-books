@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .evaluate import score_file, segment_changes, validate_file
 from .load import load_phase
-from .paths import RUNS
+from .paths import DB, RUNS
 
 
 def _run_dir(name: str) -> Path:
@@ -66,7 +66,11 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 def _cmd_holdout(args: argparse.Namespace) -> int:
     from .holdout import build_drift, build_holdout
 
-    print(build_drift() if args.drift else build_holdout())
+    if args.drift:
+        print(build_drift())
+    else:
+        period = {k: v for k, v in (("start", args.start), ("end", args.end)) if v}
+        print(build_holdout(DB / args.name if args.name else None, **period))
     return 0
 
 
@@ -117,6 +121,9 @@ def main(argv: list[str] | None = None) -> int:
     holdout_sub = holdout.add_subparsers(dest="action", required=True)
     build = holdout_sub.add_parser("build")
     build.add_argument("--drift", action="store_true")
+    build.add_argument("--start", help="first day of the period cut from TRAIN (default 2025-01-01)")
+    build.add_argument("--end", help="last day of the period (default 2025-06-30)")
+    build.add_argument("--name", help="folder of db/ to build it in (default holdout)")
     build.set_defaults(func=_cmd_holdout)
 
     serve = sub.add_parser("serve")

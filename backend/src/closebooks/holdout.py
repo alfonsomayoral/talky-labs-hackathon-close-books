@@ -8,6 +8,7 @@ from __future__ import annotations
 import gzip
 import re
 import shutil
+from datetime import date, timedelta
 from pathlib import Path
 
 import polars as pl
@@ -15,7 +16,6 @@ import polars as pl
 from .load import cancelled_item_ids, load_table, phase_items
 from .paths import DB, PKG, phase_dir
 
-CUT = "2024-12-31"
 START = "2025-01-01"
 END = "2025-06-30"
 UNKNOWN_BEFORE = "2021-07-01"
@@ -86,16 +86,16 @@ def _fresh(path: Path) -> Path:
     return path
 
 
-def _link_months(source: Path, target: Path) -> None:
-    first, last = START[:4] + START[5:7], END[:4] + END[5:7]
+def _link_months(source: Path, target: Path, start: str = START, end: str = END) -> None:
+    first, last = start[:4] + start[5:7], end[:4] + end[5:7]
     for file in sorted(source.rglob("*")):
         match = MONTH_IN_NAME.search(file.name)
         if file.is_file() and match and first <= match[1] <= last:
             _link(file, target / file.relative_to(source))
 
 
-def _link_indexed(source: Path, target: Path, date_column: str) -> None:
-    index = load_table(source / "index.csv").filter(pl.col(date_column).is_between(pl.lit(START), pl.lit(END)))
+def _link_indexed(source: Path, target: Path, date_column: str, start: str = START, end: str = END) -> None:
+    index = load_table(source / "index.csv").filter(pl.col(date_column).is_between(pl.lit(start), pl.lit(end)))
     target.mkdir(parents=True)
     index.write_csv(target / "index.csv")
     for name in index["file"].to_list():
@@ -108,16 +108,18 @@ def _text_amount(cents: pl.Expr) -> pl.Expr:
     return sign + (size // 100).cast(pl.String) + "." + (size % 100).cast(pl.String).str.zfill(2)
 
 
-def build_holdout(dest: Path | None = None) -> Path:
-    """TRAIN cut at 2024-12-31: six months with computed opening balances, shaped like FINAL."""
+def build_holdout(dest: Path | None = None, start: str = START, end: str = END) -> Path:
+    """TRAIN cut the day before `start`: the months up to `end` with computed opening balances, shaped like FINAL.
+    By default 2025-01-01..2025-06-30; other periods (a dev and a holdout window) are built with --start/--end."""
     train = phase_dir("train")
+    cut = (date.fromisoformat(start) - timedelta(days=1)).isoformat()
     out = _fresh(dest or DB / "holdout")
 
     all_txns = load_table(train / "bank_transactions.csv.gz")
-    txns = all_txns.filter(pl.col("booking_date").is_between(pl.lit(START), pl.lit(END)))
+    txns = all_txns.filter(pl.col("booking_date").is_between(pl.lit(start), pl.lit(end)))
     _write_gz(txns, out / "bank_transactions.csv.gz")
     for name in ("ar_invoices", "ap_invoices", "credit_notes"):
-        table = load_table(train / f"{name}.csv.gz").filter(pl.col("issue_date").is_between(pl.lit(START), pl.lit(END)))
+        table = load_table(train / f"{name}.csv.gz").filter(pl.col("issue_date").is_between(pl.lit(start), pl.lit(end)))
         _write_gz(table, out / f"{name}.csv.gz")
 
     golden = load_table(train / "golden_allocations.csv.gz")
@@ -129,7 +131,7 @@ def build_holdout(dest: Path | None = None) -> Path:
     ).with_columns((pl.col("amount").cast(pl.Float64) * 100).round().cast(pl.Int64).alias("amount_cents"),
                    pl.col("exception").fill_null(""))
     candidates = items.filter(~pl.col("item_id").is_in(list(cancelled_item_ids(items))))
-    opening = open_items_at(candidates, moves, cut=CUT, unknown_before=UNKNOWN_BEFORE)
+    opening = open_items_at(candidates, moves, cut=cut, unknown_before=UNKNOWN_BEFORE)
     _write_gz(opening.select(
         "item_id", "item_type", "entity", "party_id", "document_number", "issue_date", "due_date", "currency",
         _text_amount(pl.col("total_cents")).alias("total_amount"),
@@ -137,9 +139,9 @@ def build_holdout(dest: Path | None = None) -> Path:
     ).sort("item_id"), out / "open_items_at_start.csv.gz")
 
     for folder in (*DETAIL_FOLDERS, "bank_statements"):
-        _link_months(train / folder, out / folder)
-    _link_indexed(train / "remittance_advices", out / "remittance_advices", "received_date")
-    _link_indexed(train / "pdfs", out / "pdfs", "document_date")
+        _link_months(train / folder, out / folder, start, end)
+    _link_indexed(train / "remittance_advices", out / "remittance_advices", "received_date", start, end)
+    _link_indexed(train / "pdfs", out / "pdfs", "document_date", start, end)
     (out / "prior_phases").write_text("train\n")
     return out
 

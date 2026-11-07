@@ -1,8 +1,10 @@
 """R3 and R4, evaluated by booking date: the party, its items open at that moment and the numbers the text cites."""
 from __future__ import annotations
 
+import os
 import re
 from collections import defaultdict
+from datetime import date, timedelta
 from fractions import Fraction
 from itertools import combinations
 from math import floor
@@ -48,6 +50,22 @@ CREDIT_NOTES = ("ARC", "APC")
 _WITHHOLDING = (0.0125, 0.015, 0.10)
 ROUND_FRACTIONS = 20  # a partial pays a round share of the invoice: a multiple of 5 %
 SHARE_WINDOW = 3  # cents a round share may be off by: one either way
+
+
+def _knob(name: str, default: float) -> float:
+    """Constants of the netted-pool block, overridable from the environment for the sensitivity runs."""
+    return float(os.environ.get(f"CLOSEBOOKS_NETTED_{name}", default))
+
+
+# Netted pool (invoices less credit notes). Measured on TRAIN, Apr-Jun 2025: of the invoices a customer pays together,
+# 99 % had fallen due at most 15 days after the payment; the ones due later are paid in under 1 % of the cases
+# (POLICIES §3: early-payment discounts run at most 15 days from the issue date).
+NETTED_EARLY_DAYS = int(_knob("EARLY", 15))
+# First window of days overdue: the pool grows 45 -> 90 -> 180 -> 360 days (doubling) until one sum is unique. Nothing
+# caps how late a customer pays (POLICIES §6: slower payers in 2026): a longer window is searched when a shorter fails.
+# A credit note enters by its issue date in the same window: 91 % of those netted were issued under 120 days before.
+NETTED_WINDOW_DAYS = int(_knob("WINDOW", 45))
+NETTED_STAGES = 4
 
 
 def _alnum(text: str) -> str:
@@ -219,11 +237,12 @@ class PartyAmount:
             i: _alnum(r) for i, r in items.filter(pl.col("related_document").is_not_null())
             .select("item_id", "related_document").iter_rows() if i[:3] in CREDIT_NOTES}
         self._known = known
+        self._due = dict(known.filter(pl.col("due_date").is_not_null()).select("item_id", "due_date").iter_rows())
         self.reindex()
 
     def release(self) -> None:
         """Before writing the run: the indexes are the biggest thing in memory and nothing needs them after resolve."""
-        self.items, self.by_number, self.clauses, self.related = {}, {}, {}, {}
+        self.items, self.by_number, self.clauses, self.related, self._due = {}, {}, {}, {}, {}
         self.parties = None
         self._known = None
 
@@ -253,7 +272,7 @@ class PartyAmount:
             if taught:
                 return taught
         parties = self.parties.find(txn, kind)
-        results = [r for party in parties if (r := self._match(party, txn, cash, currency, balances))]
+        results = [r for party in parties if (r := self._or_netted(party, txn, cash, currency, balances))]
         if len(results) == 1:
             return results[0]
         homonym = self._only_homonym_with_the_cash(results, cash, currency, balances)
@@ -305,6 +324,59 @@ class PartyAmount:
             sources.append({"kind": "pdf", "ref": pdf["path"]})
         return Proposal("CREDIT-PAYOUT", [(note[0], cash)], confidence=1.0, party_id=party, reference=note[1],
                         sources=sources)
+
+    def _or_netted(self, party: str, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
+        """The match of the party; if there is none, or only what the text cites and the cash does not explain, the
+        invoices it has overdue net of its credit notes (`_netted_pool`). The one place this block is called from."""
+        found = self._match(party, txn, cash, currency, balances)
+        if os.environ.get("CLOSEBOOKS_NETTED_POOL", "1") == "0":
+            return found
+        if found is None or (found.rule == "REF-TEXT" and _net(
+                [((i,), balances.open(i)) for i, _ in found.lines]) != cash):
+            return self._netted_pool(party, txn, cash, currency, found, balances) or found
+        return found
+
+    def _netted_pool(self, party: str, txn: dict, cash: int, currency: str, cited: Proposal | None,
+                     balances) -> Proposal | None:
+        """Customers pay together invoices that have fallen due, less credit notes (POLICIES §2). The whole open list
+        is too big for a unique sum to mean anything, the ones overdue are not: widen the window of days overdue until
+        exactly one combination, with a credit note and whatever the text cites, adds up to the cash."""
+        if cited is None and not self.parties.certain:
+            return None
+        mine = self.items.get(party, ())
+        if not any(i[0][:3] in CREDIT_NOTES for i in mine):
+            return None
+        booked = txn["booking_date"]
+        named = {i for i, _ in cited.lines} if cited else set()
+        free = [(i, o) for i in mine if i[2] <= booked and i[3] == currency
+                and (o := balances.open(i[0])) > 0 and i[2] >= self.unknown_before
+                and (i[0] not in self.reserved or self._returned(i[0], balances))]
+        target = cash - _net([((i[0],), o) for i, o in free if i[0] in named])
+        notes = [(i, o) for i, o in free if i[0][:3] in CREDIT_NOTES and i[0] not in named]
+        if target <= 0 or not (notes or any(i[:3] in CREDIT_NOTES for i in named)):
+            return None
+        today = date.fromisoformat(booked)
+        latest = (today + timedelta(days=NETTED_EARLY_DAYS)).isoformat()
+        seen = 0
+        for stage in range(NETTED_STAGES):
+            earliest = (today - timedelta(days=NETTED_WINDOW_DAYS * 2 ** stage)).isoformat()
+            pool = [(i, o) for i, o in free if i[0] not in named and (
+                earliest <= i[2] if i[0][:3] in CREDIT_NOTES else earliest <= self._due.get(i[0], latest) <= latest)]
+            if len(pool) == seen:
+                continue
+            seen = len(pool)
+            ordered = sorted(pool, key=lambda x: (x[0][2], x[0][0]))
+            signed = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered]
+            # A wider window only adds items: once a sum proves nothing, it will not later.
+            if len(signed) > MAX_FULL_SEARCH or _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE:
+                return None
+            chosen = _unique_subset(signed, target, 1)
+            if chosen is None:
+                continue
+            if not any(i[:3] in CREDIT_NOTES for i in [*chosen, *named]):
+                return None
+            return self._proposal("PARTY-NETTED", party, [*named, *chosen], by_cash=True, confidence=0.85)
+        return None
 
     def _returned(self, item_id: str, balances: OpenBalances) -> bool:
         """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the
