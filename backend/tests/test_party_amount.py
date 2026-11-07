@@ -438,3 +438,16 @@ def test_receipt_does_not_search_customers_of_another_entity():
     index = PartyIndex(masters((("C1", "E2", "Rubio Aguas S.A.", None, None, None, None, None),)), pl.DataFrame(
         schema=dict.fromkeys(["entity", "party_id", "party_name"], pl.String)))
     assert index.find(txn(1, "TRANSF RUBIO AGUAS S.A.", entity="E1"), "customer") == []
+
+
+def test_a_long_legal_form_does_not_lose_the_party_to_a_namesake():
+    # "Camping Arenal del Sur S.L.U." against "... S.L.": real, the wrong namesake won.
+    index = _index("Camping Arenal del Sur S.L.U.", "Camping Arenal del Sur S.L.")
+    moved = txn(1, "TRANSFERENCIAS CAMPING ARENAL DEL SUR | CAMPING AR PAGO PENDIENTE")
+    assert index.find(moved, "customer") == ["C0", "C1"]
+    assert _index("Parra y Velasco Depuracion S.A. de C.V.").find(
+        txn(1, "SPEI CONCEPTO PARRA Y VELASCO DEPURACION PAGO"), "customer") == ["C0"]
+
+
+def test_a_different_last_word_is_not_a_legal_form():
+    assert _index("Parra y Velasco Jardines").find(txn(1, "SPEI PARRA Y VELASCO PAGO"), "customer") == []

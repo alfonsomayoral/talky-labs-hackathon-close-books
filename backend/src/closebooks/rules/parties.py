@@ -9,7 +9,11 @@ import polars as pl
 
 MIN_NAME_CHARS = 10
 PREFIX_CHARS = 8
-LEGAL_FORM_CHARS = 4
+# Words of a company's legal form, in any of the group's markets. What is left after them is the name.
+LEGAL_FORMS = frozenset("""
+S A L U C V R DE RL COOP SA SL SLU SAS SARL EURL GMBH CO KG AG EK E LTD LTDA LLC LLP INC CORP PTY BV NV SRL SNC SPA
+SP Z O OO EIRELI ME EPP GROUP PLC
+""".split())
 _NOT_ALNUM = re.compile(r"[^A-Z0-9]+")
 
 
@@ -127,6 +131,6 @@ def _identifies(norm: str, text: str, position: int, length: int) -> bool:
     if length < MIN_NAME_CHARS:
         return False
     end = position + length
-    if end == len(text) or len(norm) - length <= LEGAL_FORM_CHARS:
+    if end == len(text) or all(word in LEGAL_FORMS for word in norm[length:].split()):
         return True
     return norm[length - 1] != " " and text[end] == " "
