@@ -148,6 +148,12 @@ class PartyAmount:
         self._known = known
         self.reindex()
 
+    def release(self) -> None:
+        """Before writing the run: the indexes are the biggest thing in memory and nothing needs them after resolve."""
+        self.items, self.by_number, self.clauses = {}, {}, {}
+        self.parties = None
+        self._known = None
+
     def reindex(self) -> None:
         self.items: dict[str, list[tuple]] = defaultdict(list)
         self.by_number: dict[tuple[str, str], list[tuple]] = defaultdict(list)
@@ -213,7 +219,7 @@ class PartyAmount:
         subset = self._subset(free, cash, ambiguous=tied) if self.parties.certain else None
         if subset:
             return self._proposal("PARTY-SUBSET", party, subset, confidence=0.9)
-        block = self._consecutive(free, cash)
+        block = self._consecutive(free, cash) if self.parties.certain else None
         if block:
             return self._proposal("PARTY-BLOCK", party, block, confidence=0.85)
         short = self._short_paid(free, cash, party, txn)

@@ -1,6 +1,7 @@
 """One run: load -> rules -> resolve -> output -> score."""
 from __future__ import annotations
 
+import gc
 import resource
 import subprocess
 import sys
@@ -114,6 +115,9 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     lap("rules")
     engine = stateful(phase, proposals)
     rows, balances = resolve(phase, proposals, engine)
+    engine.release()
+    del proposals
+    gc.collect()
     lap("resolve")
 
     csv_bytes = write_submission(run, rows)
