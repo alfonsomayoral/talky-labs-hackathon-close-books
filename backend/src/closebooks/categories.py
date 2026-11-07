@@ -72,9 +72,21 @@ def combination(txn: dict) -> tuple[str, str, str, str]:
     return txn["bank"], txn["bank_code"] or "", txn["bank_subcode"] or "", direction(txn["amount_cents"])
 
 
+def _history(codes: Codes, txn: dict) -> Counter | None:
+    """The lines of this combination. A bank never seen has none of its own: what its code did in all the others."""
+    key = combination(txn)
+    if key in codes or any(known[0] == key[0] for known in codes):
+        return codes.get(key)
+    together: Counter = Counter()
+    for (_, *rest), counts in codes.items():
+        if tuple(rest) == key[1:]:
+            together.update(counts)
+    return together or None
+
+
 def pure_category(codes: Codes, txn: dict) -> str | None:
     """The category when every line of this code in the history has it, none settled items and there are enough."""
-    counts = codes.get(combination(txn))
+    counts = _history(codes, txn)
     if not counts or len(counts) != 1:
         return None
     (label, lines), = counts.items()
@@ -92,7 +104,7 @@ def text_category(txn: dict) -> str | None:
 
 def likely_category(codes: Codes, txn: dict) -> str | None:
     """The most frequent category of the code among the lines that settle no item."""
-    counts = {k: n for k, n in codes.get(combination(txn), {}).items() if k != ITEM}
+    counts = {k: n for k, n in (_history(codes, txn) or {}).items() if k != ITEM}
     return min(counts, key=lambda k: (-counts[k], k)) if counts else None
 
 

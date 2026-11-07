@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import polars as pl
 import pytest
 
-from closebooks.categories import fallback
+from closebooks.categories import fallback, pure_category
 from closebooks.load import load_table
 from closebooks.model import Proposal
 from closebooks.paths import phase_dir
@@ -262,3 +262,30 @@ def test_supplier_written_without_its_accents_by_the_bank_settles_its_credit_not
     phase = refund_phase({"party_name": "Logística Global S.L."},
                          text="TRANSFERENCIA SEPA | 3126-LOGISTICA GLOBAL S.L.")
     assert rules.propose_supplier_refunds(phase)["BT-1"].lines == [("APC-2025-0000001", None)]
+
+
+
+OTHER_BANKS = codes(**{
+    "OLD1|NCHG||debit": {"BANK_FEES": 8}, "OLD2|NCHG||debit": {"BANK_FEES": 8},
+    "OLD1|NTRF||debit": {"ITEM": 100, "CUSTOMER_REFUND": 6, "INTERCOMPANY": 2},
+    "OLD2|THIN||debit": {"INSURANCE": 3},
+})
+
+
+def test_a_bank_never_seen_takes_a_code_all_the_banks_agree_on_with_enough_lines_together():
+    assert pure_category(OTHER_BANKS, txn(-100, bank="NEWB", code="NCHG")) == "BANK_FEES"
+
+
+def test_a_bank_never_seen_gets_no_category_from_a_code_that_also_settles_items_or_is_rare():
+    assert pure_category(OTHER_BANKS, txn(-100, bank="NEWB", code="NTRF")) is None
+    assert pure_category(OTHER_BANKS, txn(-100, bank="NEWB", code="THIN")) is None
+
+
+def test_a_known_bank_only_looks_at_its_own_history():
+    assert pure_category(OTHER_BANKS, txn(-100, bank="OLD1", code="NCHG")) is None  # 8 lines of its own: too few
+    assert fallback(txn(-100, bank="OLD2", code="NTRF"), OTHER_BANKS).category == "BANK_FEES"
+
+
+def test_a_debit_of_a_bank_never_seen_falls_back_to_what_its_code_means_in_the_other_banks():
+    assert fallback(txn(-100, bank="NEWB", code="NTRF"), OTHER_BANKS).category == "CUSTOMER_REFUND"
+    assert fallback(txn(-100, bank="NEWB", code="UNSEEN"), OTHER_BANKS).category == "BANK_FEES"
