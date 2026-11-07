@@ -304,26 +304,19 @@ def test_payment_net_of_retention_or_advance_from_the_pdf():
     assert lines(rule(txn(21000, NAME), balances)) == {"ARI-1"}
 
 
-def test_overpayment_needs_a_single_open_invoice_of_the_party():
+def test_amount_that_nothing_explains_is_not_guessed_even_with_a_known_party():
+    # Measured on the holdout: guessing a partial was right 12 % of the time, an overpayment 22 %, a duplicate 77 %.
     rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
-    assert lines(rule(txn(80407, NAME), balances)) == {"ARI-1"}
-    rule, balances = engine([item("ARI-1", "C1", "F1", 75407), item("ARI-2", "C1", "F2", 500)])
-    assert rule(txn(80407, NAME), balances) is None
-
-
-def test_partial_payment_of_the_only_open_invoice_above_the_cash():
-    rule, balances = engine([item("ARI-1", "C1", "F1", 75407), item("ARI-2", "C1", "F2", 50)])
-    assert lines(rule(txn(40000, NAME), balances)) == {"ARI-1"}
-
-
-def test_several_invoices_that_a_partial_could_belong_to_are_not_guessed():
-    rule, balances = engine([item("ARI-1", "C1", "F1", 75407), item("ARI-2", "C1", "F2", 90000)])
     assert rule(txn(40000, NAME), balances) is None
-
-
-def test_amount_of_an_invoice_settled_earlier_with_nothing_else_open_is_a_duplicate():
+    assert rule(txn(80407, NAME), balances) is None
     rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
-    assert lines(rule(txn(228043, NAME), balances)) == {"ARI-1"}
+    assert rule(txn(228043, NAME), balances) is None
+
+
+def test_debit_citing_a_customer_invoice_is_not_settled_by_the_number_alone():
+    # customer_refund: we pay a refund and the text cites the invoice; that is a category, not a settlement.
+    rule, balances = engine([item("ARI-1", "C9", "INV25-0108533", 5000)])
+    assert rule(txn(-5000, "REFUND INV25-0108533"), balances) is None
 
 
 def test_name_cut_in_the_middle_of_a_word_by_the_field_identifies_the_party():
@@ -331,5 +324,6 @@ def test_name_cut_in_the_middle_of_a_word_by_the_field_identifies_the_party():
     assert index.find(txn(1, "PLASTICOS EXPRES | RECIBO 2025/00044"), "customer") == ["C0"]
 
 
-def test_name_differing_at_a_whole_word_is_another_party():
-    assert _index("Hydro Evans LLC").find(txn(1, "ACH CREDIT HYDRO EVANS HERM CCD"), "customer") == []
+def test_name_without_its_legal_form_identifies_the_party():
+    moved = txn(1, "TRANSFERENCIAS HIDROTECNIA LOMASECA REF")
+    assert _index("Hidrotecnia Lomaseca S.L.").find(moved, "customer") == ["C0"]
