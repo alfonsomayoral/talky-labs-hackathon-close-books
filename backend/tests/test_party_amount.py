@@ -845,3 +845,10 @@ def test_a_fraction_that_two_open_invoices_fit_is_not_guessed():
 def test_a_cash_that_is_no_round_fraction_of_the_invoice_is_not_a_partial():
     rule, balances = engine([item("ARI-1", "C1", "F1", 198144)])
     assert rule(txn(73908, NAME), balances) is None
+
+
+def test_a_unique_round_fraction_among_many_open_invoices_means_nothing_and_is_not_taken():
+    # A hundred invoices of about 600: each offers 19 shares within a cent, so one of them fitting proves nothing.
+    many = [item(f"ARI-{n}", "C1", f"F{n}", 60001 + n) for n in range(100)]
+    rule, balances = engine([*many, item("ARI-X", "C1", "NF0125000182", 198144)])
+    assert rule(txn(59443, NAME), balances) is None

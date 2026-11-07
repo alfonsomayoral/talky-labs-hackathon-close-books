@@ -47,6 +47,7 @@ MAX_TIED_SUBSETS = 5
 CREDIT_NOTES = ("ARC", "APC")
 _WITHHOLDING = (0.0125, 0.015, 0.10)
 ROUND_FRACTIONS = 20  # a partial pays a round share of the invoice: a multiple of 5 %
+SHARE_WINDOW = 3  # cents a round share may be off by: one either way
 
 
 def _alnum(text: str) -> str:
@@ -617,7 +618,11 @@ class PartyAmount:
         """The one whole open invoice of which the cash is a round share, to the cent. Not one with an open credit
         note of its own: notes are round shares too, and the invoice net of one only looks like a partial."""
         noted = {self.related.get(i[0]) for i in mine if i[0][:3] in CREDIT_NOTES and open_now[i[0]] > 0}
-        hits = [i[0] for i, o in free if i[0][:3] not in CREDIT_NOTES and o == i[4] and i[6] not in noted and any(
+        whole = [i for i, o in free if i[0][:3] not in CREDIT_NOTES and o == i[4] > cash and i[6] not in noted]
+        # Each invoice spreads its shares over its own total: how many would land on any cash by chance.
+        if sum(_chance((ROUND_FRACTIONS - 1) * SHARE_WINDOW, [i[4]]) for i in whole) > MAX_CHANCE:
+            return None
+        hits = [i[0] for i in whole if any(
             abs(cash * ROUND_FRACTIONS - i[4] * k) <= ROUND_FRACTIONS for k in range(1, ROUND_FRACTIONS))]
         return hits[0] if len(hits) == 1 else None
 
