@@ -53,6 +53,14 @@ class Store:
                 self._runs.popitem(last=False)
             return data
 
+    def preload(self, run_id: str) -> None:
+        """Open the run and build the package tables its screens read, so no request pays for their build."""
+        phase = self.phase(self.run(run_id).phase)
+        phase.accounts()
+        phase.ensure_items()
+        phase.documents()
+        phase.detail_files()
+
     def phase(self, name: str) -> PhaseData:
         check_ident(name, "phase")
         with self._lock:

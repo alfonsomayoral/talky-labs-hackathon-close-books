@@ -78,8 +78,12 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     store = Store(RUNS)
     ids = store.run_ids()
     warm = _run_dir(args.run).name if args.run else (ids[0] if ids else None)
-    print(f"serving {RUNS} on http://{args.host}:{args.port}" + (f", opening {warm}" if warm else ""))
-    uvicorn.run(create_app(store=store, warm=warm), host=args.host, port=args.port, log_level="warning")
+    app = create_app(store=store, warm=warm)
+    if warm:
+        print(f"opening {warm}...", flush=True)
+        store.preload(warm)  # connections are accepted only once the served run is ready
+    print(f"serving {RUNS} on http://{args.host}:{args.port}", flush=True)
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 
 

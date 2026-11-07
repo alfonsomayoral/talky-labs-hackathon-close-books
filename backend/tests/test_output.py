@@ -42,3 +42,31 @@ def test_run_json_measures_the_uncompressed_csv(tmp_path, sample):
     assert meta["csvBytes"] == len(gzip.decompress((run / "submission.csv.gz").read_bytes()))
     assert meta["txns"] == 8499
     assert sum(meta["byRule"].values()) == meta["rows"]
+
+
+def test_open_items_hold_every_issued_item_but_not_those_closed_in_earlier_phases(tmp_path):
+    import polars as pl
+
+    from closebooks.load import Phase
+    from closebooks.output import write_open_items
+    from closebooks.state import OpenBalances
+
+    cols = ["item_id", "item_type", "entity", "party_id", "party_name", "document_number", "issue_date", "due_date",
+            "currency", "total_cents", "open_cents"]
+
+    def item(item_id, open_cents, total=1000):
+        return (item_id, "ARI", "E1", "C1", "n", item_id, "2025-07-01", "2025-08-01", "EUR", total, open_cents)
+
+    items = pl.DataFrame([item("NEW-UNPAID", 1000), item("PAID", 1000), item("CARRIED", 400),
+                          item("OLD-CLOSED", 0)], schema=cols + [], orient="row")
+    for extra in ("payment_terms", "customer_po", "payment_method", "related_document", "reason"):
+        items = items.with_columns(pl.lit(None, pl.String).alias(extra))
+    opening = pl.DataFrame({"item_id": ["CARRIED"]})
+    phase = Phase("x", tmp_path, {}, pl.DataFrame(), items, opening)
+    balances = OpenBalances(dict(zip(items["item_id"], items["open_cents"], strict=True)))
+    balances.apply("PAID", 1000, "", "BT-1", "2025-07-02")
+    write_open_items(tmp_path, phase, balances)
+    rows = {r["itemId"]: r for r in pl.read_parquet(tmp_path / "state" / "open_items.parquet").iter_rows(named=True)}
+    assert set(rows) == {"NEW-UNPAID", "PAID", "CARRIED"}
+    assert (rows["NEW-UNPAID"]["status"], rows["NEW-UNPAID"]["openAtEndCents"]) == ("open", 1000)
+    assert rows["PAID"]["status"] == "cleared" and rows["CARRIED"]["openAtStartCents"] == 400

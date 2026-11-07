@@ -83,11 +83,13 @@ def _status(open_end: int, applied: bool, history: list[dict]) -> str:
 
 
 def write_open_items(run: Path, phase: Phase, balances: OpenBalances) -> None:
-    """One row per item with a movement in the phase or open at its start (CONTRACT §2.5)."""
+    """One row per item issued in the phase, open at its start or with a movement (CONTRACT §2.5).
+
+    Items closed in earlier phases (nothing open, no movement, not in open_at_start) are left out."""
     (run / "state").mkdir(exist_ok=True)
     touched = balances.touched()
     carried = set(phase.open_at_start["item_id"].to_list()) if phase.open_at_start is not None else set()
-    keep = phase.items.filter(pl.col("item_id").is_in(list(touched.keys() | carried)))
+    keep = phase.items.filter(pl.col("item_id").is_in(list(touched.keys() | carried)) | (pl.col("open_cents") != 0))
     ids = keep["item_id"].to_list()
     starts = keep["open_cents"].to_list()
     ends = [balances.open(i) for i in ids]
