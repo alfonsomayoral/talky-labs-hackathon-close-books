@@ -48,12 +48,15 @@ def write_submission(run: Path, rows: list[Row]) -> int:
 
 
 def write_explanations(run: Path, rows: list[Row]) -> None:
-    lines = [orjson.dumps({
-        "bankTxnId": r.bank_txn_id, "itemId": r.item_id, "amountCents": r.amount_cents, "currency": r.currency,
-        "category": r.category, "exception": r.exception, "rule": r.rule, "confidence": r.confidence,
-        "partyId": r.party_id, "reference": r.reference, "sources": r.sources, "candidates": r.candidates,
-    }) for r in rows]
-    _gzip_bytes(run / "explanations.jsonl.gz", b"\n".join(lines) + b"\n")
+    """Line by line: each result of orjson keeps ~4 KB alive, so a list of them is 2.7 GB on 680 k rows."""
+    with (run / "explanations.jsonl.gz").open("wb") as raw, gzip.GzipFile(
+            filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=6) as gz:
+        for r in rows:
+            gz.write(orjson.dumps({
+                "bankTxnId": r.bank_txn_id, "itemId": r.item_id, "amountCents": r.amount_cents, "currency": r.currency,
+                "category": r.category, "exception": r.exception, "rule": r.rule, "confidence": r.confidence,
+                "partyId": r.party_id, "reference": r.reference, "sources": r.sources, "candidates": r.candidates,
+            }, option=orjson.OPT_APPEND_NEWLINE))
 
 
 def write_cases(run: Path, cases: list[dict]) -> None:

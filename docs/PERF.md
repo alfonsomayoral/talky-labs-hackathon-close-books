@@ -12,6 +12,7 @@ Análisis medido el 7 nov 2026 sobre el commit `64d6245`. No cambia código: tod
 | Run de holdout | 136 s, 7,3 GB | **105 s, 5,06 GB** | idéntico con `cmp` |
 | Arranque de `serve` | 52 s, 3,9 GB | **4,8 s, 2,4 GB** | no le afecta |
 
+- **Medido ya en el código, las tres ramas juntas:** 118,5 s; 5,80 GB de RSS y 5,76 GB de `peak memory footprint` (hoy, 7,12 GB). Los 5,06 GB de la tabla son RSS de un run con el mismo footprint, 5,76 GB: el RSS de macOS varía con la presión de memoria, así que para comparar sirve mejor el footprint.
 - **Hoy:** la fase 1 (§7), unas 2 h con verificación. **No hoy:** Rust ni particionar por sociedad.
 - **Aviso:** no lances TRAIN completo antes de arreglar `write_explanations`. Solo esa lista pediría ~21 GB (extrapolado de 4 KB por fila y 5,4 M de filas; TRAIN nunca ha llegado a esa etapa).
 

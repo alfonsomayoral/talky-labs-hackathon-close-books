@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import gzip
+import tracemalloc
 
+import orjson
 import polars as pl
 
 from closebooks.evaluate import validate_file
+from closebooks.model import Row
+from closebooks.output import _gzip_bytes, write_explanations
 from closebooks.pipeline import run_pipeline
 
 
@@ -70,3 +74,29 @@ def test_open_items_hold_every_issued_item_but_not_those_closed_in_earlier_phase
     assert set(rows) == {"NEW-UNPAID", "PAID", "CARRIED"}
     assert (rows["NEW-UNPAID"]["status"], rows["NEW-UNPAID"]["openAtEndCents"]) == ("open", 1000)
     assert rows["PAID"]["status"] == "cleared" and rows["CARRIED"]["openAtStartCents"] == 400
+
+
+def _explained_rows(count: int) -> list[Row]:
+    return [Row(f"BT-{n}", f"ARI-{n}", n, "EUR", None, None, "REF-TEXT", 1.0, "C1", None,
+                [{"kind": "pdf", "ref": f"pdfs/{n}.pdf"}]) for n in range(count)]
+
+
+def test_explanations_are_streamed_with_the_bytes_of_compressing_them_whole(tmp_path):
+    rows = _explained_rows(50_000)
+    write_explanations(tmp_path, rows)
+    lines = [orjson.dumps({
+        "bankTxnId": r.bank_txn_id, "itemId": r.item_id, "amountCents": r.amount_cents, "currency": r.currency,
+        "category": r.category, "exception": r.exception, "rule": r.rule, "confidence": r.confidence,
+        "partyId": r.party_id, "reference": r.reference, "sources": r.sources, "candidates": r.candidates,
+    }) for r in rows]
+    _gzip_bytes(tmp_path / "whole.gz", b"\n".join(lines) + b"\n")
+    assert (tmp_path / "explanations.jsonl.gz").read_bytes() == (tmp_path / "whole.gz").read_bytes()
+
+
+def test_explanations_never_hold_all_the_lines_in_memory(tmp_path):
+    rows = _explained_rows(50_000)  # about 12 MB of JSON
+    tracemalloc.start()
+    write_explanations(tmp_path, rows)
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    assert peak < 2 * (1 << 20)
