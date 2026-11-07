@@ -16,6 +16,8 @@ from ..policy import (
     FEE_LIMIT_EUR_CENTS,
     FEE_LIMIT_RATIO,
     SEPA_COUNTRIES,
+    WITHHOLDING_COUNTRIES,
+    WITHHOLDING_RATES,
     Terms,
     _in_terms,
     cross_border,
@@ -49,6 +51,8 @@ CREDIT_NOTES = ("ARC", "APC")
 _WITHHOLDING = (0.0125, 0.015, 0.10)
 ROUND_FRACTIONS = 20  # a partial pays a round share of the invoice: a multiple of 5 %
 SHARE_WINDOW = 3  # cents a round share may be off by: one either way
+ROUNDING_CENTS = (0, -1, 1)  # each invoice rounds its tax apart: the sum may miss the cash by a cent
+OWN_SHORTFALL = frozenset(("retention", "advance_deduction", "instalments"))  # the PDF says why less is paid
 
 
 def _alnum(text: str) -> str:
@@ -437,6 +441,9 @@ class PartyAmount:
         planned = self._explained_by_state(free, cash, party)
         if planned:
             return planned
+        withheld = self._withheld(free, cash, party, set())
+        if withheld:
+            return self._proposal("PARTY-WITHHELD", party, withheld, by_cash=True, confidence=0.85)
         if not self.parties.certain:
             return None
         fraction = self._round_fraction(free, cash, open_now, mine)
@@ -508,9 +515,15 @@ class PartyAmount:
             run = self._consecutive(free, cash, skipped=MAX_SKIPPED, named=named)
             if run:
                 return make("REF-COMPLETED", party, run, by_cash=True, confidence=0.9)
+        cut_number = not strong and len(cited) == 1 and any(
+            len(t) >= LONG_CUT and cited[0][0][6].startswith(t) for t in flats)
+        if for_strong or cut_number:
+            withheld = self._withheld(free, cash, party, {i[0] for i, _ in for_strong})
+            if withheld:
+                return make("REF-WITHHELD", party, withheld, by_cash=True, confidence=0.9)
         if for_strong:
             return make("REF-TEXT", party, [i[0] for i, _ in for_strong], by_cash=True, confidence=0.9)
-        if not strong and len(cited) == 1 and any(len(t) >= LONG_CUT and cited[0][0][6].startswith(t) for t in flats):
+        if cut_number:
             return make("REF-TEXT", party, [cited[0][0][0]], by_cash=True, confidence=0.8)
         closed = [i for i in strong if i[4] == cash]
         if len(closed) == 1:
@@ -624,6 +637,45 @@ class PartyAmount:
                 _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE):
             return None
         return _unique_subset(signed, cash, 2)
+
+    def _withheld(self, free: list, cash: int, party: str, named: set[str]) -> list[str] | None:
+        """The one set of open documents, with the ones the text names, whose invoices net of a tax rate are the cash.
+
+        Why it generalizes: POLICIES §3 fixes who withholds (customers of Mexico, Brazil and Morocco) and at which rates
+        (1.25 %, 1.5 %, 10 %) and clears the invoice in full; the official example ar_short_withholding pays four
+        invoices at 0.90 of their sum, with a text that cites none. Nothing here comes from one customer or one phase:
+        the country is the master's, the rates the policy's, and a set only counts within MAX_CHANCE. The example's
+        written trap ("only on the item that suffers it") contradicts its own rows and the golden, which mark them all.
+        An invoice whose PDF explains its own shortfall (POLICIES §5.8) is not taxed here: that clause wins."""
+        if self.countries.get(party) not in WITHHOLDING_COUNTRIES:
+            return None
+        invoices = [(i[0], o) for i, o in free if i[0][:3] not in CREDIT_NOTES and o == i[4]
+                    and not OWN_SHORTFALL & self.clauses.get(i[0], {}).keys()]
+        notes = [(i[0], -o) for i, o in free if i[0][:3] in CREDIT_NOTES]
+        credit = -sum(v for _, v in notes)
+        found: set[frozenset[str]] = set()
+        for rate in WITHHOLDING_RATES:
+            net = [(i, o - round(o * rate)) for i, o in invoices]
+            signed = [x for x in net if x[1] <= cash + credit + 1] + notes
+            must = [v for i, v in signed if i in named]
+            rest = [x for x in signed if x[0] not in named]
+            searched = 2 ** len(rest) * len(WITHHOLDING_RATES) * len(ROUNDING_CENTS)
+            if (len(must) != len(named) or len(rest) > MAX_FULL_SEARCH
+                    or _chance(searched, [v for _, v in rest]) > MAX_CHANCE):
+                continue
+            for cents in ROUNDING_CENTS:
+                target = cash + cents - sum(must)
+                subset = [] if named and target == 0 else _unique_subset(rest, target, 1)
+                if subset is not None:
+                    found.add(frozenset((*subset, *named)))
+        if len(found) != 1:
+            return None
+        chosen = sorted(found.pop())
+        paid = [f for f in free if f[0][0] in chosen]
+        others = [f for f in free if f[0][0][:3] in CREDIT_NOTES and f[0][0] not in chosen]
+        if self._notes_for(others, _net(paid) - cash, {i[6] for i, _ in paid}):  # a note of that difference: not tax
+            return None
+        return chosen if any(i[:3] not in CREDIT_NOTES for i in chosen) else None
 
     def _paid_again(self, mine: list, open_now: dict, cash: int, party: str, balances) -> Proposal | None:
         """A whole party, nothing open that the cash explains, and one invoice with exactly that total that a line of
