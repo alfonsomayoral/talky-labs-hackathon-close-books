@@ -45,12 +45,12 @@ export function DeltaTable({ head, rows, label, format, formatDelta, judge, a, b
               <td className={clsx('tabular', styles.delta, drop && styles.down, rise && styles.up)}>
                 {r.delta == null ? '—' : r.delta === 0 ? '0' : formatDelta(r.delta, r)}
                 {drop && (
-                  <Badge tone="danger" className={styles.badge}>
+                  <Badge emphasis="strong" className={styles.badge}>
                     Baja
                   </Badge>
                 )}
                 {rise && (
-                  <Badge tone="ok" className={styles.badge}>
+                  <Badge emphasis="medium" className={styles.badge}>
                     Sube
                   </Badge>
                 )}

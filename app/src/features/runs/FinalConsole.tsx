@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type DragEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { Check, FileArchive, Play, RotateCcw, ShieldCheck, Terminal } from 'lucide-react'
-import { Badge, Button, Card, KeyValue, Mono, ProgressBar, SegmentedControl, StatusDot } from '@/components'
+import { Badge, Button, Card, KeyValue, Metric, Mono, ProgressBar, SegmentedControl, StatusDot } from '@/components'
 import { useCurrentRun, useRun, useRunStatus, useRuns, useStartRun, useUpload, useValidateRun } from '@/data'
 import { formatDuration, formatNumber } from '@/lib/format'
 import { useTextParam } from '@/lib/urlState'
@@ -62,14 +62,17 @@ function EventFacts() {
     return () => window.clearInterval(timer)
   }, [])
   return (
-    <KeyValue
-      className={styles.event}
-      labelWidth={190}
-      items={[
-        { label: 'Reloj del evento', value: `18:00 datos · 19:30 cierre · ${eventClock(now)}` },
-        { label: 'Límites del fichero', value: `${formatBytes(SUBMISSION_LIMIT_BYTES)} sin comprimir · ${formatNumber(SUBMISSION_LIMIT_ROWS)} filas` },
-      ]}
-    />
+    <div className={styles.event}>
+      <Card padding="sm" data-surface="feature">
+        <Metric label="Reloj del evento" value="18:00 – 19:30" comparison={eventClock(now)} hint="A las 18:00 se publican los datos de FINAL y a las 19:30 se cierran los envíos." />
+      </Card>
+      <Card padding="sm" data-surface="feature">
+        <Metric label="Tamaño máximo" value={formatBytes(SUBMISSION_LIMIT_BYTES)} comparison="sin comprimir" />
+      </Card>
+      <Card padding="sm" data-surface="feature">
+        <Metric label="Filas máximas" value={formatNumber(SUBMISSION_LIMIT_ROWS)} comparison="en el fichero" />
+      </Card>
+    </div>
   )
 }
 
@@ -120,12 +123,13 @@ export function FinalConsole() {
   const errors = validation?.errors ?? []
 
   return (
+    <>
+    <EventFacts />
     <Card
       title="Consola FINAL"
       description="Del zip de la fase al fichero listo. Esta consola no envía nada: el envío lo hace una persona."
       actions={consola && <Button variant="ghost" size="sm" leadingIcon={<RotateCcw />} onClick={reset}>Nueva ejecución</Button>}
     >
-      <EventFacts />
       <ol className={styles.steps}>
         <Step n={1} current={step} title="Fase" summary={consola ? <>Fase <Mono>{chosenPhase}</Mono></> : phase ? <>Fase <Mono>{phase}</Mono> elegida</> : undefined}>
           {!consola && (
@@ -192,7 +196,7 @@ export function FinalConsole() {
                   {validation ? 'Validar de nuevo' : 'Validar'}
                 </Button>
                 {validate.error && <span className={styles.error}>{validate.error.message}</span>}
-                {validation && <Badge tone={validation.ok ? 'ok' : 'danger'}>{validation.ok ? 'Válido' : 'No válido'}</Badge>}
+                {validation && <Badge {...(validation.ok ? { emphasis: 'medium' as const } : { tone: 'danger' as const })}>{validation.ok ? 'Válido' : 'No válido'}</Badge>}
               </div>
               {validation && (
                 <>
@@ -268,5 +272,6 @@ export function FinalConsole() {
         </Step>
       </ol>
     </Card>
+    </>
   )
 }

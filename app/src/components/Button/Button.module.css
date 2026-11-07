@@ -45,8 +45,8 @@
   height: 14px;
 }
 
-/* Primary: deep teal on the light theme, a light block on the dark one, a gradient only on hover. Green stays
-   for data, selection and focus (ARCHITECTURE.md §5.4). */
+/* Primary: filled deep green (a lightened one on dark), a gradient only on hover. Secondary: outlined in the
+   same green (ARCHITECTURE.md §5.4). */
 .primary {
   background: var(--action);
   color: var(--action-ink);
@@ -65,17 +65,16 @@
 
 .secondary {
   background: var(--bg);
-  border-color: var(--ink-2);
-  color: var(--ink-2);
+  border-color: var(--brand-ink);
+  color: var(--brand-ink);
 }
 
 .secondary:hover:not(:disabled) {
-  background: var(--bg-subtle);
-  color: var(--ink);
+  background: var(--brand-soft);
 }
 
 .secondary:active:not(:disabled) {
-  background: var(--bg-muted);
+  background: var(--brand-border);
 }
 
 .ghost {

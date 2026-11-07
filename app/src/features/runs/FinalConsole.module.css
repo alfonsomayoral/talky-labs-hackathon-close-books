@@ -222,5 +222,14 @@
 }
 
 .event {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .event {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

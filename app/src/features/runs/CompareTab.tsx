@@ -68,8 +68,8 @@ function Result({ a, b }: { a: Run; b: Run }) {
             description="Acierto por tipo de movimiento. Los que bajan van primero."
             actions={
               <>
-                {rises > 0 && <Badge tone="ok">{rises === 1 ? '1 tipo sube' : `${rises} tipos suben`}</Badge>}
-                {drops > 0 ? <Badge tone="danger">{drops === 1 ? '1 tipo baja' : `${drops} tipos bajan`}</Badge> : <Badge tone="ok">Ninguno baja</Badge>}
+                {rises > 0 && <Badge emphasis="medium">{rises === 1 ? '1 tipo sube' : `${rises} tipos suben`}</Badge>}
+                {drops > 0 ? <Badge emphasis="strong">{drops === 1 ? '1 tipo baja' : `${drops} tipos bajan`}</Badge> : <Badge emphasis="quiet">Ninguno baja</Badge>}
               </>
             }
             padding="none"

@@ -40,9 +40,11 @@
   z-index: var(--z-sticky);
   background: var(--bg);
   border-bottom: 1px solid var(--line);
-  color: var(--ink-3);
-  font-size: var(--text-12);
+  color: var(--ink-2);
+  font-size: var(--text-11);
   font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .headerText {
@@ -62,6 +64,8 @@
   border-radius: var(--radius-xs);
   color: inherit;
   font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
 }
 
 .sortButton:hover {
@@ -107,7 +111,7 @@
 }
 
 .dataRow:hover {
-  background: var(--bg-subtle);
+  background: var(--row-hover);
 }
 
 .selected,

@@ -5,12 +5,12 @@ Import everything from `@/components`. Tokens: `src/design/tokens.css` (Talky br
 ## Rules
 
 - **Colour carries meaning only.** Deep green (`--brand`) = main data, selection, focus. Status colours = status. Everything else is ink on the surfaces with hairline borders (`--line`). Light and dark themes (`data-theme` on `<html>`, `@/lib/theme`); the values below are the dark theme's.
-- **One primary button per view** (`--action`: deep teal on light, a light block on dark). The rest: `secondary` (bordered) or `ghost`.
+- **One primary button per view** (`--action`: deep green, a lightened one on dark). The rest: `secondary` (outlined in `--brand-ink`) or `ghost`.
 - **Small green text** uses `--brand-ink` (AA on `--bg` in both themes). Status text on tinted fills uses `--ok-ink`, `--warn-ink`, `--danger-ink`, `--info-ink`.
 - **Green indicators** (selected border or underline, focus ring, check) use `--brand-line` (≥ 3:1). Green fills take `--ink-inverse` text, as the checked filter box does. `--brand` stays for large areas and icons next to a label.
 - **Grey text** is `--ink-3` at least (AA on `--bg` and `--bg-muted`); `--ink-4` is only for disabled text and decorative icons.
 - **Ids, accounts, codes, policy refs** → `Mono`. **Money** → `Amount` (never format cents by hand), right-aligned in tables. Dates/percent/durations → `@/lib/format`.
-- **Density:** rows 36px, 13px text, 16px lucide icons with 1.5 stroke (set globally by `LucideProvider` in `main.tsx`; just render `<Icon />`).
+- **Density:** rows 44px, 13px text, 16px lucide icons with 1.5 stroke (set globally by `LucideProvider` in `main.tsx`; just render `<Icon />`).
 - No banners, illustrations or heavy shadows. Gradients only on `[data-surface='feature']` (the Overview header and large-figure cards) and the primary button on hover. Empty states: an icon, a sentence, one action.
 - Copy in Spanish; identifiers in English.
 
@@ -28,7 +28,7 @@ Import everything from `@/components`. Tokens: `src/design/tokens.css` (Talky br
 
 **Status**
 - `StatusDot` — `tone`, `label` (pass `""` when text sits next to it), `pulse` for in-progress.
-- `Badge` — `tone`, `variant` soft|outline, `dot`, `icon`. Domain labels and tones (severity, match status) live in `@/data` (`SEVERITY`, `MATCH_STATUS`): use them, don't recolour.
+- `Badge` — `tone`, `variant` soft|outline, `dot`, `icon`. For priority, case status, risk and exceptions use `emphasis` strong (filled `--action`)|medium (outlined green)|quiet (text only) instead of `tone`: never red or yellow there (`CASE_STATUS_EMPHASIS`, `RISK_EMPHASIS`). Domain labels and tones (severity, match status) live in `@/data` (`SEVERITY`, `MATCH_STATUS`): use them, don't recolour.
 - `Pill` — rounded tag for metadata/counts: `tone`, `icon`, `count`, `onRemove`.
 - `ConfidenceBand` — `value` 0..1|null, `showValue`.
 
@@ -74,7 +74,7 @@ const columns = useMemo<Column<Invoice>[]>(() => [
   sort={sort} onSortChange={setSort} onOpen={(i) => open(i.id)} globalKeys />
 ```
 
-- Virtualized (tested with 40k rows); header is sticky; rows 36px. **Memoize `columns`** (and `rows`), or sorting reruns every render.
+- Virtualized (tested with 40k rows); header is sticky (small uppercase); rows 44px. **Memoize `columns`** (and `rows`), or sorting reruns every render.
 - `width`: px number or any grid track; default `minmax(0, 1fr)`. Horizontal scroll appears when fixed widths exceed the space.
 - Sort: click a header with `sortValue` (asc → desc → off); nulls last. Controlled with `sort`/`onSortChange` or uncontrolled with `defaultSort`.
 - Groups: `groupBy`, `groupOrder`, `renderGroup`; headers collapse on click and show counts.

@@ -26,12 +26,12 @@ export const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
   done: 'Gestionado',
 }
 
-export const CASE_STATUS_TONE: Record<CaseStatus, 'ok' | 'warn' | 'info' | 'danger' | 'neutral'> = {
-  auto: 'ok',
-  needs_review: 'warn',
-  question: 'info',
-  fallback: 'danger',
-  done: 'neutral',
+export const CASE_STATUS_EMPHASIS: Record<CaseStatus, 'strong' | 'medium' | 'quiet'> = {
+  auto: 'quiet',
+  needs_review: 'medium',
+  question: 'strong',
+  fallback: 'strong',
+  done: 'quiet',
 }
 
 export const PRIORITY_LABEL: Record<CasePriority, string> = { 1: 'Alta', 2: 'Media', 3: 'Baja' }
