@@ -27,3 +27,11 @@ export function soleParty(rows: Pick<DetailRow, 'item'>[]): { partyId: string; p
   const item = rows.find((r) => r.item)?.item
   return item && distinctParties(rows) === 1 ? { partyId: item.partyId, partyName: item.partyName ?? null } : null
 }
+
+/** Cents as the delivered CSV writes them: dot decimals, no thousands. */
+const csvAmount = (cents: number) => `${cents < 0 ? '-' : ''}${Math.floor(Math.abs(cents) / 100)}.${String(Math.abs(cents) % 100).padStart(2, '0')}`
+
+/** The movement's lines of the delivered CSV (FORMAT.md), header first. */
+export function submissionLines(bankTxnId: string, rows: Pick<DetailRow, 'itemId' | 'amountCents' | 'category' | 'exception'>[]): string[] {
+  return ['bank_txn_id,item_id,amount,category,exception', ...rows.map((r) => [bankTxnId, r.itemId ?? '', r.amountCents == null ? '' : csvAmount(r.amountCents), r.category ?? '', r.exception ?? ''].join(','))]
+}

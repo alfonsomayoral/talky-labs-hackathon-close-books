@@ -2,14 +2,14 @@ import { Fragment, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowLeft, CloudOff } from 'lucide-react'
 import type { BankLine, RelatedTxn, TxnDetail } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, ruleDescription, partyHowLabel } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_TONE, ruleDescription, partyHowLabel, statementFormatLabel } from '@/domain'
 import { Amount, Badge, Button, ConfidenceBand, EmptyState, KeyValue, Mono, SidePanel, Skeleton } from '@/components'
 import { useActiveRun, useTransaction } from '@/data'
 import { formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { TxnEvidence } from './TxnEvidence'
 import { TxnRows } from './TxnRows'
-import { decisionOf, distinctParties, soleParty } from './txnPanelModel'
+import { decisionOf, distinctParties, soleParty, submissionLines } from './txnPanelModel'
 import styles from './TxnPanel.module.css'
 
 export interface TxnPanelProps {
@@ -52,7 +52,7 @@ const BANK_LINE_LABEL: Record<keyof BankLine, string> = {
 }
 
 /** Ids, accounts and codes; the rest (text, names, dates, amounts) is plain. */
-const MONO_FIELDS = new Set<keyof BankLine>(['bankTxnId', 'accountId', 'entity', 'statementFormat', 'statementFile', 'bankCode', 'bankSubcode', 'ref1', 'ref2', 'counterpartyAccount', 'endToEndId', 'currency', 'origCurrency'])
+const MONO_FIELDS = new Set<keyof BankLine>(['bankTxnId', 'accountId', 'entity', 'statementFile', 'bankCode', 'bankSubcode', 'ref1', 'ref2', 'counterpartyAccount', 'endToEndId', 'currency', 'origCurrency'])
 
 const PARTY_KIND_LABEL = { customer: 'Cliente', supplier: 'Proveedor' }
 
@@ -72,7 +72,7 @@ function bankLineItems(txn: BankLine) {
   return (Object.keys(BANK_LINE_LABEL) as (keyof BankLine)[]).map((key) => {
     const value = txn[key]
     const text =
-      key === 'amountCents' ? <Amount cents={txn.amountCents} currency={txn.currency} signed /> : key === 'origAmountCents' && txn.origAmountCents != null ? <Amount cents={txn.origAmountCents} currency={txn.origCurrency ?? txn.currency} /> : key === 'bookingDate' || key === 'valueDate' ? formatDate(txn[key]) : value
+      key === 'amountCents' ? <Amount cents={txn.amountCents} currency={txn.currency} signed /> : key === 'origAmountCents' && txn.origAmountCents != null ? <Amount cents={txn.origAmountCents} currency={txn.origCurrency ?? txn.currency} /> : key === 'bookingDate' || key === 'valueDate' ? formatDate(txn[key]) : key === 'statementFormat' ? statementFormatLabel(txn.statementFormat) : value
     return { label: BANK_LINE_LABEL[key], value: text, mono: MONO_FIELDS.has(key) }
   })
 }
@@ -141,7 +141,13 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
       </PanelSection>
 
       <PanelSection title="Partidas asignadas" count={rows.length}>
-        {rows.length > 0 ? <TxnRows rows={rows} /> : <p className={styles.none}>Ninguna fila para este movimiento.</p>}
+        {rows.length > 0 ? <TxnRows rows={rows} txn={txn} /> : <p className={styles.none}>Ninguna fila para este movimiento.</p>}
+      </PanelSection>
+
+      <PanelSection title="Fila de la entrega" count={rows.length}>
+        <pre className={styles.submission} tabIndex={0} aria-label="Líneas de este movimiento en el CSV que se entrega">
+          {submissionLines(txn.bankTxnId, rows).join('\n')}
+        </pre>
       </PanelSection>
 
       <PanelSection title="Evidencia" count={evidence.length}>

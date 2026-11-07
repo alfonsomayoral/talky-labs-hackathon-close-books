@@ -1,6 +1,6 @@
 // Pure logic of the reconciliation screen: URL filters → API params, facet options, table cells.
 import type { Account, CaseStatus, RunStats, TxnRow } from '@/domain'
-import { CASE_STATUS_LABEL, categoryLabel, exceptionLabel, INBOX_STATUSES } from '@/domain'
+import { CASE_STATUS_LABEL, categoryLabel, exceptionLabel, INBOX_STATUSES, statementFormatLabel } from '@/domain'
 import type { SortState } from '@/components'
 
 export type FacetKey = 'entity' | 'account' | 'format' | 'rule' | 'exception' | 'category' | 'status'
@@ -82,7 +82,7 @@ export function buildFacetOptions(stats: RunStats | undefined, accounts: Account
   return {
     entity: (stats?.byEntity ?? []).map((e) => ({ value: e.entity, label: `${e.entity} · ${e.name}`, count: e.txns })),
     account: (accounts ?? []).filter((a) => !entity || a.entity === entity).map((a) => ({ value: a.accountId, label: `${a.accountId} · ${a.bank}`, count: a.txns })),
-    format: [...new Set((accounts ?? []).flatMap((a) => a.formats.map((f) => f.format)))].sort().map((format) => ({ value: format, label: format })),
+    format: [...new Set((accounts ?? []).flatMap((a) => a.formats.map((f) => f.format)))].sort().map((format) => ({ value: format, label: statementFormatLabel(format) })),
     rule: (stats?.byRule ?? []).map((r) => ({ value: r.rule, label: r.rule, count: r.txns })),
     exception: (stats?.byException ?? []).map((e) => ({ value: e.exception, label: exceptionLabel(e.exception) })),
     category: (stats?.byCategory ?? []).map((c) => ({ value: c.category, label: categoryLabel(c.category), count: c.txns })),

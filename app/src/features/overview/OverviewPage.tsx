@@ -1,15 +1,18 @@
 import { ArrowRight } from 'lucide-react'
 import { Amount, ButtonLink, Card, EmptyState, Metric, Mono, Page, PageHeader, Section, Skeleton } from '@/components'
-import { useActiveRun, useRun, useRunStats } from '@/data'
-import { autoRate, categoryLabel, exceptionLabel, ruleDescription } from '@/domain'
+import { useActiveRun, useQueueTotals, useRun, useRunStats } from '@/data'
+import { autoRate, categoryLabel, queueOfKind, ruleDescription } from '@/domain'
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { DayChart } from './DayChart'
 import { EntityCard } from './EntityCard'
 import { KindCard } from './KindCard'
+import { QueueCard } from './QueueCard'
+import { EvidenceCard } from './EvidenceCard'
 import { RankList } from './RankList'
 import { ScoreSection } from './ScoreSection'
-import { amountSplit, headline, modelTotals } from './model'
+import { CategoryTerm, ExceptionTerm } from '@/features/shared'
+import { amountSplit, closedExceptions, headline, modelTotals, periodMonths } from './model'
 import styles from './OverviewPage.module.css'
 
 const TOP = 8
@@ -20,14 +23,14 @@ export function OverviewPage() {
   const scoped = useScopedTo()
   const statsQuery = useRunStats(runId, entity)
   const runQuery = useRun(runId)
+  const totals = useQueueTotals(runId, entity)
   const stats = statsQuery.data
   const models = runQuery.data ? modelTotals(runQuery.data.models) : null
 
-  const to = (pathname: string, param?: [string, string]) => {
+  const to = (pathname: string, params: Record<string, string> = {}) => {
     const link = scoped(pathname)
-    if (!param) return link
     const search = new URLSearchParams(link.search)
-    search.set(...param)
+    for (const [key, value] of Object.entries(params)) search.set(key, value)
     return { pathname, search: `?${search}` }
   }
 
@@ -62,15 +65,29 @@ export function OverviewPage() {
 
   return (
     <Page>
-      <PageHeader
-        title={headline(stats)}
-        subtitle={`${scope} · fase ${stats.phase} · ${formatDate(stats.periodFrom)} – ${formatDate(stats.periodTo)}`}
-        actions={
-          <ButtonLink variant="primary" to={to('/bandeja')} trailingIcon={<ArrowRight aria-hidden />}>
-            Ver lo que te necesita
-          </ButtonLink>
-        }
-      />
+      <div className={styles.banner} data-surface="feature">
+        <PageHeader
+          title={headline(stats, totals)}
+          subtitle={[
+            scope,
+            `${formatDate(stats.periodFrom)} – ${formatDate(stats.periodTo)}`,
+            ...(entity ? [] : [`${formatNumber(stats.byEntity.length)} sociedades`]),
+            `${formatNumber(stats.txns)} movimientos`,
+            ...(stats.periodFrom && stats.periodTo ? [`${formatNumber(periodMonths(stats.periodFrom, stats.periodTo))} meses`] : []),
+          ].join(' · ')}
+          actions={
+            <ButtonLink variant="primary" to={to('/bandeja')} trailingIcon={<ArrowRight aria-hidden />}>
+              Ver lo que te necesita
+            </ButtonLink>
+          }
+        />
+      </div>
+
+      <div className={styles.queues}>
+        <QueueCard label="Decisiones" description="Varias opciones con la misma evidencia: decide una persona." totals={totals?.decidir} to={to('/bandeja', { vista: 'decidir' })} />
+        <QueueCard label="Por revisar" description="Sin evidencia para casar: cobros sin identificar, casaciones ambiguas y cargos." totals={totals?.revisar} to={to('/bandeja', { vista: 'revisar' })} />
+        <QueueCard label="Cobros" description="Ya conciliados, con algo que reclamar: parciales, disputas y clientes vencidos." totals={totals?.reclamar} to={to('/bandeja', { vista: 'reclamar' })} />
+      </div>
 
       <div className={styles.metrics}>
         <Card>
@@ -97,18 +114,6 @@ export function OverviewPage() {
         </Card>
         <Card>
           <Metric
-            label="Cola de revisión"
-            value={formatNumber(stats.reviewQueue)}
-            comparison={
-              <>
-                casos · <Amount cents={stats.reviewQueueEur} compact />
-              </>
-            }
-            hint="Casos por revisar, con pregunta o sin casación."
-          />
-        </Card>
-        <Card>
-          <Metric
             label="Coste de modelo"
             value={models ? formatMoney(Math.round(models.costUsd * 100), 'USD', { decimals: 2 }) : ''}
             loading={!models}
@@ -118,15 +123,19 @@ export function OverviewPage() {
         </Card>
       </div>
 
+      <Section title="Cómo se resolvió" description="Qué respalda cada movimiento: el sistema dice por qué casa algo y marca lo que no sabe.">
+        <EvidenceCard byRule={stats.byRule} total={stats.txns} />
+      </Section>
+
       <Section title="Evolución por día" description="Movimientos por fecha de contabilización, según se cerraron solos o pasaron a la cola.">
         <Card>{stats.byDay.length ? <DayChart byDay={stats.byDay} /> : <EmptyState size="sm" title="Sin movimientos en el periodo" />}</Card>
       </Section>
 
-      <Section title="Casos por tipo" description="Lo que espera a una persona. Cada tipo abre la bandeja filtrada." count={stats.byKind.length}>
+      <Section title="Casos por tipo" description="La misma cola, por tipo de caso. Cada tipo abre su pestaña de la bandeja." count={stats.byKind.length}>
         {stats.byKind.length ? (
           <div className={styles.kinds}>
             {stats.byKind.map((k) => (
-              <KindCard key={k.kind} {...k} to={to('/bandeja', ['kind', k.kind])} />
+              <KindCard key={k.kind} {...k} to={to('/bandeja', { vista: queueOfKind(k.kind), kind: k.kind })} />
             ))}
           </div>
         ) : (
@@ -135,21 +144,15 @@ export function OverviewPage() {
       </Section>
 
       <div className={styles.breakdowns}>
-        <Section title="Excepciones" description="Partidas por tipo de diferencia.">
+        <Section title="Excepciones" description="La lista cerrada de la política, por filas. Pasa el ratón para ver cada definición.">
           <Card padding="none">
-            {stats.byException.length ? (
-              <RankList
-                rows={stats.byException.slice(0, TOP).map((e) => ({ key: e.exception, label: exceptionLabel(e.exception), value: e.rows, detail: <Amount cents={e.amountEur} compact /> }))}
-              />
-            ) : (
-              <EmptyState size="sm" title="Sin excepciones" />
-            )}
+            <RankList rows={closedExceptions(stats.byException).map((e) => ({ key: e.exception, label: <ExceptionTerm exception={e.exception} />, value: e.rows, detail: <Amount cents={e.amountEur} compact /> }))} />
           </Card>
         </Section>
         <Section title="Categorías" description="Movimientos sin factura, por categoría.">
           <Card padding="none">
             {stats.byCategory.length ? (
-              <RankList rows={stats.byCategory.slice(0, TOP).map((c) => ({ key: c.category, label: categoryLabel(c.category), value: c.txns, detail: <Amount cents={c.amountEur} compact /> }))} />
+              <RankList rows={stats.byCategory.map((c) => ({ key: c.category, label: <CategoryTerm category={c.category} />, value: c.txns, detail: <Amount cents={c.amountEur} compact /> }))} />
             ) : (
               <EmptyState size="sm" title="Sin categorías" />
             )}
@@ -158,7 +161,7 @@ export function OverviewPage() {
         <Section title="Filas por regla" description="Qué regla produjo cada fila. Abre la conciliación.">
           <Card padding="none">
             {stats.byRule.length ? (
-              <RankList rows={stats.byRule.slice(0, TOP).map((r) => ({ key: r.rule, label: <Mono title={ruleDescription(r.rule)}>{r.rule}</Mono>, value: r.rows, to: to('/conciliacion', ['regla', r.rule]) }))} />
+              <RankList rows={stats.byRule.slice(0, TOP).map((r) => ({ key: r.rule, label: <Mono title={ruleDescription(r.rule)}>{r.rule}</Mono>, value: r.rows, to: to('/conciliacion', { regla: r.rule }) }))} />
             ) : (
               <EmptyState size="sm" title="Sin filas" />
             )}

@@ -1,13 +1,14 @@
-import type { DetailRow } from '@/domain'
-import { categoryLabel, exceptionLabel } from '@/domain'
-import { Amount, Badge, Mono } from '@/components'
+import type { BankLine, DetailRow } from '@/domain'
+import { Amount, Mono } from '@/components'
 import { formatDate } from '@/lib/format'
+import { CategoryTerm, ExceptionTerm } from './Terms'
 import { sumByCurrency } from './txnPanelModel'
 import styles from './TxnRows.module.css'
 
 /** The rows of the movement: up to ~1.5 k, so the box has a fixed height and scrolls. */
-export function TxnRows({ rows }: { rows: DetailRow[] }) {
+export function TxnRows({ rows, txn }: { rows: DetailRow[]; txn: Pick<BankLine, 'amountCents' | 'currency'> }) {
   const totals = sumByCurrency(rows)
+  const otherCurrency = totals.some((t) => t.currency !== txn.currency)
   return (
     <div className={styles.box}>
       <div className={styles.scroll} role="table" aria-label="Partidas asignadas">
@@ -40,9 +41,9 @@ export function TxnRows({ rows }: { rows: DetailRow[] }) {
             </span>
             <span role="cell">
               {r.exception ? (
-                <Badge tone={r.exception === 'UNIDENTIFIED' ? 'danger' : 'warn'}>{exceptionLabel(r.exception)}</Badge>
+                <ExceptionTerm exception={r.exception} badge />
               ) : r.category ? (
-                <span title={r.category}>{categoryLabel(r.category)}</span>
+                <CategoryTerm category={r.category} />
               ) : null}
             </span>
           </div>
@@ -56,6 +57,11 @@ export function TxnRows({ rows }: { rows: DetailRow[] }) {
               Aplicado <Amount cents={t.cents} currency={t.currency} />
             </span>
           ))}
+          {otherCurrency && (
+            <span>
+              Movimiento <Amount cents={Math.abs(txn.amountCents)} currency={txn.currency} />
+            </span>
+          )}
         </span>
       </footer>
     </div>

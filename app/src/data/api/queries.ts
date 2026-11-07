@@ -1,5 +1,5 @@
 // One hook per API resource (CONTRACT.md §5). Views use these, never the client.
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import type {
   Account,
@@ -18,6 +18,7 @@ import type {
   Party,
   PartyDetail,
   Question,
+  QueueId,
   Run,
   RunStats,
   RunStatus,
@@ -27,6 +28,7 @@ import type {
   UploadResult,
   ValidationResult,
 } from '@/domain'
+import { QUEUES, queueFilter } from '@/domain'
 import { del, encodePath, get, post, postFile, put, type QueryParams } from './client'
 
 /** The API's maximum page size (CONTRACT.md §5). */
@@ -125,6 +127,23 @@ export const useTransaction = (runId: string | null, bankTxnId: string | null) =
 // ── Cases, questions and drafts ──────────────────────────────────────────────
 
 export const useCases = (runId: string | null, params: QueryParams) => usePagedList<CaseRow>(runId && `${run(runId)}/cases`, params)
+
+export type QueueTotals = Record<QueueId, { cases: number; amountEur: number }>
+
+/** Cases and amount of each queue, or null until all three have loaded. */
+export function useQueueTotals(runId: string | null, entity: string | null): QueueTotals | null {
+  return useQueries({
+    queries: QUEUES.map(({ id }) => ({
+      queryKey: [run(runId ?? ''), 'queue', id, entity],
+      enabled: runId != null,
+      queryFn: ({ signal }: { signal: AbortSignal }) => get<Paged<CaseRow>>(`${run(runId!)}/cases`, { ...queueFilter(id), entity, size: 1 }, signal),
+    })),
+    combine: (results) =>
+      results.every((r) => r.data)
+        ? (Object.fromEntries(QUEUES.map(({ id }, i) => [id, { cases: results[i].data!.total, amountEur: results[i].data!.sumAmountEur ?? 0 }])) as QueueTotals)
+        : null,
+  })
+}
 
 export const useCase = (runId: string | null, caseId: string | null) =>
   useQuery({

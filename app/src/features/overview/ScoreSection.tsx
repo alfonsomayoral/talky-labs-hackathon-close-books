@@ -1,5 +1,5 @@
-import { Card, Metric, Mono, ProgressBar, Section } from '@/components'
-import type { Score } from '@/domain'
+import { Card, Metric, ProgressBar, Section } from '@/components'
+import { segmentLabel, type Score } from '@/domain'
 import { formatNumber, formatPercent } from '@/lib/format'
 import { scoreMetrics, segmentsWorstFirst } from './model'
 import styles from './ScoreSection.module.css'
@@ -7,7 +7,7 @@ import styles from './ScoreSection.module.css'
 /** Local score against the golden (only phases that have one): total, its three parts, and the segments from worst to best. */
 export function ScoreSection({ score }: { score: Score }) {
   return (
-    <Section title="Puntuación contra las respuestas de la fase" description="Evaluador oficial; los segmentos van del peor al mejor.">
+    <Section title="Puntuación contra las respuestas de la fase" description="Evaluador oficial; los tipos de movimiento van del peor al mejor.">
       <div className={styles.grid}>
         <Card>
           <div className={styles.metrics}>
@@ -21,9 +21,9 @@ export function ScoreSection({ score }: { score: Score }) {
           <ul className={styles.segments}>
             {segmentsWorstFirst(score).map((s) => (
               <li key={s.key} className={styles.segment}>
-                <Mono>{s.key}</Mono>
+                <span title={s.key}>{segmentLabel(s.key)}</span>
                 <span className={styles.n}>{formatNumber(s.n)} mov.</span>
-                <ProgressBar value={s.accuracy} size="sm" tone={s.accuracy < 0.7 ? 'warn' : 'brand'} label={`${s.key}: acierto`} />
+                <ProgressBar value={s.accuracy} size="sm" tone={s.accuracy < 0.7 ? 'warn' : 'brand'} label={`${segmentLabel(s.key)}: acierto`} />
                 <span className={styles.accuracy}>{formatPercent(s.accuracy, { decimals: 1 })}</span>
               </li>
             ))}

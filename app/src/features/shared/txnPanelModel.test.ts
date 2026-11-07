@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DetailRow } from '@/domain'
-import { decisionOf, distinctParties, soleParty, sumByCurrency } from './txnPanelModel'
+import { decisionOf, distinctParties, soleParty, submissionLines, sumByCurrency } from './txnPanelModel'
 
 describe('sumByCurrency', () => {
   it('never adds different currencies, and skips rows with no amount', () => {
@@ -48,5 +48,20 @@ describe('soleParty', () => {
   it('names nobody with several parties or none', () => {
     expect(soleParty([{ item: { partyId: 'C1', partyName: 'A' } }, { item: { partyId: 'C2', partyName: 'B' } }] as DetailRow[])).toBeNull()
     expect(soleParty([{ item: null }] as DetailRow[])).toBeNull()
+  })
+})
+
+describe('submissionLines', () => {
+  it('writes the rows as the delivered CSV does: dot decimals, empty fields', () => {
+    expect(
+      submissionLines('BT-1', [
+        { itemId: 'ARI-1', amountCents: 272773, category: null, exception: null },
+        { itemId: 'ARI-2', amountCents: 500, category: null, exception: 'PARTIAL' },
+      ]),
+    ).toEqual(['bank_txn_id,item_id,amount,category,exception', 'BT-1,ARI-1,2727.73,,', 'BT-1,ARI-2,5.00,,PARTIAL'])
+  })
+
+  it('leaves item and amount empty on a row that settles no item', () => {
+    expect(submissionLines('BT-2', [{ itemId: null, amountCents: null, category: 'BANK_FEES', exception: null }])[1]).toBe('BT-2,,,BANK_FEES,')
   })
 })

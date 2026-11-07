@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { CloudOff, Landmark } from 'lucide-react'
 import { Amount, Badge, Card, EmptyState, Metric, Mono, Page, PageHeader, ProgressBar, Skeleton, DataTable, type Column } from '@/components'
 import { useAccounts, useActiveRun } from '@/data'
-import type { Account } from '@/domain'
+import { statementFormatLabel, type Account } from '@/domain'
 import { formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { currentFormat, filterByEntity, formatChange, summarize } from './model'
@@ -13,7 +13,7 @@ const COLUMNS: Column<Account>[] = [
   {
     id: 'account',
     header: 'Cuenta',
-    width: 'minmax(214px, 1.2fr)',
+    width: 'minmax(150px, 1.2fr)',
     cell: (a) => (
       <span className={styles.account}>
         <Mono>{a.accountId}</Mono>
@@ -26,30 +26,30 @@ const COLUMNS: Column<Account>[] = [
     ),
     sortValue: (a) => a.accountId,
   },
-  { id: 'bank', header: 'Banco', width: 'minmax(150px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
-  { id: 'entity', header: 'Sociedad', width: 104, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
-  { id: 'currency', header: 'Divisa', width: 84, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
+  { id: 'bank', header: 'Banco', width: 'minmax(120px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
+  { id: 'entity', header: 'Sociedad', width: 84, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
+  { id: 'currency', header: 'Divisa', width: 68, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
   {
     id: 'format',
-    header: 'Formato',
-    width: 'minmax(222px, 1.2fr)',
+    header: 'Formato de extracto',
+    width: 'minmax(280px, 1.2fr)',
     cell: (a) => {
       const change = formatChange(a.formats)
       return change ? (
-        <Badge tone="info" title="El banco cambió el formato del extracto durante la fase">
+        <Badge tone="info" title="El banco migra sus extractos a otro formato durante la fase y los textos cambian de forma">
           {change}
         </Badge>
       ) : (
-        <Mono>{currentFormat(a.formats) ?? '—'}</Mono>
+        <span>{statementFormatLabel(currentFormat(a.formats) ?? '—')}</span>
       )
     },
     sortValue: (a) => currentFormat(a.formats),
   },
-  { id: 'txns', header: 'Movimientos', width: 124, align: 'right', cell: (a) => formatNumber(a.txns), sortValue: (a) => a.txns },
+  { id: 'txns', header: 'Movimientos', width: 112, align: 'right', cell: (a) => formatNumber(a.txns), sortValue: (a) => a.txns },
   {
     id: 'inflow',
     header: 'Entradas',
-    width: 120,
+    width: 116,
     align: 'right',
     cell: (a) => <Amount cents={a.inflowCents} currency={a.currency} decimals={0} compact />,
     sortValue: (a) => a.inflowCents,
@@ -57,15 +57,15 @@ const COLUMNS: Column<Account>[] = [
   {
     id: 'outflow',
     header: 'Salidas',
-    width: 120,
+    width: 116,
     align: 'right',
     cell: (a) => <Amount cents={a.outflowCents} currency={a.currency} decimals={0} compact />,
     sortValue: (a) => a.outflowCents,
   },
   {
     id: 'net',
-    header: 'Neto del periodo',
-    width: 148,
+    header: 'Neto',
+    width: 116,
     align: 'right',
     cell: (a) => <Amount cents={a.netCents} currency={a.currency} decimals={0} compact />,
     sortValue: (a) => a.netCents,
@@ -73,7 +73,7 @@ const COLUMNS: Column<Account>[] = [
   {
     id: 'reconciled',
     header: '% conciliado',
-    width: 132,
+    width: 110,
     cell: (a) =>
       a.reconciledRate == null ? (
         '—'

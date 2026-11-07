@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RunSummary, Score } from '@/domain'
-import { consoleStep, defaultPair, failureCause, isRise, diffCounts, diffMetrics, diffSegments, isDrop, stageList } from './model'
+import { consoleStep, defaultPair, eventClock, failureCause, isRise, diffCounts, diffMetrics, diffSegments, isDrop, scoreReference, stageList } from './model'
 
 const score = (metrics: Record<string, number>, segments: Score['segments'] = {}): Score => ({ score: 0, metrics, segments })
 const run = (runId: string, phase: string, createdAt: string, s: number | null) => ({ runId, phase, createdAt, score: s }) as RunSummary
@@ -131,5 +131,30 @@ describe('isRise', () => {
     expect(isRise({ key: 'x', a: 0.6, b: 0.5, delta: -0.1 })).toBe(false)
     expect(isRise({ key: 'x', a: 0.5, b: 0.5, delta: 0 })).toBe(false)
     expect(isRise({ key: 'x', a: null, b: 0.5, delta: null })).toBe(false)
+  })
+})
+
+describe('eventClock', () => {
+  const at = (time: string) => new Date(`2026-11-07T${time}:00+01:00`)
+
+  it('counts down to the data, then to the close', () => {
+    expect(eventClock(at('16:30'))).toBe('Faltan 1 h 30 min para los datos')
+    expect(eventClock(at('18:00'))).toBe('Datos publicados: quedan 1 h 30 min para el cierre')
+    expect(eventClock(at('19:25'))).toBe('Datos publicados: quedan 5 min para el cierre')
+  })
+
+  it('says when the window is over', () => {
+    expect(eventClock(at('19:30'))).toBe('Envíos cerrados')
+  })
+})
+
+describe('scoreReference', () => {
+  it('takes the newest scored holdout', () => {
+    const runs = [run('a', 'holdout', '2026-11-07T08:00', 91.2), run('b', 'holdout', '2026-11-07T09:00', 91.37), run('c', 'live', '2026-11-07T10:00', null), run('d', 'holdout', '2026-11-07T11:00', null)]
+    expect(scoreReference(runs)?.runId).toBe('b')
+  })
+
+  it('is null without one', () => {
+    expect(scoreReference([run('c', 'live', '2026-11-07T10:00', null)])).toBeNull()
   })
 })

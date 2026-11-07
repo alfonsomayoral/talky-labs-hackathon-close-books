@@ -1,9 +1,10 @@
 import { ButtonLink, EmptyState, KeyValue, Mono, ProgressBar, Section, SidePanel, Skeleton, Amount } from '@/components'
-import { useRun } from '@/data'
-import { CASE_STATUS_LABEL, exceptionLabel, type CaseStatus, type Run } from '@/domain'
+import { useRun, useRuns } from '@/data'
+import { CASE_STATUS_LABEL, categoryLabel, exceptionLabel, segmentLabel, type CaseStatus, type Run } from '@/domain'
 import { formatDateTime, formatDuration, formatNumber, formatPercent } from '@/lib/format'
 import { BarList } from './BarList'
-import { METRIC_LABEL, STAGE_LABEL, SUBMISSION_LIMIT_BYTES, formatBytes, stageList } from './model'
+import { ScoreExplainer } from './ScoreExplainer'
+import { STAGE_LABEL, SUBMISSION_LIMIT_BYTES, formatBytes, stageList } from './model'
 import styles from './RunPanel.module.css'
 
 const byValue = (counts: Record<string, number>) =>
@@ -25,6 +26,7 @@ function CsvSize({ bytes }: { bytes: number | undefined }) {
 }
 
 function Detail({ run }: { run: Run }) {
+  const runs = useRuns().data ?? []
   const stages = stageList(run.stages, null).filter((s) => s.ms != null)
   const models = Object.entries(run.models)
   return (
@@ -45,16 +47,16 @@ function Detail({ run }: { run: Run }) {
       <Section title="Etapas">
         <BarList label="Duración por etapa" items={stages.map((s) => ({ key: s.stage, label: STAGE_LABEL[s.stage] ?? s.stage, value: s.ms!, display: formatDuration(s.ms) }))} />
       </Section>
+      <Section title="Puntuación">
+        <ScoreExplainer score={run.score ?? null} runs={runs} />
+      </Section>
       {run.score && (
-        <Section title="Puntuación" description="Con el evaluador oficial, contra las respuestas de la fase.">
-          <KeyValue
-            labelWidth={190}
-            items={[
-              { label: 'Total', value: formatNumber(run.score.score, { decimals: 2 }) },
-              ...Object.keys(METRIC_LABEL)
-                .filter((k) => k in run.score!.metrics)
-                .map((k) => ({ label: METRIC_LABEL[k], value: formatPercent(run.score!.metrics[k], { decimals: 1 }) })),
-            ]}
+        <Section title="Acierto por tipo de movimiento" description="Del peor al mejor." count={Object.keys(run.score.segments).length}>
+          <BarList
+            label="Acierto por tipo de movimiento"
+            items={Object.entries(run.score.segments)
+              .sort(([, a], [, b]) => a.accuracy - b.accuracy)
+              .map(([key, v]) => ({ key, label: segmentLabel(key), value: v.accuracy, display: formatPercent(v.accuracy, { decimals: 1 }) }))}
           />
         </Section>
       )}
@@ -68,7 +70,7 @@ function Detail({ run }: { run: Run }) {
         <BarList label="Filas por excepción" items={byValue(run.byException).map((r) => ({ key: r.key, label: exceptionLabel(r.key), value: r.value }))} />
       </Section>
       <Section title="Categorías" count={Object.keys(run.byCategory).length}>
-        <BarList label="Movimientos por categoría" items={byValue(run.byCategory).map((r) => ({ key: r.key, label: <Mono>{r.key}</Mono>, value: r.value }))} />
+        <BarList label="Movimientos por categoría" items={byValue(run.byCategory).map((r) => ({ key: r.key, label: categoryLabel(r.key), value: r.value }))} />
       </Section>
       <Section title="Modelos">
         {models.length === 0 ? (

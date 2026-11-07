@@ -1,6 +1,7 @@
 // Pure logic of the accounts screen.
 import type { Account } from '@/domain'
-import { formatMonth } from '@/lib/format'
+import { statementFormatLabel } from '@/domain'
+import { formatDate } from '@/lib/format'
 
 type Periods = Account['formats']
 
@@ -11,12 +12,12 @@ export function currentFormat(formats: Periods): string | null {
   return byStart(formats).at(-1)?.format ?? null
 }
 
-/** «n43 → camt053 desde oct 2025» when the statement format changed along the phase (the drift), else null. */
+/** «Norma 43 → camt.053 desde 1 oct 2025» when the statement format changed along the phase (the drift), else null. */
 export function formatChange(formats: Periods): string | null {
   const chain: { format: string; from: string }[] = []
   for (const p of byStart(formats)) if (chain.at(-1)?.format !== p.format) chain.push(p)
   if (chain.length < 2) return null
-  return `${chain.map((p) => p.format).join(' → ')} desde ${formatMonth(chain.at(-1)!.from)}`
+  return `${chain.map((p) => statementFormatLabel(p.format)).join(' → ')} desde ${formatDate(chain.at(-1)!.from)}`
 }
 
 export function summarize(accounts: Account[]) {
