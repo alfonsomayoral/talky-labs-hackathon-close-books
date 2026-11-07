@@ -25,3 +25,19 @@
   line-height: var(--leading);
   color: var(--ink-3);
 }
+
+.attachment {
+  display: inline-flex;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+}
+
+.attachment:hover {
+  text-decoration: underline;
+}
+
+.attachment:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 2px;
+}

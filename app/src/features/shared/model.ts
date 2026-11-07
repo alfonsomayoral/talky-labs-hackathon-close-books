@@ -33,3 +33,11 @@ export function recipientLine({ toName, to }: { toName?: string | null; to: stri
   if (!to) return toName ?? ''
   return toName ? `${toName} <${to}>` : to
 }
+
+/** Query of the Explorer with a draft's attachment open, on top of the page's run and entity scope. */
+export function attachmentSearch(scopeSearch: string, ref: string): string {
+  const params = new URLSearchParams(scopeSearch)
+  params.set('tipo', 'documents')
+  params.set('ver', ref)
+  return `?${params}`
+}
