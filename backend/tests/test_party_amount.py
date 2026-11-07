@@ -350,7 +350,7 @@ def test_instalment_from_the_plan_of_the_pdf():
 
 def test_payment_net_of_retention_or_advance_from_the_pdf():
     rule, balances = engine([item("ARI-1", "C1", "F1", 30000), item("ARI-2", "C1", "F2", 50000)])
-    rule.clauses = {"ARI-2": {"retention": {"payableCents": 45000}}}
+    rule.clauses = {"ARI-2": {"retention": {"pct": 10}}}
     assert lines(rule(txn(45000, NAME), balances)) == {"ARI-2"}
     rule.clauses = {"ARI-1": {"advance_deduction": {"netDueCents": 21000}}}
     assert lines(rule(txn(21000, NAME), balances)) == {"ARI-1"}
