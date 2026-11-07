@@ -77,19 +77,26 @@ def _load_txns(folder: Path, fx_rates: pl.DataFrame) -> pl.DataFrame:
     return _with_eur(txns, fx_rates).sort("booking_date", "bank_txn_id")
 
 
-def _issued_items(folder: Path) -> pl.DataFrame:
-    ar = load_table(folder / "ar_invoices.csv.gz").select(
+def _issued_items(folder: Path, keep: pl.Expr | None = None) -> pl.DataFrame:
+    """Items issued in the folder's phase. With `keep`, reads only those rows: TRAIN has 5.6 M."""
+
+    def table(name: str) -> pl.DataFrame:
+        if keep is None:
+            return load_table(folder / f"{name}.csv.gz")
+        return pl.scan_csv(folder / f"{name}.csv.gz", infer_schema_length=0).filter(keep).collect(engine="streaming")
+
+    ar = table("ar_invoices").select(
         "item_id", pl.lit("ARI").alias("item_type"), "entity", pl.col("customer_id").alias("party_id"),
         pl.col("customer_name").alias("party_name"), "document_number", "issue_date", "due_date", "currency",
         _cents("total_amount").alias("total_cents"), "payment_terms", "customer_po", "payment_method",
         pl.lit(None, pl.String).alias("related_document"), pl.lit(None, pl.String).alias("reason"))
-    ap = load_table(folder / "ap_invoices.csv.gz").select(
+    ap = table("ap_invoices").select(
         "item_id", pl.lit("API").alias("item_type"), "entity", pl.col("supplier_id").alias("party_id"),
         pl.col("supplier_name").alias("party_name"), pl.col("supplier_invoice_number").alias("document_number"),
         "issue_date", "due_date", "currency", _cents("total_amount").alias("total_cents"), "payment_terms",
         pl.col("our_po").alias("customer_po"), "payment_method",
         pl.lit(None, pl.String).alias("related_document"), pl.lit(None, pl.String).alias("reason"))
-    notes = load_table(folder / "credit_notes.csv.gz").select(
+    notes = table("credit_notes").select(
         "item_id", pl.col("item_id").str.slice(0, 3).alias("item_type"), "entity", "party_id", "party_name",
         "document_number", "issue_date", pl.lit(None, pl.String).alias("due_date"), "currency",
         _cents("total_amount").alias("total_cents"), pl.lit(None, pl.String).alias("payment_terms"),
@@ -173,8 +180,11 @@ def _with_prior_items(items: pl.DataFrame, prior: list[Path], start: str) -> pl.
     if not prior or not start:
         return items
     since = (date.fromisoformat(start) - timedelta(days=PRIOR_ITEM_DAYS)).isoformat()
-    older = pl.concat([_issued_items(folder) for folder in prior]).filter(pl.col("issue_date") < start).unique(
-        "item_id", keep="last")
+    # Carried items may be older than the window, so they need their own read: only the columns and rows required.
+    carried = items.filter(pl.col("issue_date") < since)["item_id"].to_list()
+    window = pl.col("issue_date").is_between(pl.lit(since), pl.lit(start), closed="left")
+    keep = window | pl.col("item_id").is_in(carried)
+    older = pl.concat([_issued_items(folder, keep) for folder in prior]).unique("item_id", keep="last")
     details = ["party_name", "payment_terms", "customer_po", "payment_method", "related_document", "reason"]
     filled = items.join(older.select("item_id", *[pl.col(c).alias(f"_{c}") for c in details]), on="item_id", how="left")
     filled = filled.with_columns([pl.coalesce(c, f"_{c}").alias(c) for c in details]).select(ITEM_COLUMNS)

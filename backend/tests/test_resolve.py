@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import polars as pl
+
 from closebooks.cases import attach_questions, build_cases, overdue_cases
 from closebooks.categories import fallback
-from closebooks.model import Row
+from closebooks.model import Proposal, Row
 from closebooks.policy import decide
+from closebooks.resolve import resolve
 from closebooks.state import OpenBalances
 
 
@@ -220,15 +225,12 @@ def test_an_abstention_becomes_a_question_with_its_options_and_turns_its_case_in
     assert (cases[0]["kind"], cases[0]["status"], cases[0]["questionId"]) == ("ambiguous_match", "question", "Q-000001")
 
 
-def test_a_party_question_offers_the_parties_and_a_debit_gets_no_customer_rule():
+def test_a_party_question_offers_the_parties():
     options = {"BT-1": {"reason": "parties", "options": [{"partyId": "C1", "items": [("ARI-1", 100)]},
                                                          {"partyId": "C2", "items": [("ARI-2", 100)]}]}}
     names = {"C1": "Acme", "C2": "Beta"}
     q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda ids: INFO, names, "now")[0]
     assert [o["id"] for o in q["options"]] == ["C1", "C2", "none"] and q["question"].startswith("¿De qué cliente")
-    debit = {**TXN, "amount_cents": -300, "amount_eur_cents": -300}
-    q = attach_questions(_fallback_case(), options, {"BT-1": debit}, lambda ids: INFO, {}, "now")[0]
-    assert q["rulePreview"] is None
 
 
 def test_a_party_option_names_only_the_first_invoices():
@@ -237,6 +239,31 @@ def test_a_party_option_names_only_the_first_invoices():
     options = {"BT-1": {"reason": "parties", "options": [{"partyId": "C1", "items": [(i, 100) for i in ids]}]}}
     q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: info, {"C1": "Acme"}, "now")[0]
     assert q["options"][0]["label"] == "Acme · FV1, FV2, FV3 y 2 más · 5,00 EUR"
+
+
+def test_every_question_with_a_counterparty_previews_its_rule_by_name_or_by_account():
+    options = _abstention()
+    by_name = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: INFO, {}, "now")[0]["rulePreview"]
+    assert by_name["payerName"] == "ACME SL" and "iban" not in by_name and "cobros de ACME SL" in by_name["description"]
+    nameless = {**TXN, "counterparty_name": None, "counterparty_account": "ES9100"}
+    p = attach_questions(_fallback_case(), options, {"BT-1": nameless}, lambda _: INFO, {}, "now")[0]["rulePreview"]
+    assert p["iban"] == "ES9100" and "payerName" not in p and p["partyId"] == "<la opción elegida>"
+    debit = {**nameless, "amount_cents": -300, "amount_eur_cents": -300}
+    p = attach_questions(_fallback_case(), options, {"BT-1": debit}, lambda _: INFO, {}, "now")[0]["rulePreview"]
+    assert p["kind"] == "payer_is_customer" and "pagos a ES9100" in p["description"]
+    bare = {**TXN, "counterparty_name": None}
+    q = attach_questions(_fallback_case(), options, {"BT-1": bare}, lambda _: INFO, {}, "now")[0]
+    assert q["rulePreview"] is None
+
+
+def test_a_combined_option_reads_with_documents_nets_credit_notes_and_names_the_party():
+    info = {"ARI-1": {"number": "FV1", "party_name": "Acme", "due_date": None, "currency": "EUR"},
+            "ARC-1": {"number": "AB1", "party_name": "Acme", "due_date": None, "currency": "EUR"}}
+    options = {"BT-1": {"reason": "subsets", "options": [
+        {"partyId": "C9", "items": [("ARC-1", 100), ("ARI-1", 400)]}, {"partyId": "C9", "items": [("ARI-1", 300)]}]}}
+    q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: info, {}, "now")[0]
+    combined = next(o for o in q["options"] if "+" in o["id"])
+    assert combined == {"id": "ARC-1+ARI-1", "label": "AB1 + FV1 · 3,00 EUR · Acme"}
 
 
 def test_questions_are_capped_by_amount(monkeypatch):
@@ -274,3 +301,30 @@ def test_overdue_customer_goes_to_review_for_invoices_more_than_15_days_past_due
 def test_customer_who_paid_in_the_last_30_days_is_not_overdue_it_is_probably_our_unmatched_payment():
     assert _overdue(last_movement={"C1": "2025-06-10"}) == []
     assert len(_overdue(last_movement={"C1": "2025-05-20"})) == 1
+
+
+def test_paying_again_what_an_uncited_rule_settled_is_not_a_duplicate_but_the_first_real_payment():
+    items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [1000], "total_cents": [1000], "currency": ["EUR"],
+                          "party_id": ["C1"], "payment_terms": ["T30"], "issue_date": ["2025-01-01"]})
+    masters = {"payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None],
+                                              "discount_days": [None]},
+                                             schema_overrides={"early_payment_discount_pct": pl.String,
+                                                               "discount_days": pl.String}),
+               "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["ES"]})}
+    ids = ["BT-1", "BT-2", "BT-3"]
+    n = len(ids)
+    t = pl.DataFrame({"bank_txn_id": ids, "booking_date": ["2025-01-01", "2025-01-02", "2025-01-03"],
+                      "amount_cents": [1000] * n, "currency": ["EUR"] * n, "bank": ["B"] * n, "bank_code": [""] * n,
+                      "bank_subcode": [""] * n, "text": ["X"] * n, "orig_cents": [None] * n,
+                      "orig_currency": [None] * n, "amount_eur_cents": [1000] * n, "entity": ["E1"] * n,
+                      "counterparty_name": [None] * n, "counterparty_account": [None] * n,
+                      "remittance_info": [None] * n,
+                      "ref1": [None] * n, "ref2": [None] * n, "end_to_end_id": [None] * n},
+                     schema_overrides={c: pl.String for c in ("orig_currency", "counterparty_name",
+                                                              "counterparty_account", "remittance_info", "ref1", "ref2",
+                                                              "end_to_end_id")} | {"orig_cents": pl.Int64})
+    proposals = {"BT-1": Proposal("PARTY-AMOUNT", [("ARI-1", None)], by_cash=True),
+                 "BT-2": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True),
+                 "BT-3": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)}
+    rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), proposals)
+    assert [r.exception for r in rows] == [None, None, "DUPLICATE_PAYMENT"]

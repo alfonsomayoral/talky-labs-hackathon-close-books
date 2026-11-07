@@ -97,7 +97,7 @@ def test_shortfall_over_the_fee_limits_or_inside_sepa_is_partial():
 
 
 def test_more_than_the_open_amount_of_a_single_invoice_is_overpayment_at_the_open_amount():
-    assert allocate(80407, [facts("ARI-1", 75407)], "2025-06-05", False) == {"ARI-1": (75407, "OVERPAYMENT")}
+    assert allocate(76000, [facts("ARI-1", 75407)], "2025-06-05", False) == {"ARI-1": (75407, "OVERPAYMENT")}
 
 
 def test_foreign_currency_full_payment_is_fx_on_invoices_and_empty_on_credit_notes():
@@ -140,3 +140,17 @@ def test_duplicate_needs_the_exact_amount_of_the_settled_item():
     assert allocate(40000, [facts("ARI-1", 0, settled)], "2025-06-05", False) == {"ARI-1": (40000, "")}
     assert line(0, 40000, None, terms=settled) == (40000, "")
     assert line(0, 100000, None, terms=settled) == (100000, "DUPLICATE_PAYMENT")
+
+
+def test_overpayment_only_for_the_excess_real_ones_show():
+    # Holdout: excess <= 2 % is 96.6 % right and exactly 10 % is a real pattern; else, an incomplete citation.
+    assert allocate(101000, [facts("ARI-1", 100000)], "2025-06-05", False)["ARI-1"][1] == "OVERPAYMENT"
+    assert allocate(110000, [facts("ARI-1", 100000)], "2025-06-05", False)["ARI-1"][1] == "OVERPAYMENT"
+    assert allocate(117000, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
+
+
+def test_discount_on_the_invoices_that_have_it_and_full_on_the_rest():
+    with_terms = Terms(2.0, 10, "2025-06-01", 100000, "ES")
+    no_terms = Terms(None, None, "2025-06-01", 50000, "ES")
+    out = allocate(148000, [facts("ARI-1", 100000, with_terms), facts("ARI-2", 50000, no_terms)], "2025-06-05", False)
+    assert out == {"ARI-1": (100000, "SHORT_DISCOUNT"), "ARI-2": (50000, "")}

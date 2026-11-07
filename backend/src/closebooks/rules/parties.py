@@ -9,7 +9,11 @@ import polars as pl
 
 MIN_NAME_CHARS = 10
 PREFIX_CHARS = 8
-LEGAL_FORM_CHARS = 4
+# Words of a company's legal form, in any of the group's markets. What is left after them is the name.
+LEGAL_FORMS = frozenset("""
+S A L U C V R DE RL COOP SA SL SLU SAS SARL EURL GMBH CO KG AG EK E LTD LTDA LLC LLP INC CORP PTY BV NV SRL SNC SPA
+SP Z O OO EIRELI ME EPP GROUP PLC
+""".split())
 _NOT_ALNUM = re.compile(r"[^A-Z0-9]+")
 
 
@@ -22,11 +26,14 @@ def normalize(text: str | None) -> str:
 
 
 class PartyIndex:
+    certain = False
+
     def __init__(self, masters: dict[str, pl.DataFrame], printed: pl.DataFrame):
         self.by_name: dict[tuple[str, str, str], set[str]] = defaultdict(set)
         self.by_iban: dict[tuple[str, str, str], set[str]] = defaultdict(set)
         self.by_prefix: dict[tuple[str, str, str], list[tuple[str, str]]] = defaultdict(list)
         self.group_of: dict[str, list[str]] = {}
+        self.entities: set[str] = set()
         customers = masters["customers"]
         for row in customers.iter_rows(named=True):
             self._add("customer", row["entity"], row["customer_id"], row["name"], row["iban"])
@@ -48,6 +55,7 @@ class PartyIndex:
                 self.group_of[row["customer_id"]] = members[key]
 
     def _add(self, kind: str, entity: str, party: str, name: str | None, iban: str | None) -> None:
+        self.entities.add(entity)
         norm = normalize(name)
         if norm:
             key = (kind, entity, norm)
@@ -58,6 +66,9 @@ class PartyIndex:
             self.by_iban[kind, entity, iban].add(party)
 
     def find(self, txn: dict, kind: str) -> list[str]:
+        """The parties the line names. `self.certain` says whether the evidence was whole: a known ordering party, its
+        account or the full name, not a name the bank cut."""
+        self.certain = True
         entity = txn["entity"]
         name = normalize(txn.get("counterparty_name"))
         if name and (found := self.by_name.get((kind, entity, name))):
@@ -65,7 +76,14 @@ class PartyIndex:
         iban = txn.get("counterparty_account")
         if iban and (found := self.by_iban.get((kind, entity, iban))):
             return sorted(found)
-        return self._in_text(txn, kind, entity, name, whole_only=bool(name))
+        found = self._in_text(txn, kind, entity, name, whole_only=bool(name))
+        if found or kind != "supplier":
+            return found
+        # The group's treasury pays invoices of its subsidiaries (POLICIES §5.2): the supplier may be another entity's.
+        for other in sorted(self.entities - {entity}):
+            found += self._in_text(txn, kind, other, name, whole_only=bool(name))
+        self.certain = False
+        return sorted(set(found))
 
     def _in_text(self, txn: dict, kind: str, entity: str, name: str, whole_only: bool) -> list[str]:
         """The party named in the text. With an unknown ordering party it may be paying for someone else (confirming),
@@ -75,15 +93,20 @@ class PartyIndex:
         glued = normalize(raw.replace(" | ", ""))
         spaced = normalize(raw)
         best: dict[str, int] = {}
+        whole: dict[str, int] = {}
         for text in {glued, spaced}:
             for position in _word_starts(text):
                 for norm, party in self.by_prefix.get((kind, entity, text[position:position + PREFIX_CHARS]), ()):
                     length = _common_prefix(norm, text, position)
                     if length == len(norm) or (not whole_only and _identifies(norm, text, position, length)):
                         best[party] = max(best.get(party, 0), length)
+                        if length == len(norm):
+                            whole[party] = max(whole.get(party, 0), length)
         if not best:
             return []
         top = max(best.values())
+        self.certain = all(top == w for p, w in whole.items() if best.get(p) == top) and any(
+            best.get(p) == top for p in whole)
         return sorted(p for p, length in best.items() if length == top)
 
 
@@ -108,6 +131,6 @@ def _identifies(norm: str, text: str, position: int, length: int) -> bool:
     if length < MIN_NAME_CHARS:
         return False
     end = position + length
-    if end == len(text) or len(norm) - length <= LEGAL_FORM_CHARS:
+    if end == len(text) or all(word in LEGAL_FORMS for word in norm[length:].split()):
         return True
     return norm[length - 1] != " " and text[end] == " "

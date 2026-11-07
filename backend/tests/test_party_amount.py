@@ -391,3 +391,63 @@ def test_a_clear_match_or_no_evidence_records_no_abstention():
     assert lines(rule(txn(30000, name="Wellness Garrido S.L."), balances)) == {"ARI-1"}
     assert rule(txn(777, name="Wellness Garrido S.L."), balances) is None
     assert rule.abstentions == {}
+
+
+def test_subset_needs_a_party_known_for_certain_not_a_name_the_bank_cut():
+    items = [item("ARI-1", "C1", "F1", 49385), item("ARI-2", "C1", "F2", 189668), item("ARI-3", "C1", "F3", 7)]
+    rule, balances = engine(items)
+    assert lines(rule(txn(239053, "TRANSFERENCIA DE WELLNESS GARRIDO S.L."), balances)) == {"ARI-1", "ARI-2"}
+    assert rule(txn(239053, "ACH CREDIT WELLNESS GARR"), balances) is None
+
+
+def test_exact_amount_with_a_cut_name_still_settles_a_single_invoice():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 49385)])
+    assert lines(rule(txn(49385, "ACH CREDIT WELLNESS GARR"), balances)) == {"ARI-1"}
+
+
+def _run(prefix, n, cents=1000, start=1):
+    return [item(f"{prefix}{i:02d}", "C1", f"F{prefix}{i}", cents + 37 * i * i + i,
+                 f"2024-{(i // 28) + 1:02d}-{(i % 28) + 1:02d}") for i in range(start, start + n)]
+
+
+def test_block_of_consecutive_invoices_adds_up_with_too_many_candidates_for_a_unique_subset():
+    # Holdout: payments of many invoices are often a run of consecutive dates, not the oldest.
+    items = _run("ARI-", 40)
+    rule, balances = engine(items)
+    wanted = items[10:18]
+    assert lines(rule(txn(sum(i["total_cents"] for i in wanted), NAME), balances)) == {i["item_id"] for i in wanted}
+
+
+def test_block_of_consecutive_invoices_net_of_a_credit_note():
+    items = _run("ARI-", 40) + [item("ARC-1", "C1", "A1", 12345, "2024-02-20")]
+    rule, balances = engine(items)
+    wanted = items[10:18]
+    amount = sum(i["total_cents"] for i in wanted) - 12345
+    assert lines(rule(txn(amount, NAME), balances)) == {i["item_id"] for i in wanted} | {"ARC-1"}
+
+
+def test_debit_of_a_group_treasury_finds_the_supplier_of_another_entity():
+    # POLICIES §5.2: ES00 pays invoices of its subsidiaries.
+    index = PartyIndex(masters((), (("S1", "E2", "Vila Consultoria S.A.", None),)), pl.DataFrame(
+        schema=dict.fromkeys(["entity", "party_id", "party_name"], pl.String)))
+    assert index.find(txn(-1, "VILA CONSULTORIA | Recibos varios", entity="E1"), "supplier") == ["S1"]
+    assert not index.certain
+
+
+def test_receipt_does_not_search_customers_of_another_entity():
+    index = PartyIndex(masters((("C1", "E2", "Rubio Aguas S.A.", None, None, None, None, None),)), pl.DataFrame(
+        schema=dict.fromkeys(["entity", "party_id", "party_name"], pl.String)))
+    assert index.find(txn(1, "TRANSF RUBIO AGUAS S.A.", entity="E1"), "customer") == []
+
+
+def test_a_long_legal_form_does_not_lose_the_party_to_a_namesake():
+    # "Camping Arenal del Sur S.L.U." against "... S.L.": real, the wrong namesake won.
+    index = _index("Camping Arenal del Sur S.L.U.", "Camping Arenal del Sur S.L.")
+    moved = txn(1, "TRANSFERENCIAS CAMPING ARENAL DEL SUR | CAMPING AR PAGO PENDIENTE")
+    assert index.find(moved, "customer") == ["C0", "C1"]
+    assert _index("Parra y Velasco Depuracion S.A. de C.V.").find(
+        txn(1, "SPEI CONCEPTO PARRA Y VELASCO DEPURACION PAGO"), "customer") == ["C0"]
+
+
+def test_a_different_last_word_is_not_a_legal_form():
+    assert _index("Parra y Velasco Jardines").find(txn(1, "SPEI PARRA Y VELASCO PAGO"), "customer") == []
