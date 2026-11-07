@@ -378,13 +378,23 @@ def _parse_pdf(path: Path, rel: str, received: date | None) -> Advice:
 
 _CELL_SPLIT = re.compile(r"\s*[;|\t]\s*| {2,}")
 _DATE_CELL = re.compile(r"\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2}")
+_DATE_WITH_MONTH = re.compile(r"(\d{1,2})[- ]([A-Za-zé]{3,4})\.?[- ](\d{2,4})")
+_MONTHS = {name: number for number, names in enumerate((
+    "jan ene gen", "feb fev fév", "mar mär", "apr abr avr", "may mai mag", "jun jui giu", "jul lug",
+    "aug ago aoû", "sep set", "oct okt ott out", "nov", "dec dic dez déc"), 1) for name in names.split()}
 _PRINTED_AMOUNT = re.compile(r"-?\d[\d.,' ]*[.,]\d{2}(?!\d)")
 _CURRENCY = re.compile(r"\b[A-Z]{3}\b")
 MAX_CELLS_BEFORE_DATE = 3  # how far into a line its date may be
+MAX_AMOUNTS_OUTSIDE = 3  # a head and a foot print a total, not a list
 _MIN_REF_DIGITS = 4
+_MIN_NUMBER_CHARS = 3  # "1)" counts the lines; it is not a document
 
 
 def _date_cell(cell: str) -> str | None:
+    named = _DATE_WITH_MONTH.fullmatch(cell)
+    if named and named[2][:3].lower() in _MONTHS:
+        year = int(named[3])
+        return f"{2000 + year if year < 100 else year}-{_MONTHS[named[2][:3].lower()]:02d}-{int(named[1]):02d}"
     if not _DATE_CELL.fullmatch(cell):
         return None
     try:
@@ -401,25 +411,34 @@ def _amount_cell(cell: str) -> int | None:
 
 
 def _is_number_cell(cell: str) -> bool:
-    return " " not in cell and any(c.isdigit() for c in cell) and not _date_cell(cell) and _amount_cell(cell) is None
+    return (len(cell) >= _MIN_NUMBER_CHARS and " " not in cell and any(c.isdigit() for c in cell)
+            and not _date_cell(cell) and _amount_cell(cell) is None)
 
 
-def _rows_of(cells: list[str], offset: int) -> tuple[list[list[str]], list[str]] | None:
+def _rows_of(cells: list[str], offset: int, by_word: bool) -> tuple[list[list[str]], list[str]] | None:
     """Lines of the table: each with one date, a document and an amount. What is outside is the head and the foot."""
     starts = [i - offset for i, c in enumerate(cells) if _date_cell(c) and i >= offset]
+    if not starts:
+        return None
     pieces = [cells[a:b] for a, b in zip(starts, [*starts[1:], len(cells)], strict=True)]
     while pieces and not _a_line(pieces[0]):
         starts, pieces = starts[1:], pieces[1:]
     if not pieces:
         return None
     foot: list[str] = []
-    seen_amount = False
-    for at, cell in enumerate(pieces[-1]):  # the last line runs into the foot: nothing after a word that ends it
-        if _amount_cell(cell) is not None:
-            seen_amount = True
-        elif seen_amount and not _date_cell(cell) and not _is_number_cell(cell):
-            foot = pieces[-1][at + 1:] + foot
-            pieces[-1] = pieces[-1][:at + 1]
+    last = pieces[-1]
+    amounts_at = [n for n, cell in enumerate(last) if _amount_cell(cell) is not None]
+    for at, cell in enumerate(last):  # the last line runs into the foot: what prints the total is not part of it
+        if by_word:  # a line of words is one sentence: what is not split is the foot
+            if " " in cell:
+                foot, pieces[-1] = last[at:], last[:at]
+                break
+            continue
+        if amounts_at and at > amounts_at[0] and _amount_cell(cell) is None and not _is_number_cell(cell):
+            ends_line = not _PRINTED_AMOUNT.search(cell) and not (at + 1 < len(last) and (
+                _amount_cell(last[at + 1]) is not None or _PRINTED_AMOUNT.search(last[at + 1])))
+            cut = at + 1 if ends_line else at
+            foot, pieces[-1] = last[cut:], last[:cut]
             break
     if not all(_a_line(p) for p in pieces):
         return None
@@ -452,7 +471,12 @@ def _paid_ways(amounts: list[int]) -> dict[str, tuple[int, int]]:
     return ways
 
 
-def _lines_of(rows: list[list[str]], total_of: set[int]) -> tuple[list[AdviceLine], int] | None:
+def _words(row: list[str]) -> list[str]:
+    return [c for c in row if _amount_cell(c) is None and not _date_cell(c) and not _is_number_cell(c)
+            and not any(x.isdigit() for x in c) and c.strip("-/")]
+
+
+def _lines_of(rows: list[list[str]], total_of: set[int], split_by_word: bool) -> tuple[list[AdviceLine], int] | None:
     """The one reading of the amounts whose paid column adds up to a total the document prints."""
     position = _number_position(rows)
     if position is None:
@@ -472,14 +496,17 @@ def _lines_of(rows: list[list[str]], total_of: set[int]) -> tuple[list[AdviceLin
     if len(readings) != 1:
         return None
     (reading, total), = readings.items()
+    # A word on every line is a label ("invoice", "paid"), never why this one was deducted.
+    labels = set.intersection(*(set(_words(row)) for row in rows)) if split_by_word and len(rows) > 1 else set()
     lines = []
     for n, (row, (gross, paid)) in enumerate(zip(rows, reading, strict=True), 1):
         numbers = [c for c in row if _is_number_cell(c)]
-        words = [c for c in row if _amount_cell(c) is None and not _date_cell(c) and not _is_number_cell(c)]
+        words = [c.strip("()") for c in _words(row) if c not in labels]
         others = numbers[:position] + numbers[position + 1:]
+        said = " ".join(words) if split_by_word else words[0] if words else None
+        reason = said if gross != paid and said and (len(rows) > 1 or not split_by_word) else None
         lines.append(AdviceLine(n, numbers[position], next(_date_cell(c) for c in row if _date_cell(c)), gross,
-                                paid - gross, words[0] if words and gross != paid else None, paid,
-                                others[0] if others else None))
+                                paid - gross, reason, paid, others[0] if others else None))
     return lines, total
 
 
@@ -493,25 +520,44 @@ def _payment_ref(outside: list[str]) -> str | None:
 def read_cells(text_lines: list[str], fmt: str, rel: str, received: date | None, ref: str | None = None) -> Advice:
     """An advice in a layout no parser knows, by what its cells hold: a line has a date, a document and amounts, and its
     paid amounts add up to a total printed outside the table. Anything not unequivocal is rejected as unknown."""
-    cells = [c.strip() for line in text_lines for c in _CELL_SPLIT.split(line) if c.strip()]
-    unknown = AdviceError("unknown layout")
-    found = []
-    for offset in range(MAX_CELLS_BEFORE_DATE + 1):
-        parts = _rows_of(cells, offset)
-        if parts is None:
+    for split_by_word in (False, True):
+        cells = _cells_of(text_lines, split_by_word)
+        found = []
+        for offset in range(MAX_CELLS_BEFORE_DATE + 1):
+            parts = _rows_of(cells, offset, split_by_word)
+            if parts is None:
+                continue
+            rows, outside = parts
+            printed = {money(m.strip()) for cell in outside for m in _PRINTED_AMOUNT.findall(cell)}
+            if len(printed) > MAX_AMOUNTS_OUTSIDE:  # part of the table was left out: its lines are not the whole advice
+                continue
+            read = _lines_of(rows, printed, split_by_word)
+            if read:
+                found.append((read, outside))
+        readings = {tuple((x.document, x.gross_cents, x.paid_cents) for x in read[0]) for read, _ in found}
+        if len(readings) == 1:
+            (lines, total), outside = found[0]
+            amount_text = next((c for c in outside for m in _PRINTED_AMOUNT.findall(c) if money(m.strip()) == total),
+                               "")
+            currency = _CURRENCY.search(amount_text) or next(
+                (c for cell in outside if (c := _CURRENCY.fullmatch(cell))), None)
+            return Advice(rel, fmt, ref or _payment_ref(outside), None, currency[0] if currency else None, total, lines)
+        if len(readings) > 1:
+            break
+    raise AdviceError("unknown layout")
+
+
+def _cells_of(text_lines: list[str], by_word: bool) -> list[str]:
+    """Cells by the separators a table uses; or, for a sentence per line, each word of a line that has a date."""
+    cells = []
+    for line in text_lines:
+        if not by_word:
+            cells += [c.strip() for c in _CELL_SPLIT.split(line) if c.strip()]
             continue
-        rows, outside = parts
-        printed = {money(m.strip()) for cell in outside for m in _PRINTED_AMOUNT.findall(cell)}
-        read = _lines_of(rows, printed)
-        if read:
-            found.append((read, outside))
-    readings = {tuple((x.document, x.gross_cents, x.paid_cents) for x in read[0]) for read, _ in found}
-    if len(readings) != 1:
-        raise unknown
-    (lines, total), outside = found[0]
-    amount_text = next((c for c in outside for m in _PRINTED_AMOUNT.findall(c) if money(m.strip()) == total), "")
-    currency = _CURRENCY.search(amount_text)
-    return Advice(rel, fmt, ref or _payment_ref(outside), None, currency[0] if currency else None, total, lines)
+        words = _DATE_WITH_MONTH.sub(r"\1-\2-\3", line).split()
+        words = [w.rstrip(":,;") for w in words if w != "/"]
+        cells += words if any(_date_cell(w) for w in words) else [line.strip()]
+    return cells
 
 
 def _by_content(kind: str, path: Path, rel: str, received: date | None) -> Advice:
