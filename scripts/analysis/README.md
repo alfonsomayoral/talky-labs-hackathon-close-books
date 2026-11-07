@@ -17,5 +17,6 @@ uv run scripts/analysis/01_volumes.py
 | `03_sources.py` | Qué fuente resuelve cada segmento: texto del banco, importe, ficheros de detalle, avisos de remesa, PDFs |
 | `04_drift.py` | Drift TRAIN → LIVE: Norma 43 → camt.053, avisos de remesa, ZA01/ZAR, IT01, clientes nuevos |
 | `05_baseline.py` | Puntúa el starter oficial sobre TRAIN con `bankrec_score.py` y calcula el techo de puntos por segmento |
+| `07_final_rehearsal.py` | Ensayo de FINAL: copia una fase con una sociedad, un banco, un formato y una divisa no vistos, y compara el run con el de la fase original. Corre con el entorno de `backend/` (ver su cabecera) |
 
 El starter y el evaluador oficiales viven en `db/bankrec-docs-and-masters/starter/`; `05_baseline.py` los importa de ahí.
