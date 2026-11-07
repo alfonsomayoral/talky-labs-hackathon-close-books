@@ -27,6 +27,16 @@ mkdirSync(out, { recursive: true })
 const browser = await chromium.launch({ channel: 'chrome' })
 const size = { width: 1440, height: 900 }
 const context = await browser.newContext({ viewport: size, colorScheme: 'dark', recordVideo: { dir: out, size } })
+// Chrome's screencast stops delivering frames on a still page, and the video stays on the loading skeleton: a
+// 1 px element that keeps moving keeps the frames coming.
+await context.addInitScript(() => {
+  addEventListener('DOMContentLoaded', () => {
+    const dot = document.createElement('div')
+    dot.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:.01;z-index:9999;pointer-events:none'
+    document.body.append(dot)
+    dot.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(2px)' }], { duration: 200, iterations: Infinity })
+  })
+})
 const page = await context.newPage()
 const errors = []
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
