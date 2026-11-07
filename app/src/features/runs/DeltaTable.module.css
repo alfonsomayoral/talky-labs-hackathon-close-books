@@ -1,0 +1,54 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-13);
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.table th,
+.table td {
+  height: var(--row-height);
+  padding: 0 var(--space-4);
+  border-top: 1px solid var(--line-soft);
+  text-align: right;
+  font-weight: var(--weight-regular);
+}
+
+.table thead th {
+  border-top: 0;
+  color: var(--ink-3);
+  font-size: var(--text-12);
+  font-weight: var(--weight-medium);
+}
+
+.table th:first-child {
+  text-align: left;
+}
+
+.drop {
+  background: var(--danger-bg);
+}
+
+.delta {
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.down {
+  color: var(--danger-ink);
+}
+
+.up {
+  color: var(--ok-ink);
+}
+
+.badge {
+  margin-left: var(--space-2);
+}
