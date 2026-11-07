@@ -161,4 +161,6 @@ Cómo leerlo:
 - **Sin marca, pero a vigilar:** `PARTY-DUPLICATE` da excepción 0,9653 en holdout y 0,9744 en drift. `PARTY-SUBSET`, 0,9765 en drift, mueve 3.041 movimientos.
 - **Las reglas de hoy** están todas por encima de 0,97 salvo `PARTY-NET-SUBSET`; `PARTY-FRACTION` trae la línea de `lookalike` conocida. `PARTY-AMOUNT-LATE` (PR 120) no está: entró después de este commit.
 
+**Decisión de la orquestadora:** no se apaga ninguna regla. `PARTY-NET-SUBSET` se queda con la nota «muestra pequeña, vigilar».
+
 Sin comprobar: LIVE y FINAL, que no tienen golden; el efecto real de apagar cada regla, que exigiría una ejecución por regla.
