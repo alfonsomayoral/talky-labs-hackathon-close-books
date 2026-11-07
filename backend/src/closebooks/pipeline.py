@@ -115,7 +115,13 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     cases = build_cases(rows, txns, created_at)
     names, countries = _party_book(phase)
     cutoff = phase.txns["booking_date"].max()
-    cases += overdue_cases(_overdue_inputs(phase, balances, cutoff), cutoff, _rates(phase, cutoff), names, created_at)
+    last_movement: dict[str, str] = {}
+    for row in rows:
+        if row.party_id:
+            booked = txns[row.bank_txn_id]["booking_date"]
+            last_movement[row.party_id] = max(last_movement.get(row.party_id, ""), booked)
+    cases += overdue_cases(_overdue_inputs(phase, balances, cutoff), cutoff, _rates(phase, cutoff), names, created_at,
+                           last_movement)
     questions = attach_questions(cases, engine.abstentions, txns, lambda ids: _item_info(phase, ids, names), names,
                                  created_at)
     drafts = _drafts(cases, rows, phase, balances, names, countries, created_at)

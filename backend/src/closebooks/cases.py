@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import date, timedelta
 
 from .model import Row
 
@@ -9,6 +10,9 @@ CLOSED_RULE_FAMILIES = ("FILE-", "REF-", "ADVICE-", "CAT-")
 _SUPPLIER_ISSUE_TEXT = {"PARTIAL": "pagada en parte", "RETURNED": "devuelta por el banco",
                         "DUPLICATE_PAYMENT": "pagada dos veces"}
 SUPPLIER_ISSUES = tuple(_SUPPLIER_ISSUE_TEXT)
+_CUSTOMER_ISSUE_TEXT = {"SHORT_DISPUTE": "con una parte disputada", "PARTIAL": "pagada en parte"}
+OVERDUE_MIN_DAYS = 15
+RECENT_MOVEMENT_DAYS = 30
 _EXCEPTION_ORDER = ("RETURNED", "DUPLICATE_PAYMENT", "SHORT_DISPUTE", "OVERPAYMENT", "PARTIAL", "FX_DIFFERENCE")
 _CUSTOMER_KINDS = {
     "PARTIAL": ("short_payment", "review"),
@@ -85,6 +89,25 @@ def _settled_text(lines: list[Row], rule: str) -> str:
     return text
 
 
+def _customer_cases(issues: list[Row], lines: list[Row], txn: dict, created_at: str) -> list[dict]:
+    """One case per customer invoice disputed or left short: a remittance of 886 invoices has one thing to review."""
+    paid = sum(r.amount_cents for r in lines) or 1
+    cases = []
+    for row in issues:
+        eur = round(abs(txn["amount_eur_cents"]) * row.amount_cents / paid)
+        kind, action = _CUSTOMER_KINDS[row.exception]
+        cases.append({
+            "caseId": f"CASE-{txn['bank_txn_id']}-{row.item_id}", "kind": kind, "status": "needs_review",
+            "priority": _priority(eur), "entity": txn["entity"], "bankTxnId": txn["bank_txn_id"],
+            "partyId": row.party_id, "itemIds": [row.item_id], "amountCents": row.amount_cents,
+            "currency": row.currency, "amountEur": eur, "bookingDate": txn["booking_date"],
+            "summary": f"Factura {_CUSTOMER_ISSUE_TEXT[row.exception]}: {_money(row.amount_cents, row.currency)}",
+            "suggestedAction": action, "questionId": None, "draftId": None, "rule": row.rule,
+            "createdAt": created_at,
+        })
+    return cases
+
+
 def _supplier_cases(issues: list[Row], lines: list[Row], txn: dict, created_at: str) -> list[dict]:
     """One case per supplier invoice with an incident: a bulk payment cannot be written about as a single supplier."""
     paid = sum(r.amount_cents for r in lines) or 1
@@ -117,6 +140,12 @@ def build_cases(rows: list[Row], txns: dict[str, dict], created_at: str) -> list
         if issues:
             cases += _supplier_cases(issues, lines, txn, created_at)
             lines = [r for r in lines if r not in issues] if len(issues) < len(lines) else []
+        customer_issues = [r for r in lines
+                           if r.item_id and r.item_id[:2] == "AR" and r.exception in _CUSTOMER_ISSUE_TEXT]
+        if customer_issues:
+            all_lines = by_txn[txn_id]
+            cases += _customer_cases(customer_issues, all_lines, txn, created_at)
+            lines = [r for r in lines if r not in customer_issues]
             if not any(r.exception for r in lines):
                 continue
         if not lines:
@@ -145,14 +174,20 @@ def build_cases(rows: list[Row], txns: dict[str, dict], created_at: str) -> list
 
 
 def overdue_cases(items: list[dict], cutoff: str, rates: dict[str, float], names: dict[str, str],
-                  created_at: str) -> list[dict]:
-    """One case per customer with balance past due at the end of the phase.
+                  created_at: str, last_movement: dict[str, str]) -> list[dict]:
+    """One case per customer with balance more than 15 days past due at the end of the phase and no movement in the
+    last 30 days: a customer who pays and whom we do not match is our problem, not a debt.
 
     `items`: customer invoices with their final balance (item_id, entity, party_id, due_date, currency,
     open_cents). Cutoff is the last booking date; rates are units per EUR at that date."""
+    end = date.fromisoformat(cutoff)
+    due_before = (end - timedelta(days=OVERDUE_MIN_DAYS)).isoformat()
+    moved_since = (end - timedelta(days=RECENT_MOVEMENT_DAYS)).isoformat()
     by_party: dict[tuple[str, str], list[dict]] = {}
     for item in items:
-        if item["open_cents"] > 0 and item["due_date"] and item["due_date"] < cutoff:
+        if last_movement.get(item["party_id"], "") >= moved_since:
+            continue
+        if item["open_cents"] > 0 and item["due_date"] and item["due_date"] < due_before:
             by_party.setdefault((item["entity"], item["party_id"]), []).append(item)
     totals = []
     for (entity, party), group in by_party.items():
@@ -166,7 +201,7 @@ def overdue_cases(items: list[dict], cutoff: str, rates: dict[str, float], names
         group.sort(key=lambda i: (i["due_date"], i["item_id"]))
         count = len(group)
         cases.append({
-            "caseId": f"CASE-overdue_customer-{n}", "kind": "overdue_customer", "status": "auto",
+            "caseId": f"CASE-overdue_customer-{n}", "kind": "overdue_customer", "status": "needs_review",
             "priority": _priority(eur), "entity": entity, "bankTxnId": None, "partyId": party,
             "itemIds": [i["item_id"] for i in group], "amountCents": eur, "currency": "EUR", "amountEur": eur,
             "bookingDate": cutoff,

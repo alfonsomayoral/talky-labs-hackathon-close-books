@@ -107,7 +107,7 @@ def test_fx_difference_is_shown_but_needs_nobody():
 
 
 def test_low_confidence_needs_review_and_the_case_lists_every_item_of_the_line():
-    case = _case([_row(item="ARI-1", exception="PARTIAL", confidence=0.8), _row(item="ARI-2")])[0]
+    case = _case([_row(item="ARI-1", exception="OVERPAYMENT", confidence=0.8), _row(item="ARI-2")])[0]
     assert case["status"] == "needs_review"
     assert case["itemIds"] == ["ARI-1", "ARI-2"]
 
@@ -152,8 +152,10 @@ def test_case_summary_describes_what_was_settled_without_rule_codes_and_only_fal
     rows = _customer_rows("ADVICE-CSV", 1.0, 886)
     rows[0].exception = "SHORT_DISPUTE"
     rows[1].exception = rows[2].exception = "PARTIAL"
-    assert _case(rows)[0]["summary"].endswith(
-        "886 facturas liquidadas por aviso de remesa, una con disputa, 2 pagadas en parte")
+    cases = _case(rows)
+    assert len(cases) == 3
+    assert cases[0]["summary"].startswith("Factura con una parte disputada")
+    assert cases[1]["summary"].startswith("Factura pagada en parte")
     fallback_row = Row("BT-1", None, None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED", 0.0)
     assert "sin casación" in _case([fallback_row])[0]["summary"]
 
@@ -175,7 +177,7 @@ def test_overdue_customer_adds_up_what_is_past_due_at_the_cutoff_per_customer_in
              _invoice("ARI-3", "C1", "2025-02-01", 9999),  # not due yet at the cutoff
              _invoice("ARI-4", "C1", "2024-12-01", 0),  # settled
              _invoice("ARI-5", "C2", "2025-01-01", 1100, "USD"), _invoice("ARI-6", "C2", None, 5000)]
-    cases = overdue_cases(items, "2025-01-31", {"USD": 1.1}, {"C1": "Acme", "C2": "Beta"}, "now")
+    cases = overdue_cases(items, "2025-01-31", {"USD": 1.1}, {"C1": "Acme", "C2": "Beta"}, "now", {})
     assert [(c["caseId"], c["partyId"], c["itemIds"], c["amountEur"]) for c in cases] == [
         ("CASE-overdue_customer-1", "C1", ["ARI-2", "ARI-1"], 1500),
         ("CASE-overdue_customer-2", "C2", ["ARI-5"], 1000)]
@@ -188,7 +190,7 @@ def test_overdue_customer_adds_up_what_is_past_due_at_the_cutoff_per_customer_in
 def test_overdue_customer_keeps_the_biggest_per_entity(monkeypatch):
     monkeypatch.setattr("closebooks.cases.MAX_OVERDUE_PER_ENTITY", 2)
     items = [_invoice(f"ARI-{n}", f"C{n}", "2025-01-01", n * 100, entity="E1" if n < 5 else "E2") for n in range(1, 7)]
-    kept = [c["partyId"] for c in overdue_cases(items, "2025-02-01", {}, {}, "now")]
+    kept = [c["partyId"] for c in overdue_cases(items, "2025-02-01", {}, {}, "now", {})]
     assert kept == ["C6", "C5", "C4", "C3"]  # E1: C4, C3 of C1..C4; E2: C6, C5
 
 
@@ -245,3 +247,30 @@ def test_questions_are_capped_by_amount(monkeypatch):
     found = {**_abstention(), "BT-2": _abstention()["BT-1"]}
     questions = attach_questions(build_cases(rows, txns, "now"), found, txns, lambda ids: INFO, {}, "now")
     assert [q["bankTxnId"] for q in questions] == ["BT-2"]
+
+
+def test_customer_dispute_and_short_payment_open_one_case_per_invoice_to_review():
+    rows = [_row(item="ARI-1", exception="SHORT_DISPUTE"), _row(item="ARI-2"), _row(item="ARI-3", exception="PARTIAL")]
+    cases = _case(rows)
+    assert [(c["kind"], c["itemIds"], c["status"], c["amountCents"]) for c in cases] == [
+        ("dispute", ["ARI-1"], "needs_review", 1000), ("short_payment", ["ARI-3"], "needs_review", 1000)]
+    assert len({c["caseId"] for c in cases}) == 2
+
+
+def _overdue(**kw):
+    item_ = {"item_id": "ARI-1", "entity": "E1", "party_id": "C1", "due_date": "2025-06-01", "currency": "EUR",
+             "open_cents": 1000}
+    return overdue_cases([item_], "2025-06-30", {"EUR": 1.0}, {"C1": "Cliente"}, "now", **kw)
+
+
+def test_overdue_customer_goes_to_review_for_invoices_more_than_15_days_past_due():
+    case = _overdue(last_movement={})[0]
+    assert (case["status"], case["amountEur"]) == ("needs_review", 1000)
+    late = {"item_id": "ARI-2", "entity": "E1", "party_id": "C2", "due_date": "2025-06-20", "currency": "EUR",
+            "open_cents": 1000}
+    assert overdue_cases([late], "2025-06-30", {"EUR": 1.0}, {}, "now", last_movement={}) == []
+
+
+def test_customer_who_paid_in_the_last_30_days_is_not_overdue_it_is_probably_our_unmatched_payment():
+    assert _overdue(last_movement={"C1": "2025-06-10"}) == []
+    assert len(_overdue(last_movement={"C1": "2025-05-20"})) == 1
