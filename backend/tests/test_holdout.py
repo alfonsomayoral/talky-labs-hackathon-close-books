@@ -1,9 +1,23 @@
 from __future__ import annotations
 
+from functools import partial
+
 import polars as pl
+import pytest
 from conftest import require_phase
 
-from closebooks.holdout import bank_to_camt, clone_entity, delayable_receipts, open_items_at
+from closebooks import holdout, paths
+from closebooks.cli import main
+from closebooks.holdout import (
+    _fresh,
+    _link_indexed,
+    _link_months,
+    bank_to_camt,
+    clone_entity,
+    delayable_receipts,
+    open_items_at,
+    period_dest,
+)
 from closebooks.load import cancelled_item_ids, load_table, phase_items
 from closebooks.paths import phase_dir
 
@@ -163,3 +177,150 @@ def test_a_debit_keeps_its_cents_when_the_drift_doubles_its_currency():
 
     frame = pl.DataFrame({"cents": [-1952354, 1952354]})
     assert frame.select(_text_amount(pl.col("cents")).alias("text"))["text"].to_list() == ["-19523.54", "19523.54"]
+
+
+def test_a_build_never_empties_a_folder_that_is_not_a_holdout(tmp_path):
+    for name in ("train", "live", "final", "sample", "bankrec-docs-and-masters"):
+        real = tmp_path / name
+        real.mkdir()
+        (real / "bank_transactions.csv.gz").write_text("real data")
+        with pytest.raises(ValueError, match=name):
+            _fresh(real)
+        assert (real / "bank_transactions.csv.gz").read_text() == "real data"
+
+
+def test_a_holdout_is_rebuilt_empty(tmp_path):
+    for name in ("holdout", "holdout-drift"):
+        old = tmp_path / name
+        old.mkdir()
+        (old / "stale.csv").write_text("x")
+        assert list(_fresh(old).iterdir()) == []
+
+
+def test_a_period_goes_only_to_a_new_holdout_folder(tmp_path):
+    assert period_dest("holdout-2024h2", tmp_path) == tmp_path / "holdout-2024h2"
+
+
+def test_only_the_files_of_the_months_of_the_period_are_linked(tmp_path):
+    source, target = tmp_path / "source", tmp_path / "target"
+    source.mkdir()
+    for name in ("ES01_202406_0.csv", "ES01_202407_0.csv", "ES01_202412_1.csv", "ES01_202501_0.csv"):
+        (source / name).write_text("x")
+    _link_months(source, target, "2024-07-01", "2024-12-31")
+    assert sorted(f.name for f in target.iterdir()) == ["ES01_202407_0.csv", "ES01_202412_1.csv"]
+
+
+def test_only_the_documents_dated_in_the_period_are_linked(tmp_path):
+    source, target = tmp_path / "source", tmp_path / "target"
+    source.mkdir()
+    (source / "index.csv").write_text("file,received_date\na.pdf,2024-06-30\nb.pdf,2024-07-01\nc.pdf,2025-01-01\n")
+    for name in ("a.pdf", "b.pdf", "c.pdf"):
+        (source / name).write_text("x")
+    _link_indexed(source, target, "received_date", "2024-07-01", "2024-12-31")
+    assert sorted(f.name for f in target.iterdir()) == ["b.pdf", "index.csv"]
+    assert load_table(target / "index.csv")["file"].to_list() == ["b.pdf"]
+
+
+@pytest.mark.parametrize("name", [
+    "train", "live", "final", "holdout", "holdoutx", "holdout-drift",
+    "../train", "../holdout-x", "holdout-x/../../train", "holdout-x/y", "holdout-x/", "/tmp/holdout-x",
+])
+def test_a_period_refuses_the_name_even_when_no_such_folder_exists_yet(tmp_path, name):
+    db = tmp_path / "db"
+    db.mkdir()
+    with pytest.raises(ValueError, match="a period goes to"):
+        period_dest(name, db)
+
+
+PERIOD = ["--start", "2024-07-01", "--end", "2024-12-31"]
+
+
+@pytest.fixture
+def db(tmp_path, monkeypatch):
+    """A TRAIN of a few rows in an entity and a currency no code knows, and the CLI pointed at it, never at db/."""
+    root = tmp_path / "db"
+    train = root / "train"
+    train.mkdir(parents=True)
+    for table, rows in {
+        "bank_transactions": {"bank_txn_id": ["T0", "T1", "T2", "T3"],
+                              "booking_date": ["2024-06-20", "2024-08-10", "2024-10-10", "2025-03-10"]},
+        "golden_allocations": {"bank_txn_id": ["T1", "T2", "T3"], "item_id": ["A", "B", "C"],
+                               "amount": ["100.00", "50.00", "70.00"], "exception": [None, None, None],
+                               "segment": ["ar_1to1", "ar_1to1", "ar_1to1"]},
+        "ar_invoices": {"item_id": ["A", "B", "C", "X"], "entity": ["QQ01"] * 4, "customer_id": ["C1"] * 4,
+                        "customer_name": ["n"] * 4, "document_number": ["DA", "DB", "DC", "DX"],
+                        "issue_date": ["2024-03-01", "2024-09-01", "2025-02-01", "2024-03-02"],
+                        "due_date": ["2024-04-01", "2024-10-01", "2025-03-01", "2024-04-02"], "currency": ["QQQ"] * 4,
+                        "total_amount": ["100.00", "50.00", "70.00", "10.00"], "payment_terms": ["30"] * 4,
+                        "customer_po": [None] * 4, "payment_method": ["SEPA"] * 4},
+        "ap_invoices": {"item_id": ["P"], "entity": ["QQ01"], "supplier_id": ["S1"], "supplier_name": ["s"],
+                        "supplier_invoice_number": ["DP"], "issue_date": ["2024-11-01"], "due_date": ["2024-12-01"],
+                        "currency": ["QQQ"], "total_amount": ["20.00"], "payment_terms": ["30"], "our_po": [None],
+                        "payment_method": ["SEPA"]},
+        "credit_notes": {"item_id": ["ARC1"], "entity": ["QQ01"], "party_id": ["C1"], "party_name": ["n"],
+                         "document_number": ["DN"], "issue_date": ["2024-03-03"], "currency": ["QQQ"],
+                         "total_amount": ["-10.00"], "related_document": ["DX"], "reason": ["Anulación de factura"]},
+    }.items():
+        holdout._write_gz(pl.DataFrame(rows, schema={c: pl.String for c in rows}), train / f"{table}.csv.gz")
+    for folder, column in (("remittance_advices", "received_date"), ("pdfs", "document_date")):
+        (train / folder).mkdir()
+        (train / folder / "index.csv").write_text(f"file,{column}\n")
+    monkeypatch.setattr(paths, "DB", root)
+    monkeypatch.setattr(paths, "PKG", root / "package")
+    monkeypatch.setattr(holdout, "DB", root)
+    monkeypatch.setattr(holdout, "period_dest", partial(holdout.period_dest, db=root))
+    return root
+
+
+def test_the_cli_builds_the_period_it_is_given_from_train(db):
+    assert main(["holdout", "build", *PERIOD, "--name", "holdout-2024h2"]) == 0
+
+    out = paths.phase_dir("holdout-2024h2")
+    assert load_table(out / "bank_transactions.csv.gz")["bank_txn_id"].to_list() == ["T1", "T2"]
+    assert load_table(out / "golden_allocations.csv.gz")["item_id"].to_list() == ["A", "B"]
+    assert load_table(out / "ar_invoices.csv.gz")["item_id"].to_list() == ["B"]
+    opening = load_table(out / "open_items_at_start.csv.gz")
+    assert opening.select("item_id", "entity", "currency", "open_amount").rows() == [("A", "QQ01", "QQQ", "100.00")]
+
+
+def test_the_cli_refuses_a_period_over_a_phase_and_leaves_it_as_it_was(db):
+    before = (db / "train" / "bank_transactions.csv.gz").read_bytes()
+    with pytest.raises(ValueError, match="a period goes to"):
+        main(["holdout", "build", *PERIOD, "--name", "train"])
+    assert (db / "train" / "bank_transactions.csv.gz").read_bytes() == before
+
+
+def test_the_cli_refuses_a_period_over_a_holdout_folder_that_already_exists(db):
+    (db / "holdout-2024h2").mkdir()
+    (db / "holdout-2024h2" / "kept.csv").write_text("x")
+    with pytest.raises(ValueError, match="exists"):
+        main(["holdout", "build", *PERIOD, "--name", "holdout-2024h2"])
+    assert (db / "holdout-2024h2" / "kept.csv").read_text() == "x"
+
+
+@pytest.mark.parametrize("flags", [
+    PERIOD,  # without --name it would empty db/holdout and rebuild it with the default dates
+    ["--name", "holdout-2024h2"],
+    ["--name", "holdout-2024h2", "--start", "2024-07-01"],
+    ["--drift", *PERIOD, "--name", "holdout-2024h2"],
+])
+def test_the_cli_refuses_a_half_given_period_before_touching_anything(db, flags):
+    (db / "holdout").mkdir()
+    (db / "holdout" / "kept.csv").write_text("x")
+    with pytest.raises(SystemExit, match="--name"):
+        main(["holdout", "build", *flags])
+    assert (db / "holdout" / "kept.csv").read_text() == "x"
+    assert not (db / "holdout-2024h2").exists()
+
+
+def test_the_normal_build_still_rebuilds_db_holdout_with_its_own_period(db):
+    (db / "holdout").mkdir()
+    (db / "holdout" / "stale.csv").write_text("x")
+    assert main(["holdout", "build"]) == 0
+    assert not (db / "holdout" / "stale.csv").exists()
+    assert load_table(db / "holdout" / "bank_transactions.csv.gz")["bank_txn_id"].to_list() == ["T3"]
+
+
+def test_the_drift_build_is_not_taken_for_a_period(db):
+    with pytest.raises(FileNotFoundError, match="holdout"):  # it reads db/holdout, which this db does not have
+        main(["holdout", "build", "--drift"])
