@@ -1,5 +1,5 @@
 // Walks the three interactions of the done criterion in a real browser and checks what they leave in human/.
-// One run writes for real: against `closebooks serve` it adds lines to runs/<id>/human/. Use a run you can spare.
+// It writes for real: against `closebooks serve` it adds lines to runs/<id>/human/. Run it on a copy of the folder, never on the run to submit or to show.
 //
 //   npm i playwright@1.49.1 (outside the repo), start the API and the app, then:
 //   PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node mock/interactions.mjs http://localhost:5173 [--run <id>] [--human <dir>] [--out <dir>] [--video]
@@ -44,17 +44,20 @@ const shot = async (name) => out && page.screenshot({ path: join(out, `${name}.p
 
 // 1. Answer a question and save the answer as a rule.
 const before = await human()
+let now = before
 const questions = (await api('/questions?status=open&size=200')).items
 const question = questions.find((q) => q.rulePreview && q.options.some((o) => o.id !== 'none'))
 check('hay una pregunta abierta con regla propuesta', Boolean(question), question?.questionId)
-let panel = await open(question.caseId)
+let panel
+if (question) {
+panel = await open(question.caseId)
 await panel.getByRole('radio', { name: question.options.find((o) => o.id !== 'none').label }).check()
 await panel.getByRole('checkbox', { name: /regla/i }).check()
 await shot('1-pregunta')
 await panel.getByRole('button', { name: /Responder/ }).click()
 await page.waitForTimeout(800)
 await shot('1-respondida')
-let now = await human()
+now = await human()
 const decision = now.decisions.at(-1)
 const rule = now.memoryRules.at(-1)
 check('la respuesta queda en decisions.jsonl', now.decisions.length === before.decisions.length + 1 && decision.questionId === question.questionId && decision.saveAsRule === true, decision?.optionId)
@@ -66,9 +69,12 @@ await page.waitForLoadState('networkidle')
 check('la regla se ve en Memoria', await page.getByText(rule.description).first().isVisible())
 await shot('1-memoria')
 
+}
+
 // 2. Edit a draft and «send» it: nothing leaves, it is registered.
 const draft = (await api('/drafts?status=draft&size=200')).items[0]
 check('hay un borrador', Boolean(draft), draft?.draftId)
+if (draft) {
 panel = await open(draft.caseId)
 const subject = `${draft.subject} (revisado)`
 await panel.getByLabel('Asunto').fill(subject)
@@ -80,11 +86,13 @@ now = await human()
 const sent = now.outbox.at(-1)
 check('el envío queda en outbox.jsonl con el asunto editado', sent?.draftId === draft.draftId && sent?.status === 'sent' && sent?.subject === subject, sent?.subject)
 check('el panel lo enseña como enviado', await panel.getByText('Enviado').first().isVisible())
+}
 
 // 3. Mark a case handled: it leaves the queue.
 const stats = await api('/stats')
-const handled = (await api('/cases?status=needs_review&size=200')).items.find((c) => !c.draftId && !c.questionId)
+const handled = (await api('/cases?status=needs_review,fallback&size=200')).items.find((c) => !c.draftId && !c.questionId)
 check('hay un caso que marcar', Boolean(handled), handled?.caseId)
+if (handled) {
 panel = await open(handled.caseId)
 await panel.getByRole('button', { name: /gestionado/i }).click()
 await page.waitForTimeout(800)
@@ -94,6 +102,7 @@ check('el caso pasa a gestionado', (await api(`/cases/${encodeURIComponent(handl
 const queue = (await api('/stats')).reviewQueue
 check('la cola baja', queue < stats.reviewQueue, `${stats.reviewQueue} → ${queue}`)
 await shot('3-gestionado')
+}
 
 check('cero errores en consola', errors.length === 0, errors.join(' | ').slice(0, 300))
 await context.close()

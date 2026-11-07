@@ -47,7 +47,6 @@ export function ageDays(bookingDate: string | null, asOf: string): number | null
 
 export function ageLabel(days: number | null): string {
   if (days == null) return '—'
-  if (days === 0) return 'hoy'
   return days < 60 ? `${days} d` : `${Math.round(days / 30)} meses`
 }
 

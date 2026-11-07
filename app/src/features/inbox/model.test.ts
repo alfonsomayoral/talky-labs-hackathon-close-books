@@ -45,7 +45,7 @@ describe('age', () => {
   })
 
   it('reads days up to two months, then months', () => {
-    expect(ageLabel(0)).toBe('hoy')
+    expect(ageLabel(0)).toBe('0 d')
     expect(ageLabel(1)).toBe('1 d')
     expect(ageLabel(45)).toBe('45 d')
     expect(ageLabel(75)).toBe('3 meses')
