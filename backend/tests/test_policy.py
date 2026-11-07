@@ -153,7 +153,7 @@ def test_a_gap_that_is_a_discount_stays_a_discount_even_on_a_listing():
 
 def test_a_huge_excess_is_not_an_overpayment_of_that_invoice_but_an_incomplete_citation():
     # Real overpayments stay under 32 % of the invoice (p99 in the holdout); false ones have a median excess of x5.
-    assert allocate(500000, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
+    assert allocate(500317, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
 
 
 def test_cross_border_signal_comes_from_the_iso_code_or_the_bank_text():
@@ -190,7 +190,13 @@ def test_overpayment_only_for_the_excess_real_ones_show():
     # Holdout: excess <= 2 % is 96.6 % right and exactly 10 % is a real pattern; else, an incomplete citation.
     assert allocate(101000, [facts("ARI-1", 100000)], "2025-06-05", False)["ARI-1"][1] == "OVERPAYMENT"
     assert allocate(110000, [facts("ARI-1", 100000)], "2025-06-05", False)["ARI-1"][1] == "OVERPAYMENT"
-    assert allocate(117000, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
+    assert allocate(117043, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
+
+
+def test_a_round_excess_over_a_single_invoice_is_an_overpayment_whatever_its_size():
+    # Invented: 100.00 more than a 604.38 invoice. The balance of another invoice would carry cents (POLICIES §3).
+    assert allocate(70438, [facts("ARI-1", 60438)], "2025-06-05", False) == {"ARI-1": (60438, "OVERPAYMENT")}
+    assert allocate(70439, [facts("ARI-1", 60438)], "2025-06-05", False) == {"ARI-1": (60438, "")}
 
 
 def test_discount_on_the_invoices_that_have_it_and_full_on_the_rest():

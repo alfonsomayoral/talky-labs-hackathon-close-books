@@ -264,7 +264,10 @@ class Gap:
 
 
 def _is_overpayment(excess: int, open_cents: int) -> bool:
-    return excess <= open_cents * SMALL_OVERPAYMENT_RATIO or abs(excess - open_cents * ROUND_OVERPAYMENT_RATIO) <= 1
+    """Small, a tenth, or a round sum: the balance of an invoice left uncited would carry cents (POLICIES §3 sets no
+    limit; a customer who rounds up or pays a round extra leaves it on account)."""
+    return (excess <= open_cents * SMALL_OVERPAYMENT_RATIO or abs(excess - open_cents * ROUND_OVERPAYMENT_RATIO) <= 1
+            or excess % 100 == 0)
 
 
 def _clear(case: Gap) -> dict[str, tuple[int, str]]:
