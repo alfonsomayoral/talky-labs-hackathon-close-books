@@ -101,14 +101,14 @@ Una fila por partida **emitida en la fase**, abierta al inicio o con movimiento 
 ### 2.7 `drafts.jsonl`
 
 ```json
-{"draftId": "D-000045", "caseId": "CASE-…", "kind": "email_customer", "to": "cuentas.pagar@wellnessloma.example",
+{"draftId": "D-000045", "caseId": "CASE-…", "kind": "email_customer", "to": null,
  "toName": "Wellness Lomaseca S.A.", "partyId": "CES01001234", "language": "es",
  "subject": "Facturas vencidas pendientes de pago", "body": "Estimados señores: …",
  "attachments": [{"kind": "pdf", "ref": "pdfs/ES01/ARI_FV240415058.pdf", "label": "FV24-0415058"}],
  "generatedBy": "claude-haiku-5-5", "status": "draft", "createdAt": "…"}
 ```
 
-`kind`: `email_customer` (reclamación, duplicado a devolver, disputa, sobrepago) | `email_supplier` (importe que no cuadra, duplicado nuestro, abono pendiente). `status`: `draft` | `sent` | `manual` (la plataforma lo cambia en `human/outbox.jsonl`; el fichero del backend no se reescribe).
+`kind`: `email_customer` (reclamación, duplicado a devolver, disputa, sobrepago) | `email_supplier` (importe que no cuadra, duplicado nuestro, abono pendiente). `to` es `null` cuando el maestro no trae correo (siempre, en este paquete): la plataforma lo pide o lo deja vacío; `toName` siempre va. `status`: `draft` | `sent` | `manual` (la plataforma lo cambia en `human/outbox.jsonl`; el fichero del backend no se reescribe).
 
 ### 2.8 `run.json`
 
