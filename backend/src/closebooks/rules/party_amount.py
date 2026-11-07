@@ -618,7 +618,9 @@ class PartyAmount:
         """The one whole open invoice of which the cash is a round share, to the cent. Not one with an open credit
         note of its own: notes are round shares too, and the invoice net of one only looks like a partial."""
         noted = {self.related.get(i[0]) for i in mine if i[0][:3] in CREDIT_NOTES and open_now[i[0]] > 0}
-        whole = [i for i, o in free if i[0][:3] not in CREDIT_NOTES and o == i[4] > cash and i[6] not in noted]
+        # Its PDF says what is short and why: only `_plan_expects` can read that cash.
+        whole = [i for i, o in free if i[0][:3] not in CREDIT_NOTES and o == i[4] > cash and i[6] not in noted
+                 and not {"retention", "advance_deduction"} & self.clauses.get(i[0], {}).keys()]
         # Each invoice spreads its shares over its own total: how many would land on any cash by chance.
         if sum(_chance((ROUND_FRACTIONS - 1) * SHARE_WINDOW, [i[4]]) for i in whole) > MAX_CHANCE:
             return None
