@@ -9,7 +9,7 @@ import time
 import zipfile
 
 import pytest
-from api_fixture import ADVICE, DRAFTS, build_phase, build_run
+from api_fixture import ADVICE, BANK, DRAFTS, EXPLANATIONS, build_phase, build_run
 from fastapi.testclient import TestClient
 
 from closebooks import paths
@@ -52,6 +52,26 @@ def get(api, url, **params):
     r = api.get(f"/api/runs/{RUN}{url}", params=params)
     assert r.status_code == 200, r.text
     return r.json()
+
+
+def test_rows_table_keeps_every_explanation_in_order_with_its_bank_line_and_rate(env):
+    _, runs, _ = env
+    data = RunData(runs / RUN)
+    got = data.con.execute("SELECT * FROM rows ORDER BY \"rowNo\"").fetchall()
+    columns = [d[0] for d in data.con.description]
+    assert columns == ["rowNo", "bankTxnId", "itemId", "amountCents", "currency", "category", "exception", "rule",
+                       "confidence", "partyId", "reference", "sources", "candidates", "entity", "bookingDate",
+                       "amountEur"]
+    bank = {t[0]: t for t in BANK}
+    usd_per_eur = {"BT-5": 1.25}  # 2025-07-06: the last rate is the one of 2025-06-30
+    expected = []
+    for number, e in enumerate(EXPLANATIONS, 1):
+        cents = e["amountCents"]
+        eur = None if cents is None else cents if e["currency"] == "EUR" else round(cents / usd_per_eur[e["bankTxnId"]])
+        expected.append((number, e["bankTxnId"], e["itemId"], cents, e["currency"], e["category"], e["exception"],
+                         e["rule"], e["confidence"], e["partyId"], e["reference"], e["sources"], e["candidates"],
+                         bank[e["bankTxnId"]][2], bank[e["bankTxnId"]][4], eur))
+    assert got == expected
 
 
 def test_runs_newest_first_with_summary(api):

@@ -101,17 +101,20 @@ class RunData:
             FROM {_json(self.dir / 'cases.jsonl.gz', CASE_COLUMNS)} k
             LEFT JOIN party p ON p."partyId" = k."partyId\"""")
         self._build_open_items()
-        c.execute(f"""CREATE TABLE rows AS
+        # A table first: over read_json DuckDB estimates ~45 rows and its plan for the ASOF takes 46 s on 680 k.
+        c.execute(f"""CREATE TEMP TABLE explanations AS SELECT row_number() OVER () AS rn, *
+            FROM {_json(self.dir / 'explanations.jsonl.gz', EXPLANATION_COLUMNS)}""")
+        c.execute("""CREATE TABLE rows AS
             SELECT r.rn AS "rowNo", r."bankTxnId", r."itemId", r."amountCents", r.currency, r.category, r.exception,
                    r.rule, r.confidence, r."partyId", r.reference, r.sources, r.candidates, b.entity,
                    b."bookingDate",
                    CASE WHEN r."amountCents" IS NULL THEN NULL WHEN r.currency = 'EUR' THEN r."amountCents"
                         ELSE CAST(round(r."amountCents" / coalesce(fx.rate, 1.0)) AS BIGINT) END AS "amountEur"
-            FROM (SELECT row_number() OVER () AS rn, * FROM
-                  {_json(self.dir / 'explanations.jsonl.gz', EXPLANATION_COLUMNS)}) r
+            FROM explanations r
             LEFT JOIN (SELECT "bankTxnId", entity, "bookingDate", CAST("bookingDate" AS DATE) AS d FROM bank) b
                    ON b."bankTxnId" = r."bankTxnId"
             ASOF LEFT JOIN fx ON r.currency = fx.currency AND b.d >= fx.date""")
+        c.execute("DROP TABLE explanations")
         self._build_tx()
 
     def _build_open_items(self) -> None:
