@@ -113,6 +113,24 @@ def test_an_advance_of_a_withholding_rate_is_partial_where_that_tax_exists():
     assert rows == [("ARI-1", 90000, "PARTIAL")]
 
 
+ADVANCE_NET = "A deducir anticipo recibido según proforma PF24-0100009 de 100,05 EUR. Importe neto a pagar 900,07 EUR."
+ROBLEDO_LINE = "TRANSFERENCIA DE ROBLEDO PISCINAS S.L."
+
+
+def test_the_net_of_an_advance_is_the_printed_one_with_no_rounding_of_a_percentage():
+    rows = walked([item("ARI-1", "C1", "FV24-0113001", 100012)], txn(90006, ROBLEDO_LINE), ROBLEDO,
+                  pdfs={"ARI-1": ADVANCE_NET})
+    assert rows == UNIDENTIFIED
+
+
+@pytest.mark.parametrize(("total", "pdf", "cash"), [(100012, retention_pdf("5", "50,00", "950,12"), 95011),
+                                                    (100012, ADVANCE_NET, 90007)], ids=["retention", "advance"])
+def test_a_cash_equal_to_what_an_invoice_issued_later_expects_is_not_its_payment(total, pdf, cash):
+    """That cash is the customer_advance the invoice will deduct (POLICIES §4), not a payment of the invoice."""
+    invoice = item("ARI-1", "C1", "FV24-0113001", total, "2024-07-01")
+    assert walked([invoice], txn(cash, ROBLEDO_LINE, date="2024-06-01"), ROBLEDO, pdfs={"ARI-1": pdf}) == UNIDENTIFIED
+
+
 def test_a_withholding_with_no_clause_stays_a_withholding():
     line = txn(90000, "TRANSFERENCIA DE ROBLEDO PISCINAS S.L. | FRA. FV24-0113001")
     rows = walked([item("ARI-1", "C1", "FV24-0113001", 100000)], line, ROBLEDO, country="MX")
