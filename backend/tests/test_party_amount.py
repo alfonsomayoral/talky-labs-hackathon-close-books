@@ -10,7 +10,7 @@ import pytest
 
 from closebooks.resolve import resolve
 from closebooks.rules.parties import PartyIndex, normalize
-from closebooks.rules.party_amount import PartyAmount, _chance
+from closebooks.rules.party_amount import PartyAmount, _chance, _sets_up_to_two
 from closebooks.state import OpenBalances
 
 
@@ -1058,3 +1058,70 @@ def test_a_stated_fee_of_a_customer_in_sepa_is_found_with_no_citation():
     assert lines(rule(txn(2553275, NAME + "/CHGS/EUR37,00"), balances)) == {"ARI-1"}
     assert rule(txn(2553275, NAME), balances) is None
 
+
+
+def _due_set(cash, *invoices):
+    """What the search for due invoices says, with the invoices as (id, cents, due date) of the customer."""
+    items = [item(i, "C1", f"F{n}", cents, due=due) for n, (i, cents, due) in enumerate(invoices)]
+    rule, _ = engine(items)
+    free = [(entry, entry[4]) for entry in rule.items["C1"]]
+    return rule._due_subset(free, cash, "C1", "2024-06-01")
+
+
+def test_a_receipt_with_no_reference_settles_the_only_due_invoices_that_add_up():
+    found = _due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 70001, "2024-05-01"),
+                     ("ARI-C", 33333, "2024-05-01"))
+    assert found.rule == "PARTY-SUBSET-DUE"
+    assert lines(found) == {"ARI-A", "ARI-B"}
+    assert "3 facturas" in found.sources[0]["label"]
+
+
+def test_an_invoice_not_yet_due_is_not_paid_by_a_receipt_with_no_reference():
+    assert _due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 70001, "2024-06-09")) is None
+
+
+def test_the_tolerance_on_the_due_date_counts_the_week_after_the_receipt():
+    assert lines(_due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 70001, "2024-06-08"))) == {"ARI-A", "ARI-B"}
+
+
+def test_two_sets_that_add_up_leave_the_receipt_unmatched():
+    assert _due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 70001, "2024-05-01"),
+                    ("ARI-C", 60000, "2024-05-01"), ("ARI-D", 60001, "2024-05-01")) is None
+
+
+def test_a_credit_note_is_not_part_of_the_set():
+    assert _due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 80001, "2024-05-01"),
+                    ("ARC-N", 10000, "2024-05-01")) is None
+
+
+def test_a_single_invoice_or_one_with_no_due_date_is_not_this_path():
+    assert _due_set(50000, ("ARI-A", 50000, "2024-05-01")) is None
+    assert _due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 70001, None)) is None
+
+
+def test_a_receipt_citing_an_item_or_with_a_cash_too_big_to_search_stays_out():
+    invoices = [item("ARI-A", "C1", "FV24-000111", 50000, due="2024-05-01"),
+                item("ARI-B", "C1", "FV24-000222", 70001, due="2024-05-01")]
+    rule, balances = engine(invoices)
+    rule._subset = lambda *a, **k: None
+    rule._consecutive = lambda *a, **k: None
+    assert rule(txn(120001, name="Wellness Garrido S.L."), balances).rule == "PARTY-SUBSET-DUE"
+    cited = rule(txn(120001, name="Wellness Garrido S.L.", remit="FV24-000"), balances)
+    assert cited is None or cited.rule != "PARTY-SUBSET-DUE"
+    assert _due_set(10**10, *[(f"ARI-{i}", 10**9, "2024-05-01") for i in range(20)]) is None
+
+
+def test_sixty_items_are_searched_in_under_a_second():
+    from time import perf_counter
+
+    values = [(1000003 * (i + 1) + 7919 * i * i) % 4000037 + 1000 for i in range(60)]
+    start = perf_counter()
+    found = _sets_up_to_two(values, sum(values[::7]))
+    assert perf_counter() - start < 1
+    assert found
+
+
+def test_the_search_stops_at_two_sets_and_finds_each_item_once():
+    assert len(_sets_up_to_two([5, 3, 2, 8], 10)) == 2
+    assert _sets_up_to_two([5, 3, 9], 8) == [[0, 1]]
+    assert _sets_up_to_two([5, 3], 7) == []
