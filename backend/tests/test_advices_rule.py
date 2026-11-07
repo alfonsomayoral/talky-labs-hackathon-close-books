@@ -130,6 +130,24 @@ def test_an_advice_that_does_not_close_still_pairs_but_does_not_claim_the_cash_o
     assert proposal.lines == [("ARI-1", None), ("ARC-1", None)] and proposal.confidence < 0.9
 
 
+def test_an_advice_short_of_its_lines_keeps_them_in_the_printed_order_and_says_so(tmp_path):
+    text = ("Subject: Payment advice 240308783211\nDate: Mon, 11 Mar 2024 09:00:00 +0100\n\n"
+            "We have sent a payment of 1,329.46 EUR on 03/11/2024 covering:\n\n"
+            "  FV24-0401886  20/02/24  1,000.00\n  FV24-0401885  30/01/24  658.91\n")
+    phase = make_phase(tmp_path, {"RA_a.txt": ("Arenal", "2024-03-12", text)},
+                       [("BT-1", 132946, "2024-03-11", "AVISO 240308783211")], ITEMS)
+    proposal = advices.propose(phase)["BT-1"]
+    assert [i for i, _ in proposal.lines] == ["ARI-2", "ARI-1"]
+    assert proposal.by_cash and proposal.in_listed_order
+    assert proposal.sources[0]["ref"] == "remittance_advices/ES01/RA_a.txt"
+
+
+def test_an_advice_that_closes_says_how_much_goes_to_each_line_so_no_order_applies(tmp_path):
+    phase = make_phase(tmp_path, {"RA_a.csv": ("Arenal", "2024-03-12", ADVICE)},
+                       [("BT-1", 32946, "2024-03-11", "AVISO 240308783211")], ITEMS)
+    assert not advices.propose(phase)["BT-1"].in_listed_order
+
+
 def test_cash_booked_after_the_advice_arrived_is_not_its_cash(tmp_path):
     phase = make_phase(tmp_path, {"RA_a.csv": ("Arenal del Sur S.L.", "2024-03-08", ADVICE)},
                        [("BT-1", 32946, "2024-03-20", "TRANSFERENCIA ARENAL DEL SUR S.L. PAGO FACTURAS")], ITEMS)

@@ -1,6 +1,8 @@
 """Walk the bank lines by booking date, apply the best proposal, fix amount and exception, update balances."""
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .categories import fallback
 from .load import Phase, cancelled_item_ids
 from .model import Proposal, Row
@@ -76,6 +78,8 @@ def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalanc
     from_abroad = not foreign and cross_border(txn["bank_code"], txn["text"])
     eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if from_abroad else None
     items = [(item, balances.open(item), terms_of(item)) for item, _ in proposal.lines]
+    if proposal.in_listed_order:
+        items = [(item, open_cents, replace(terms, listed_at=at)) for at, (item, open_cents, terms) in enumerate(items)]
     return allocate(cash, items, txn["booking_date"], foreign, eur_per_cent)
 
 
