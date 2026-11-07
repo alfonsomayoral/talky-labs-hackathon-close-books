@@ -21,7 +21,7 @@ from .evaluate import score_file
 from .load import cancelled_item_ids, load_phase
 from .memory import Memory, load_rules
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
-from .paths import ROOT, RUNS
+from .paths import ROOT, RUNS, phase_dir
 from .resolve import resolve
 from .rules import propose, stateful
 
@@ -98,6 +98,26 @@ def _drafts(cases, rows, phase, balances, names, countries, created_at: str) -> 
 
 
 def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, memory: Path | None = None) -> Path:
+    """A scored run finishes its reconciliation worker before the parent loads the golden."""
+    if not score or not (phase_dir(phase_name) / "golden_allocations.csv.gz").exists():
+        return _reconcile(phase_name, out, memory)
+    run = out or RUNS / f"{phase_name}-{datetime.now().astimezone():%Y%m%d-%H%M%S}"
+    command = [sys.executable, "-m", "closebooks.cli", "run", "--phase", phase_name, "--out", str(run), "--no-score"]
+    if memory is not None:
+        command += ["--memory", str(memory)]
+    subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
+    meta = orjson.loads((run / "run.json").read_bytes())
+    clock = time.perf_counter()
+    scored = score_file(run / "submission.csv.gz", phase_name)
+    meta["score"] = {k: scored[k] for k in ("score", "metrics", "segments", "ok", "errors")}
+    meta["stages"]["score"] = int((time.perf_counter() - clock) * 1000)
+    meta["peakRssMb"]["score"] = _peak_rss_mb()
+    meta["durationMs"] = sum(meta["stages"].values())
+    (run / "run.json").write_bytes(orjson.dumps(meta, option=orjson.OPT_INDENT_2))
+    return run
+
+
+def _reconcile(phase_name: str, out: Path | None, memory: Path | None) -> Path:
     started = datetime.now().astimezone()
     stages: dict[str, int] = {}
     peak_mb: dict[str, int] = {}
@@ -156,12 +176,6 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
     write_jsonl(run / "drafts.jsonl", drafts)
     lap("output")
 
-    result = None
-    if score and phase.golden_path is not None:
-        scored = score_file(run / "submission.csv.gz", phase_name)
-        result = {k: scored[k] for k in ("score", "metrics", "segments", "ok", "errors")}
-        lap("score")
-
     meta = {
         "runId": run_id, "phase": phase_name, "dataDir": str(phase.dir), "createdAt": started.isoformat(),
         "gitCommit": _git_commit(), "durationMs": sum(stages.values()), "stages": stages, "peakRssMb": peak_mb,
@@ -171,7 +185,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
         "byCategory": dict(Counter(r.category for r in rows if r.category)),
         "cases": dict(Counter(c["status"] for c in cases)),
         "advices": residue(advices), "models": {}, "memoryRulesApplied": sum(r.rule == "MEMORY-RULE" for r in rows),
-        "memoryRulesIgnored": taught.ignored, "score": result,
+        "memoryRulesIgnored": taught.ignored, "score": None,
     }
     (run / "run.json").write_bytes(orjson.dumps(meta, option=orjson.OPT_INDENT_2))
     return run

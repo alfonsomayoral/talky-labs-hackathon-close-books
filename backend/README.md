@@ -25,3 +25,19 @@ cd backend && uv run python -c "import json; from pathlib import Path; from clos
 ## Memoria
 
 Dos pánicos de kernel la noche del 6 al 7 de noviembre coincidieron con memoria agotada por procesos Python (un proceso de 97 GB, compresor saturado). Una ejecución de `holdout` debe quedar por debajo de 8 GB de RSS: mídelo con `/usr/bin/time -l uv run closebooks run --phase holdout --out ../runs/holdout-mem`. FINAL corre con la plataforma y `serve` arriba, así que ese es el límite que importa. Una medición pesada a la vez; los pools no pasan de 6 procesos.
+
+Las salidas CSV/JSONL se escriben por bloques, y el motor comparte un único índice de partidas con saldos y totales
+en vectores de enteros de 64 bits. El historial conserva los mismos campos al exportarse.
+
+En las fases con golden, `run` termina un proceso de conciliación antes de cargar el evaluador en el proceso
+coordinador: sus estados grandes no conviven. `peakRssMb.score` mide ese segundo proceso; los otros valores son
+máximos acumulados del proceso de conciliación, sin sumar los workers de documentos.
+
+Para generar los artefactos sin cargar el golden y puntuar después:
+
+```bash
+uv run closebooks run --phase train --out ../runs/train-mem --no-score
+uv run closebooks score ../runs/train-mem
+```
+
+`--no-score` deja `score: null` en `run.json`. El comando `score` imprime el resultado; no modifica los metadatos.

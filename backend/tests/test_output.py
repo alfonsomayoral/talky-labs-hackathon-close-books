@@ -1,11 +1,57 @@
 from __future__ import annotations
 
 import gzip
+import json
+import tracemalloc
+from itertools import repeat
 
 import polars as pl
+import pytest
 
 from closebooks.evaluate import validate_file
+from closebooks.model import Row
+from closebooks.output import write_cases, write_explanations, write_jsonl, write_submission
 from closebooks.pipeline import run_pipeline
+
+
+@pytest.mark.parametrize("kind", ["explanations", "cases", "jsonl"])
+def test_json_outputs_do_not_buffer_all_records_before_writing(tmp_path, kind):
+    # A large reference is shared in the input: memory should depend on the write buffer, not the row count.
+    source = {"kind": "pdf", "ref": "pdfs/ES01/factura.pdf", "label": "á" * 2048}
+    row = Row("BT-1", "ARI-1", 1234, "EUR", None, None, "REF-TEXT", 1.0, sources=[source])
+    record = {"caseId": "CASE-BT-1", "sources": [source]}
+    count = 5000
+    tracemalloc.start()
+    try:
+        if kind == "explanations":
+            write_explanations(tmp_path, repeat(row, count))
+            path = tmp_path / "explanations.jsonl.gz"
+        elif kind == "cases":
+            write_cases(tmp_path, repeat(record, count))
+            path = tmp_path / "cases.jsonl.gz"
+        else:
+            path = tmp_path / "questions.jsonl"
+            write_jsonl(path, repeat(record, count))
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 4 * 1024 * 1024, f"writer buffered {peak / 1024**2:.1f} MiB for the full output"
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8") as stream:
+        first = json.loads(next(stream))
+        assert first["sources"] == [source]
+        assert sum(1 for _ in stream) + 1 == count
+
+
+def test_submission_stream_counts_bytes_and_preserves_allocations_and_categories(tmp_path):
+    rows = [Row("BT-1", "ARI-1", 1234, "EUR", None, "PARTIAL", "REF-TEXT", 1.0),
+            Row("BT-1", "ARC-2", 500, "EUR", None, None, "REF-TEXT", 1.0),
+            Row("BT-2", None, None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED", 0.0)]
+    size = write_submission(tmp_path, iter(rows))
+    text = gzip.decompress((tmp_path / "submission.csv.gz").read_bytes())
+    assert size == len(text)
+    assert text.decode().splitlines()[1:] == ["BT-1,ARI-1,12.34,,PARTIAL", "BT-1,ARC-2,5.00,,",
+                                            "BT-2,,,UNIDENTIFIED,UNIDENTIFIED"]
 
 
 def test_sample_run_covers_every_line_and_is_byte_identical(tmp_path, sample):

@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import gzip
+import io
+from collections.abc import Iterable
+from itertools import chain
 from pathlib import Path
 
 import orjson
@@ -27,10 +30,14 @@ PARTY_SCHEMA = {
 }
 
 
-def _gzip_bytes(path: Path, data: bytes) -> None:
+def _gzip_chunks(path: Path, chunks: Iterable[bytes]) -> int:
     """mtime=0 and no file name in the header: same content, same bytes."""
+    size = 0
     with path.open("wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=6) as gz:
-        gz.write(data)
+        with io.BufferedWriter(gz, buffer_size=1 << 20) as buffered:
+            for chunk in chunks:
+                size += buffered.write(chunk)
+    return size
 
 
 def _csv_line(row: Row) -> str:
@@ -40,28 +47,28 @@ def _csv_line(row: Row) -> str:
            f"{row.exception or ''}\n"
 
 
-def write_submission(run: Path, rows: list[Row]) -> int:
+def write_submission(run: Path, rows: Iterable[Row]) -> int:
     """Returns the uncompressed size: the official limit is on that number."""
-    data = (CSV_HEADER + "".join(_csv_line(r) for r in rows)).encode()
-    _gzip_bytes(run / "submission.csv.gz", data)
-    return len(data)
+    return _gzip_chunks(run / "submission.csv.gz", chain([CSV_HEADER.encode()], (_csv_line(r).encode() for r in rows)))
 
 
-def write_explanations(run: Path, rows: list[Row]) -> None:
-    lines = [orjson.dumps({
+def write_explanations(run: Path, rows: Iterable[Row]) -> None:
+    lines = (orjson.dumps({
         "bankTxnId": r.bank_txn_id, "itemId": r.item_id, "amountCents": r.amount_cents, "currency": r.currency,
         "category": r.category, "exception": r.exception, "rule": r.rule, "confidence": r.confidence,
         "partyId": r.party_id, "reference": r.reference, "sources": r.sources, "candidates": r.candidates,
-    }) for r in rows]
-    _gzip_bytes(run / "explanations.jsonl.gz", b"\n".join(lines) + b"\n")
+    }) + b"\n" for r in rows)
+    _gzip_chunks(run / "explanations.jsonl.gz", lines)
 
 
-def write_cases(run: Path, cases: list[dict]) -> None:
-    _gzip_bytes(run / "cases.jsonl.gz", b"".join(orjson.dumps(c) + b"\n" for c in cases))
+def write_cases(run: Path, cases: Iterable[dict]) -> None:
+    _gzip_chunks(run / "cases.jsonl.gz", (orjson.dumps(c) + b"\n" for c in cases))
 
 
-def write_jsonl(path: Path, records: list[dict]) -> None:
-    path.write_bytes(b"".join(orjson.dumps(r) + b"\n" for r in records))
+def write_jsonl(path: Path, records: Iterable[dict]) -> None:
+    with path.open("wb") as stream:
+        for record in records:
+            stream.write(orjson.dumps(record) + b"\n")
 
 
 def write_facts(run: Path, documents: pl.DataFrame | None, parties: pl.DataFrame | None) -> None:
@@ -89,7 +96,7 @@ def write_open_items(run: Path, phase: Phase, balances: OpenBalances) -> None:
     (run / "state").mkdir(exist_ok=True)
     touched = balances.touched()
     carried = set(phase.open_at_start["item_id"].to_list()) if phase.open_at_start is not None else set()
-    keep = phase.items.filter(pl.col("item_id").is_in(list(touched.keys() | carried)) | (pl.col("open_cents") != 0))
+    keep = phase.items.filter(pl.col("item_id").is_in(list(touched | carried)) | (pl.col("open_cents") != 0))
     ids = keep["item_id"].to_list()
     starts = keep["open_cents"].to_list()
     ends = [balances.open(i) for i in ids]
