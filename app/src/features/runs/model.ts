@@ -101,7 +101,8 @@ export function consoleStep(s: { phase: string | null; status: RunState | null; 
 
 export type StageState = 'done' | 'running' | 'pending'
 
-const PIPELINE = Object.keys(STAGE_LABEL)
+// `score` only runs where the phase has official answers: it is not an expected stage.
+const PIPELINE = Object.keys(STAGE_LABEL).filter((s) => s !== 'score')
 
 /** Pipeline stages in order (then any other the run reports), with their state and milliseconds when done. */
 export function stageList(done: Record<string, number>, current: string | null): { stage: string; state: StageState; ms: number | null }[] {

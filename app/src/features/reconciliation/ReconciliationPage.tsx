@@ -16,7 +16,7 @@ const getRowId = (t: TxnRow) => t.bankTxnId
 
 const COLUMNS: Column<TxnRow>[] = [
   { id: 'bookingDate', header: 'Fecha', width: 92, cell: (t) => <span className={styles.muted}>{formatDate(t.bookingDate)}</span>, sortValue: (t) => t.bookingDate },
-  { id: 'entity', header: 'Sociedad', width: 80, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
+  { id: 'entity', header: 'Sociedad', width: 88, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
   { id: 'text', header: 'Texto del banco', width: 'minmax(160px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
   { id: 'amountEur', header: 'Importe', width: 152, align: 'right', cell: (t) => <Amount cents={t.amountCents} currency={t.currency} signed colorize />, sortValue: (t) => t.amountEur },
   {
