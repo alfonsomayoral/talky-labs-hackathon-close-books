@@ -105,7 +105,7 @@ function computeStats(entity) {
 // Scrolling asks for page after page with the same filters: keep the last filtered and sorted list.
 const lastList = { key: null, source: null, rows: null }
 
-function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r, key) => r[key] } = {}) {
+function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r, key) => r[key], withSum = false } = {}) {
   const params = new URLSearchParams(query)
   params.delete('page')
   params.delete('size')
@@ -140,7 +140,7 @@ function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r
   }
   const page = Math.max(1, Number(query.get('page') ?? 1))
   const size = Math.min(200, Number(query.get('size') ?? 50))
-  return { items: rows.slice((page - 1) * size, page * size).map(map), total: rows.length, page, size }
+  return { items: rows.slice((page - 1) * size, page * size).map(map), total: rows.length, page, size, ...(withSum ? { sumAmountEur: rows.reduce((acc, r) => acc + r.amountEur, 0) } : {}) }
 }
 
 function txnDetail(t) {
@@ -223,7 +223,7 @@ function accountsOf(runId) {
 const summaryOf = (r) => {
   const models = Object.values(r.models ?? {})
   const { stages, byRule, byException, byCategory, models: _m, dataDir, score, ...rest } = r
-  return { ...rest, modelCalls: models.reduce((a, m) => a + m.calls, 0), modelCostUsd: models.reduce((a, m) => a + m.costUsd, 0), score: score?.score ?? null }
+  return { ...rest, served: runArg > 0 && r.runId === run.runId, modelCalls: models.reduce((a, m) => a + m.calls, 0), modelCostUsd: models.reduce((a, m) => a + m.costUsd, 0), score: score?.score ?? null }
 }
 
 class Problem extends Error {
@@ -318,7 +318,7 @@ async function route(method, path, query, readBody) {
   }
 
   if (resource === 'cases') {
-    if (!seg[4]) return list(cases, query, { map: caseRow, sortValue: (c, key) => (key === 'partyName' ? partyById.get(c.partyId)?.name : c[key]), search: (c) => [c.caseId, c.summary, partyById.get(c.partyId)?.name], filters: { status: 'status', kind: 'kind', entity: 'entity', priority: 'priority' } })
+    if (!seg[4]) return list(cases, query, { withSum: true, map: caseRow, sortValue: (c, key) => (key === 'partyName' ? partyById.get(c.partyId)?.name : c[key]), search: (c) => [c.caseId, c.summary, partyById.get(c.partyId)?.name], filters: { status: 'status', kind: 'kind', entity: 'entity', priority: 'priority' } })
     const c = found(caseById.get(seg[4]), 'ese caso')
     if (seg[5] === 'decision' && method === 'POST') {
       const body = await readBody()

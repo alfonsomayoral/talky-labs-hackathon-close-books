@@ -4,8 +4,7 @@ import type { RunSummary } from '@/domain'
 import { useRunParam } from '@/lib/urlState'
 import { useRuns } from './api/queries'
 
-/** `served` is in CONTRACT.md §5.2; the generated types get it when backend/openapi.json does. */
-export function chooseRun(runs: (RunSummary & { served?: boolean })[], wanted: string | null): RunSummary | null {
+export function chooseRun(runs: RunSummary[], wanted: string | null): RunSummary | null {
   if (wanted) return runs.find((r) => r.runId === wanted) ?? null
   const served = runs.find((r) => r.served)
   if (served) return served
