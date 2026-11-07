@@ -233,6 +233,8 @@ const RULE_DESCRIPTION: Record<string, string> = {
   'REF-NUMBER': 'El texto cita el número entero y el importe cuadra, aunque no se reconozca al tercero',
   'REF-SUBSET': 'Las facturas citadas en el texto suman el importe del movimiento',
   'REF-COMPLETED': 'El texto cita parte de las facturas; las demás completan el importe',
+  'CREDIT-PAYOUT': 'Transferencia que liquida un abono: lo dice su referencia o el PDF',
+  'PAIRED-PARTIAL': 'Dos cobros que juntos liquidan una factura: la evidencia es el otro movimiento',
   'PARTY-AMOUNT': 'Sin referencia: una partida abierta del tercero tiene ese importe; si hay varias, la del mes citado o la más antigua',
   'PARTY-SUBSET': 'Sin referencia: varias partidas abiertas del tercero suman ese importe',
   'PARTY-SHORT': 'Sin referencia: el importe es una factura del tercero menos su descuento, retención o comisión',
