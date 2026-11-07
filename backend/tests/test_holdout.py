@@ -155,3 +155,11 @@ def test_only_payments_of_items_with_no_other_movement_are_delayed():
         "bank_txn_id": ["BT-1", "BT-2", "BT-3", "BT-4"], "item_id": ["I1", "I2", "I2", None],
         "segment": ["ar_1to1", "ar_1to1", "ar_duplicate_payment", "ar_1to1"], "exception": [None, None, "X", None]})
     assert sorted(delayable_receipts(golden)["bank_txn_id"].to_list()) == ["BT-1"]
+
+
+def test_a_debit_keeps_its_cents_when_the_drift_doubles_its_currency():
+    # BT-2025-0001782: -9761.77 MAD came out as -19524.46 ZAR, and the 92 cents looked like an overpayment.
+    from closebooks.holdout import _text_amount
+
+    frame = pl.DataFrame({"cents": [-1952354, 1952354]})
+    assert frame.select(_text_amount(pl.col("cents")).alias("text"))["text"].to_list() == ["-19523.54", "19523.54"]

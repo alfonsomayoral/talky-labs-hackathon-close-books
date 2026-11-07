@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .categories import fallback
-from .load import Phase
+from .load import Phase, cancelled_item_ids
 from .model import Proposal, Row
 from .policy import Terms, allocate, cross_border, decide
 from .state import OpenBalances
@@ -18,6 +18,8 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
     terms_of = _terms_lookup(phase)
     # Settled by a rule that cited nothing: if the item is paid again, that first match is what is in doubt.
     settled_uncited: set[str] = set()
+    # POLICIES §5.7: opens at 0 without having been paid, so paying it is not paying it again.
+    cancelled = cancelled_item_ids(items) if "reason" in items.columns else set()
     rows: list[Row] = []
     for txn in phase.txns.select(
         "bank_txn_id", "booking_date", "amount_cents", "currency", "bank", "bank_code", "bank_subcode", "text",
@@ -50,9 +52,12 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                     deduction=proposal.deductions.get(item_id), terms=terms_of(item_id),
                     booking_date=txn["booking_date"])
             balance_effect = exception
-            if exception == "DUPLICATE_PAYMENT" and item_id in settled_uncited:
+            doubts_first = item_id in settled_uncited and proposal.rule != "PARTY-DUPLICATE"
+            if exception == "DUPLICATE_PAYMENT" and doubts_first:
                 exception = ""
                 settled_uncited.discard(item_id)
+            elif exception == "DUPLICATE_PAYMENT" and item_id in cancelled and not balances.history(item_id):
+                exception = ""
             elif proposal.rule.startswith("PARTY-"):
                 settled_uncited.add(item_id)
             balances.apply(item_id, amount, balance_effect, txn_id, txn["booking_date"])

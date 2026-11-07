@@ -223,6 +223,13 @@ class PartyAmount:
             self._abstain(txn, "subsets", self._pending, balances)
         return None
 
+    def _returned(self, item_id: str, balances: OpenBalances) -> bool:
+        """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the
+        item any other way; while one is still to come (a re-presented batch), the item stays reserved."""
+        history = balances.history(item_id)
+        return bool(history) and history[-1]["exception"] == "RETURNED" and (
+            self.reserved[item_id] <= {move["bankTxnId"] for move in history})
+
     def _taught(self, txn: dict, kind: str, cash: int, currency: str, balances) -> Proposal | None:
         """What a person taught goes first; the amount still has to be explained, or the line goes on as usual."""
         memory = self.memory
@@ -262,7 +269,8 @@ class PartyAmount:
             return None
         open_now = {i[0]: balances.open(i[0]) for i in mine}
         free = [(i, open_now[i[0]]) for i in mine
-                if open_now[i[0]] > 0 and i[0] not in self.reserved and i[2] >= self.unknown_before]
+                if open_now[i[0]] > 0 and i[2] >= self.unknown_before and (
+                    i[0] not in self.reserved or self._returned(i[0], balances))]
         tokens = self._tokens(txn)
         strong, weak = self._cited(mine, tokens)
         by_reference = self._by_reference(strong, weak, free, open_now, cash, party, {_alnum(t) for t in tokens})
@@ -286,8 +294,13 @@ class PartyAmount:
         planned = self._explained_by_state(free, cash, party)
         if planned:
             return planned
-        run = self._consecutive(free, cash, skipped=MAX_SKIPPED) if self.parties.certain else None
-        return self._proposal("PARTY-WINDOW", party, run, confidence=0.85) if run else None
+        if not self.parties.certain:
+            return None
+        run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
+        if run:
+            return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
+        # Last: what open documents can explain is more certain than a second payment of a closed one.
+        return self._paid_again(mine, open_now, cash, party, balances)
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
@@ -425,6 +438,14 @@ class PartyAmount:
     @staticmethod
     def _is_month(clause: dict | None, month: int, year: int | None) -> bool:
         return bool(clause) and clause["month"] == month and (year is None or clause["year"] == year)
+
+    def _paid_again(self, mine: list, open_now: dict, cash: int, party: str, balances) -> Proposal | None:
+        """A whole party, nothing open that the cash explains, and one invoice with exactly that total that a line of
+        this run settled. One closed before the run may only look like the cash (POLICIES §3, unidentified)."""
+        closed = [i for i in mine if open_now[i[0]] <= 0 and i[4] == cash and i[0][:3] not in CREDIT_NOTES]
+        if len(closed) != 1 or not balances.history(closed[0][0]):
+            return None
+        return self._proposal("PARTY-DUPLICATE", party, [closed[0][0]], by_cash=True, confidence=0.85)
 
     def _explained_by_state(self, free: list, cash: int, party: str) -> Proposal | None:
         """No exact amount: only what the invoice's own PDF expects. Anything looser was measured and rejected."""
