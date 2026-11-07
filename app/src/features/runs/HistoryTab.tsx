@@ -45,25 +45,27 @@ export function HistoryTab({ onGoToConsole }: { onGoToConsole: () => void }) {
       <Card className={styles.score}>
         <ScoreExplainer score={current?.score ?? null} official={officialResultOf(rows, current?.runId)} runs={rows} />
       </Card>
-      <DataTable
-        aria-label="Historial de ejecuciones"
-        rows={rows}
-        columns={COLUMNS}
-        getRowId={(r) => r.runId}
-        selectedId={openId}
-        onSelectedChange={(id) => openId && id && setOpenId(id)}
-        onOpen={(r) => setOpenId(r.runId)}
-        globalKeys
-        empty={
-          <EmptyState
-            size="sm"
-            icon={<Play />}
-            title="Todavía no hay ninguna ejecución"
-            description="Lanza la primera desde la consola."
-            action={<Button onClick={onGoToConsole}>Ir a la consola</Button>}
-          />
-        }
-      />
+      <Card padding="none" className={styles.tableCard}>
+        <DataTable
+          aria-label="Historial de ejecuciones"
+          rows={rows}
+          columns={COLUMNS}
+          getRowId={(r) => r.runId}
+          selectedId={openId}
+          onSelectedChange={(id) => openId && id && setOpenId(id)}
+          onOpen={(r) => setOpenId(r.runId)}
+          globalKeys
+          empty={
+            <EmptyState
+              size="sm"
+              icon={<Play />}
+              title="Todavía no hay ninguna ejecución"
+              description="Lanza la primera desde la consola."
+              action={<Button onClick={onGoToConsole}>Ir a la consola</Button>}
+            />
+          }
+        />
+      </Card>
       <RunPanel runId={openId} onClose={() => setOpenId(null)} />
     </>
   )

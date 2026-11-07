@@ -10,3 +10,9 @@
 .score {
   flex-shrink: 0;
 }
+
+.tableCard {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

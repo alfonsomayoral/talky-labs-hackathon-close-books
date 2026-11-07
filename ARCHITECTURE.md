@@ -181,7 +181,7 @@ Su pregunta: ¿qué queda para cerrar el periodo y qué necesita a una persona?
 
 ### 5.3 Páginas de datos
 
-Todas son la misma `DatasetPage`: título con el recuento y las filas con alertas, buscador y una faceta, y la `DataTable` virtualizada en su variante `cards`, donde cada fila es una tarjeta independiente sobre la hoja, con borde y sombra suave. Las páginas usan todo el ancho de la pantalla y el panel lateral se abre al 40 % del ancho. Sociedades, con pocas filas y cada una puerta a su alcance, se muestra como tarjetas. El panel lateral tiene las pestañas **Detalle** (alertas y datos) · **Relacionados** (tarjetas agrupadas por tipo) · **Historial** (línea temporal con antes y después). Las alertas del `Run` sobre un objeto se marcan en su fila.
+Todas son la misma `DatasetPage`: título con el recuento y las filas con alertas, buscador y una faceta, y la `DataTable` virtualizada dentro de una tarjeta, con borde y sombra suave. Las páginas usan todo el ancho de la pantalla y el panel lateral se abre al 40 % del ancho. Sociedades, con pocas filas y cada una puerta a su alcance, se muestra como tarjetas. El panel lateral tiene las pestañas **Detalle** (alertas y datos) · **Relacionados** (tarjetas agrupadas por tipo) · **Historial** (línea temporal con antes y después). Las alertas del `Run` sobre un objeto se marcan en su fila.
 
 ### 5.4 Marca: Talky
 
