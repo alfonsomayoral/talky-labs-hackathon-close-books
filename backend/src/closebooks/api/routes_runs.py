@@ -29,19 +29,19 @@ def _score(meta: dict) -> dict | None:
     return {k: s[k] for k in ("score", "metrics", "segments")} if s else None
 
 
-def _summary(meta: dict) -> dict:
+def _summary(meta: dict, served: bool) -> dict:
     models = meta.get("models") or {}
     return {**{k: meta[k] for k in ("runId", "phase", "createdAt", "gitCommit", "durationMs", "txns", "rows",
                                     "cases", "memoryRulesApplied")},
             "modelCalls": sum(m["calls"] for m in models.values()),
             "modelCostUsd": sum(m["costUsd"] for m in models.values()),
-            "score": meta["score"]["score"] if meta.get("score") else None}
+            "score": meta["score"]["score"] if meta.get("score") else None, "served": served}
 
 
 @router.get("/runs", response_model=list[RunSummary])
 def list_runs(request: Request):
     store = request.app.state.store
-    return [_summary(store.run_meta(r)) for r in store.run_ids()]
+    return [_summary(store.run_meta(r), r == store.served) for r in store.run_ids()]
 
 
 @router.get("/runs/{runId}", response_model=Run)

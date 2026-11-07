@@ -463,3 +463,28 @@ def test_evidence_of_a_file_from_an_earlier_phase_is_found_and_stays_inside_it(t
     assert run.phase_file("payment_runs/X_202506_0.csv") == tmp_path / "old" / "payment_runs" / "X_202506_0.csv"
     assert run.phase_file("payment_runs/none.csv") is None
     assert run.phase_file("../secret.txt") is None
+
+
+def test_only_the_served_run_is_marked_and_opened(env):
+    _, runs, _ = env
+    client = TestClient(create_app(store=Store(runs), warm=RUN))
+    assert {r["runId"]: r["served"] for r in client.get("/api/runs").json()} == {RUN: True, "p-20250101-000000": False}
+    assert not any(r["served"] for r in TestClient(create_app(store=Store(runs))).get("/api/runs").json())
+    store = client.app.state.store
+    assert store._runs.keys() <= {RUN}  # nothing else was opened by listing
+
+
+def test_cases_sum_amount_eur_covers_the_whole_filter_not_the_page(api):
+    everything = get(api, "/cases", size=2)
+    assert len(everything["items"]) == 2 and everything["total"] == 5
+    assert everything["sumAmountEur"] == 121000 + 50000 + 7500 + 30000 + 4000  # magnitudes, all five cases
+    fallback = get(api, "/cases", status="fallback", size=1)
+    assert fallback["sumAmountEur"] == 7500 + 4000 and len(fallback["items"]) == 1
+    assert get(api, "/cases", status="done")["sumAmountEur"] == 0
+
+
+def test_validation_errors_have_their_own_schema_with_row_and_message():
+    schemas = create_app(store=Store(__import__("pathlib").Path("/none"))).openapi()["components"]["schemas"]
+    issue = schemas["ValidationResult"]["properties"]["errors"]["items"]["$ref"].rsplit("/", 1)[1]
+    assert issue != "ValidationError" and set(schemas[issue]["properties"]) == {"row", "message"}
+    assert {"loc", "msg"} <= set(schemas["ValidationError"]["properties"])  # FastAPI's own, untouched
