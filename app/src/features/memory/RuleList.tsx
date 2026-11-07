@@ -81,7 +81,13 @@ export function RuleList({ runId, rules }: Props) {
                       ))}
                     </div>
                     <p className={styles.meta}>
-                      <Mono muted>{rule.ruleId}</Mono> · {rule.affectedTxns > 0 ? `${formatNumber(rule.affectedTxns)} ${rule.affectedTxns === 1 ? 'movimiento' : 'movimientos'}` : 'Aún sin aplicar'} · {rule.by} · {formatDateTime(rule.at)} ·{' '}
+                      <Mono muted>{rule.ruleId}</Mono> · {rule.affectedTxns > 0 ? (
+                        <Link to={link('/conciliacion', { regla: 'MEMORY-RULE' })} title="Abre los movimientos resueltos por reglas de memoria">
+                          {formatNumber(rule.affectedTxns)} {rule.affectedTxns === 1 ? 'movimiento' : 'movimientos'}
+                        </Link>
+                      ) : (
+                        'Aún sin aplicar'
+                      )} · {rule.by} · {formatDateTime(rule.at)} ·{' '}
                       {caseId ? (
                         <Link to={link('/bandeja', { ver: caseId })}>
                           Origen: caso <Mono>{caseId}</Mono>
