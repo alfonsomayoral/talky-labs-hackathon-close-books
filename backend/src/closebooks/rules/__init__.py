@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..load import Phase
 from ..model import Proposal
-from . import advices, card_settlements, categories, cheque_deposits, dd_batches, payment_runs
+from . import advices, card_settlements, categories, cheque_deposits, dd_batches, payment_runs, split_invoice
 from .party_amount import PartyAmount
 
 PASSES = (
@@ -21,7 +21,7 @@ def propose(phase: Phase) -> dict[str, Proposal]:
     for rule in PASSES:
         for txn_id, proposal in rule(phase).items():
             proposals.setdefault(txn_id, proposal)
-    return proposals
+    return {**proposals, **split_invoice.propose(phase, proposals)}
 
 
 def stateful(phase: Phase, proposals: dict[str, Proposal]) -> PartyAmount:

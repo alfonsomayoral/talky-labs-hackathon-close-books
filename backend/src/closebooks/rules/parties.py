@@ -69,6 +69,16 @@ class PartyIndex:
         if iban:
             self.by_iban[kind, entity, iban].add(party)
 
+    def in_other_entities(self, txn: dict) -> list[str]:
+        """POLICIES §5.2: the supplier a group treasury pays may be another entity's. Only the whole name counts."""
+        name = normalize(txn.get("counterparty_name"))
+        found: set[str] = set()
+        for other in sorted(self.entities - {txn["entity"]}):
+            found |= self.by_name.get(("supplier", other, name), set())
+            found |= set(self._in_text(txn, "supplier", other, name, whole_only=True))
+        self.certain = False
+        return sorted(found)
+
     def same_name(self, parties: list[str]) -> bool:
         return bool(set.intersection(*(self.names_of[p] for p in parties)))
 

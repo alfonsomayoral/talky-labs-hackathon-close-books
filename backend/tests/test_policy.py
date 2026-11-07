@@ -123,6 +123,20 @@ def test_partial_cash_on_several_invoices_goes_to_the_oldest_first():
     assert out == {"ARI-1": (100000, ""), "ARI-2": (50000, "PARTIAL")}
 
 
+def test_partial_cash_on_a_listing_fills_it_in_the_printed_order_not_by_age():
+    first = Terms(None, None, "2025-03-01", 100000, "ES", listed_at=0)
+    last = Terms(None, None, "2025-01-01", 100000, "ES", listed_at=1)
+    out = allocate(150000, [facts("ARI-2", 100000, first), facts("ARI-1", 100000, last)], "2025-06-05", False)
+    assert out == {"ARI-2": (100000, ""), "ARI-1": (50000, "PARTIAL")}
+
+
+def test_a_gap_that_is_a_discount_stays_a_discount_even_on_a_listing():
+    second = Terms(None, None, "2025-06-01", 50000, "ES", listed_at=1)
+    listed = Terms(2.0, 10, "2025-06-01", 140394, "ES", listed_at=0)
+    out = allocate(137586 + 50000, [facts("ARI-1", 140394, listed), facts("ARI-2", 50000, second)], "2025-06-05", False)
+    assert out == {"ARI-1": (140394, "SHORT_DISCOUNT"), "ARI-2": (50000, "")}
+
+
 def test_a_huge_excess_is_not_an_overpayment_of_that_invoice_but_an_incomplete_citation():
     # Real overpayments stay under 32 % of the invoice (p99 in the holdout); false ones have a median excess of x5.
     assert allocate(500000, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}

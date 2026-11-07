@@ -241,6 +241,11 @@ class PartyAmount:
         group = self._in_the_group(parties, txn, cash, currency, balances) if not results else None
         if group:
             return group
+        factory = None
+        if not results and kind == "supplier":
+            factory = self._for_another_entity(txn, cash, currency, balances)
+        if factory:
+            return factory
         if results:
             self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
         elif self._pending:
@@ -283,6 +288,20 @@ class PartyAmount:
         history = balances.history(item_id)
         return bool(history) and history[-1]["exception"] == "RETURNED" and (
             self.reserved[item_id] <= {move["bankTxnId"] for move in history})
+
+    def _for_another_entity(self, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
+        """POLICIES §5.2: a debit naming a supplier of this entity too, nothing of its here that the cash explains, and
+        one supplier of that name in another entity whose open documents are the cash. Crosses entities by design: the
+        evidence says which entity paid for it."""
+        others = self.parties.in_other_entities(txn)
+        results = [r for p in others if (r := self._match(p, txn, cash, currency, balances))]
+        exact = [r for r in results if _net([((i,), balances.open(i)) for i, _ in r.lines]) == cash]
+        if len(exact) != 1:
+            return None
+        chosen = exact[0]
+        chosen.sources = [*chosen.sources, {"kind": "supplier", "ref": chosen.party_id,
+                                            "label": f"paid from {txn['entity']}"}]
+        return chosen
 
     def _in_the_group(self, parties: list[str], txn: dict, cash: int, currency: str, balances) -> Proposal | None:
         """POLICIES §5.1: a parent may pay for its subsidiaries, inside one entity. A payer named whole, with nothing of

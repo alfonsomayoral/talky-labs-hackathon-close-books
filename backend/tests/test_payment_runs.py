@@ -181,6 +181,30 @@ def test_confirming_debit_whose_amount_matches_no_maturity_is_not_guessed(tmp_pa
     assert payment_runs.propose(phase) == {}
 
 
+def _with_another_transfer_due_that_day(phase, tmp_path, cents_text, cents):
+    """A transfer of the same maturity that this debit does not pay: it goes out on its own, weeks later."""
+    with (tmp_path / "payment_runs" / "ES01_202109_0.csv").open("a") as file:
+        file.write(f"CF010021091055,confirming,2021-09-10,ES01-RIBA-EUR,CF010021091055-0060,D SL,,EUR,{cents_text},D-1,"
+                   f"INVOICE,{cents_text},x\n")
+    extra = {"item_id": "API-5", "item_type": "API", "entity": "ES01", "party_id": "SD", "party_name": "D SL",
+             "document_number": "D-1", "total_cents": cents, "open_cents": cents, "due_date": "2021-09-07"}
+    phase.items = pl.concat([phase.items, pl.DataFrame([extra])], how="vertical_relaxed")
+    return phase
+
+
+def test_confirming_debit_for_the_suppliers_it_says_leaves_out_the_other_of_that_maturity(tmp_path):
+    # BT-2025-0000563: "8 PROVEEDORES" of a maturity with 9 transfers; the ninth is paid alone on 01-13.
+    debit = _confirming_phase(tmp_path, "2021-09-07", -19100)
+    phase = _with_another_transfer_due_that_day(debit, tmp_path, "12.00", 1200)
+    assert {i for i, _ in payment_runs.propose(phase)["BT-1"].lines} == {"API-1", "API-2", "API-3"}
+
+
+def test_confirming_debit_that_two_sets_of_suppliers_explain_is_not_guessed(tmp_path):
+    debit = _confirming_phase(tmp_path, "2021-09-07", -19100)
+    phase = _with_another_transfer_due_that_day(debit, tmp_path, "40.00", 4000)
+    assert payment_runs.propose(phase) == {}
+
+
 def test_partial_payment_to_a_factor_finds_the_invoice_in_the_entity_that_pays(tmp_path):
     phase = _phase_with_a_run(tmp_path, "PR010125052693-0302", -9582)
     file = tmp_path / "payment_runs" / "ES01_202505_1.csv"
