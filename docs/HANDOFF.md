@@ -1,10 +1,10 @@
 # HANDOFF.md: la plataforma el día del evento
 
-Cómo arrancar la plataforma, qué mirar antes de grabar y qué hacer si algo falla. Solo la parte de `app/` y su API. Medido en este portátil la mañana del 7 nov 2026, con `live-kpi6-api3` (203.083 movimientos, 642.362 filas).
+Cómo arrancar la plataforma, qué mirar antes de grabar y qué hacer si algo falla. Solo la parte de `app/` y su API. Medido en este portátil la mañana del 7 nov 2026, con `live-kpi6-cases2` (203.083 movimientos, 692.609 filas).
 
 ## Arrancar
 
-**Arranca `serve` 2 minutos antes de usarlo:** tarda unos 53 s en aceptar conexiones, porque no abre hasta precargar la ejecución, y ocupa unos 3,7 GB. Después responde en menos de 250 ms.
+**Arranca `serve` 2 minutos antes de usarlo:** tarda unos 64 s en aceptar conexiones, porque no abre hasta precargar la ejecución, y ocupa unos 4 GB. Después, las nueve pantallas abren en menos de 1,1 s.
 
 ```bash
 just be-serve runs/<la ejecución a enseñar>
@@ -18,7 +18,7 @@ just fe-install
 just fe-dev
 ```
 
-Abre la dirección que imprime Vite, normalmente <http://localhost:5173>.
+Abre la dirección que imprime Vite, normalmente <http://localhost:5173>. Si el 5173 está ocupado, Vite elige otro.
 
 | Qué | Dónde |
 | --- | --- |
@@ -81,6 +81,8 @@ PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/capture.mjs htt
 
 ## Qué está probado con datos reales
 
-- Las tres interacciones con `live-kpi6-cases` (copia), 14 de 14 con `interactions.mjs`: pregunta con regla, correo editado y «enviado», marcar gestionado. Lo escrito en `human/` se comprobó línea a línea.
+- Las tres interacciones contra `serve` de `main`, con una copia de `live-kpi6-cases2`, 14 de 14 con `interactions.mjs`: pregunta con regla, correo editado y «enviado», marcar gestionado. Lo escrito en `human/` se comprobó línea a línea.
+- «Preparar correo» y «Lo llevo yo» en el navegador, sobre un caso de cobro (copia de una ejecución de `sample`).
+- Las nueve pantallas, build de producción: menos de 1,1 s justo tras arrancar `serve` y después, cero errores de consola.
 - Consola FINAL con un zip: el contenido de `sample` en un zip, subido, ejecutado en 3,8 s y validado (8.499 de 8.499 movimientos, 1,1 MB de 60 MB). Sale el nombre del zip como fase. Lo escrito en `db/<zip>/` y `runs/<zip>-…/` se queda: hay que borrarlo a mano tras ensayar.
 - `Draft.to` es `null` porque el maestro no trae correos: «Para» enseña el nombre y avisa. No se puede corregir la dirección: `PUT …/drafts` solo guarda asunto y cuerpo.
