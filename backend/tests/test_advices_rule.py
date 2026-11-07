@@ -181,3 +181,32 @@ def test_a_reference_cut_by_the_bank_still_pairs_when_the_date_fits_but_not_othe
     late = make_phase(tmp_path / "late", {"RA_a.csv": ("Industrias Zeta", "2024-03-12", ADVICE)},
                       [("BT-1", 32946, "2024-04-30", cut)], ITEMS)
     assert advices.propose(late) == {}
+
+
+def cut_at(tmp_path, text, date="2024-03-11", files=None):
+    """The payer of the advice does not appear in the bank text, so only the reference can pair them."""
+    phase = make_phase(tmp_path, files or {"RA_a.csv": ("Industrias Zeta", "2024-03-12", ADVICE)},
+                       [("BT-1", 32946, date, text)], ITEMS)
+    return advices.propose(phase)
+
+
+def test_a_reference_cut_short_at_the_end_of_the_bank_text_pairs(tmp_path):
+    assert "BT-1" in cut_at(tmp_path, "TRANSFERENCIAS CAMPOS | CAMPOS REMESA PAGOS 110324 240308")
+
+
+def test_a_cut_shorter_than_a_number_can_be_told_from_chance_does_not_pair(tmp_path):
+    assert cut_at(tmp_path, "TRANSFERENCIAS CAMPOS | CAMPOS REMESA PAGOS 110324 24030") == {}
+
+
+def test_the_same_characters_inside_the_text_are_not_a_cut(tmp_path):
+    assert cut_at(tmp_path, "TRANSFERENCIAS 240308 CAMPOS | CAMPOS REMESA PAGOS") == {}
+
+
+def test_a_short_cut_out_of_the_window_of_the_advice_does_not_pair(tmp_path):
+    assert cut_at(tmp_path, "TRANSFERENCIAS CAMPOS | REMESA 240308", date="2024-04-30") == {}
+
+
+def test_a_short_cut_fitting_two_advices_pairs_with_none(tmp_path):
+    twin = ADVICE.replace("240308783211", "240308999999")
+    files = {"RA_a.csv": ("Industrias Zeta", "2024-03-12", ADVICE), "RA_b.csv": ("Grupo Omega", "2024-03-12", twin)}
+    assert cut_at(tmp_path, "TRANSFERENCIAS CAMPOS | REMESA 240308", files=files) == {}

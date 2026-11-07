@@ -16,6 +16,7 @@ import polars as pl
 from ..documents.advices import Advice, normalize_number, phase_advices
 from ..load import Phase
 from ..model import Proposal
+from .party_amount import MIN_CUT
 
 WINDOW = (-10, 3)  # booking date minus the date the advice was received, in days: it arrives 0-8 days after the cash
 MIN_REF = 8  # shorter references (REM/1) would match anything once separators are dropped
@@ -38,6 +39,13 @@ def _number_keys(column: str) -> list[pl.Expr]:
             norm.str.extract(r"^[A-Z]+\d{4}(\d+)$", 1).str.strip_chars_start("0").alias("k_tail4")]
 
 
+def _cut_at_the_end(ref: str, text: str) -> bool:
+    """Where the bank ran out of its text field the reference is cut at any length (REM/202 of REM/2025/2298). Shorter
+    than MIN_CUT, the shortest cut of a number we accept anywhere, it could be chance; the caller also asks for the
+    same entity and total inside the window, and `_unique_pairs` for one claim on each side."""
+    return any(text.endswith(ref[:k]) for k in range(MIN_CUT, len(ref)))
+
+
 def _pair_candidates(phase: Phase, advices: list[Advice]) -> dict[str, list[tuple[int, str]]]:
     """bank_txn_id -> [(advice index, how)] for every advice of the same entity and amount that cites the payment."""
     table = pl.DataFrame({
@@ -50,7 +58,7 @@ def _pair_candidates(phase: Phase, advices: list[Advice]) -> dict[str, list[tupl
         pl.col("booking_date").str.to_date().alias("booked"),
         pl.concat_str(["text", "ref1", "ref2", "end_to_end_id", "remittance_info", "counterparty_name"],
                       separator=" ", ignore_nulls=True).alias("all_text"))
-    cols = ["bank_txn_id", "entity", "booked", "all_text", "currency"]
+    cols = ["bank_txn_id", "entity", "booked", "text", "all_text", "currency"]
     in_account = credits.select(*cols, pl.col("amount_cents").alias("cash")).join(
         table, left_on=["entity", "cash"], right_on=["entity", "total"], suffix="_adv")
     # An instructed amount in another currency is the amount of the documents (FX): the advice must say that currency.
@@ -68,6 +76,8 @@ def _pair_candidates(phase: Phase, advices: list[Advice]) -> dict[str, list[tupl
             found[row["bank_txn_id"]].append((row["idx"], "ref"))
         elif len(row["ref"]) > MIN_REF and row["ref"][:MIN_REF] in flat and in_window:
             found[row["bank_txn_id"]].append((row["idx"], "ref"))  # the bank cut the reference
+        elif in_window and _cut_at_the_end(row["ref"], _flat(row["text"])):
+            found[row["bank_txn_id"]].append((row["idx"], "ref"))
         elif row["payer"] and row["payer"] in flat and in_window:
             found[row["bank_txn_id"]].append((row["idx"], "name"))
     return found
