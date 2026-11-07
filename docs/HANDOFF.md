@@ -90,7 +90,7 @@ PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/record.mjs http
 
 - Las tres interacciones contra `serve` de `main`, con una copia de `live-final-a`, 14 de 14 con `interactions.mjs`: pregunta con regla, correo editado y «enviado», marcar gestionado. Lo escrito en `human/` se comprobó línea a línea.
 - Las nueve pantallas, build de producción: menos de 1,1 s justo tras arrancar `serve` y después, cero errores de consola.
-- «Preparar correo» y «Lo llevo yo» también con una copia de `live-final-a`. «Lo llevo yo» registra el borrador como `manual` y cierra el caso.
+- «Preparar correo» y «Lo llevo yo» con una copia de `live-kpi6-cases2`, la ejecución anterior a la definitiva. «Lo llevo yo» registra el borrador como `manual` y cierra el caso.
 - Consola FINAL, ejecución fallida y validación con errores: enseñan el mensaje y dejan empezar otra. La fallida, también con un fallo real: un zip con datos rotos. Se enseña la causa, no el traceback. Un zip sin `bank_transactions.csv.gz` se rechaza al subir; ese 422 sale en la consola del navegador. La validación con errores, solo forzando la respuesta.
 - Consola FINAL con un zip: el contenido de `sample` en un zip, subido, ejecutado en 3,8 s y validado (8.499 de 8.499 movimientos, 1,1 MB de 60 MB). Sale el nombre del zip como fase. Lo escrito en `db/<zip>/` y `runs/<zip>-…/` se queda: hay que borrarlo a mano tras ensayar.
 - `Draft.to` es `null` porque el maestro no trae correos: «Para» enseña el nombre y avisa. No se puede corregir la dirección: `PUT …/drafts` solo guarda asunto y cuerpo.
