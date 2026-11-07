@@ -12,7 +12,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  gap: var(--space-4);
   padding-bottom: 0;
 }
 
@@ -42,6 +41,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  /* Title plus subtitle, so the header is as tall with or without a subtitle or an action. */
+  min-height: 62px;
 }
 
 /* On a phone the title takes the full width, with the action under it. */
@@ -60,8 +61,8 @@
 
 .title {
   font-family: var(--font-display);
-  font-size: 30px;
-  line-height: 1.15;
+  font-size: var(--text-32);
+  line-height: 1.1;
   font-weight: var(--weight-light);
   letter-spacing: -0.015em;
   color: var(--ink-strong);
