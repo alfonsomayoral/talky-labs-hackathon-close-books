@@ -10,7 +10,11 @@ export function headline(s: Pick<RunStats, 'txns' | 'txnsAuto' | 'reviewQueue'>)
   return `${formatPercent(rate, { decimals: 0 })} conciliado sin intervención; ${waiting}`
 }
 
-export const identifiedShare = (s: Pick<RunStats, 'identifiedEur' | 'totalEur'>) => (s.totalEur > 0 ? s.identifiedEur / s.totalEur : null)
+/** The whole amount, as shares: settled against items, waiting in the queue, and the rest, which only got a category. */
+export function amountSplit(s: Pick<RunStats, 'identifiedEur' | 'reviewQueueEur' | 'totalEur'>): { items: number; categories: number; queue: number } | null {
+  if (s.totalEur <= 0) return null
+  return { items: s.identifiedEur / s.totalEur, categories: Math.max(0, s.totalEur - s.identifiedEur - s.reviewQueueEur) / s.totalEur, queue: s.reviewQueueEur / s.totalEur }
+}
 
 export interface ChartDay {
   date: string

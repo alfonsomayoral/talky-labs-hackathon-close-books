@@ -9,7 +9,7 @@ import { EntityCard } from './EntityCard'
 import { KindCard } from './KindCard'
 import { RankList } from './RankList'
 import { ScoreSection } from './ScoreSection'
-import { headline, identifiedShare, modelTotals } from './model'
+import { amountSplit, headline, modelTotals } from './model'
 import styles from './OverviewPage.module.css'
 
 const TOP = 8
@@ -57,7 +57,8 @@ export function OverviewPage() {
   }
 
   const scope = entity ? stats.byEntity.find((e) => e.entity === entity)?.name ?? entity : 'Todo el grupo'
-  const share = identifiedShare(stats)
+  const split = amountSplit(stats)
+  const biggestCategories = [...stats.byCategory].sort((a, b) => b.amountEur - a.amountEur).slice(0, 3).map((c) => categoryLabel(c.category)).join(', ')
 
   return (
     <Page>
@@ -85,11 +86,13 @@ export function OverviewPage() {
             label="Importe identificado"
             value={<Amount cents={stats.identifiedEur} compact />}
             comparison={
-              <>
-                {formatPercent(share, { decimals: 1 })} de <Amount cents={stats.totalEur} compact />
-              </>
+              split && (
+                <>
+                  {formatPercent(split.items, { decimals: 1 })} casado con partidas · {formatPercent(split.categories, { decimals: 0 })} categorías · {formatPercent(split.queue, { decimals: 1 })} en cola
+                </>
+              )
             }
-            hint="Suma del importe en euros de los movimientos con al menos una partida casada."
+            hint={`De ${formatMoney(stats.totalEur, 'EUR', { compact: true })} en movimientos. Identificado: los que tienen al menos una partida casada. Categorías: los que no liquidan ninguna${biggestCategories ? `, como ${biggestCategories}` : ''}.`}
           />
         </Card>
         <Card>

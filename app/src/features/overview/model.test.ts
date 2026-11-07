@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { DayStats, RunStats } from '@/domain'
-import { dayChart, headline, identifiedShare, modelTotals, monthTicks, nearestIndex, scoreMetrics, segmentsWorstFirst } from './model'
+import type { DayStats } from '@/domain'
+import { dayChart, headline, amountSplit, modelTotals, monthTicks, nearestIndex, scoreMetrics, segmentsWorstFirst } from './model'
 
 const day = (date: string, txns: number, txnsAuto: number): DayStats => ({ date, txns, txnsAuto, reviewQueue: txns - txnsAuto, identifiedEur: 0 })
 
@@ -19,13 +19,6 @@ describe('headline', () => {
   })
   it('does not divide by zero', () => {
     expect(headline({ txns: 0, txnsAuto: 0, reviewQueue: 0 })).toBe('Sin movimientos en este alcance')
-  })
-})
-
-describe('identifiedShare', () => {
-  it('is identified over total, null with no money', () => {
-    expect(identifiedShare({ identifiedEur: 25, totalEur: 100 } as RunStats)).toBe(0.25)
-    expect(identifiedShare({ identifiedEur: 0, totalEur: 0 } as RunStats)).toBeNull()
   })
 })
 
@@ -82,5 +75,17 @@ describe('modelTotals', () => {
   it('adds calls and cost across models', () => {
     const models = { x: { calls: 3, inputTokens: 0, outputTokens: 0, costUsd: 0.5 }, y: { calls: 2, inputTokens: 0, outputTokens: 0, costUsd: 0.25 } }
     expect(modelTotals(models)).toEqual({ calls: 5, costUsd: 0.75 })
+  })
+})
+
+describe('amountSplit', () => {
+  it('splits the whole amount into settled against items, in the queue, and the rest, which are categories', () => {
+    expect(amountSplit({ identifiedEur: 312, reviewQueueEur: 34, totalEur: 1000 })).toEqual({ items: 0.312, categories: 0.654, queue: 0.034 })
+  })
+  it('never gives a negative share if the queue and the items overlap', () => {
+    expect(amountSplit({ identifiedEur: 700, reviewQueueEur: 400, totalEur: 1000 })?.categories).toBe(0)
+  })
+  it('gives nothing with no amount', () => {
+    expect(amountSplit({ identifiedEur: 0, reviewQueueEur: 0, totalEur: 0 })).toBeNull()
   })
 })
