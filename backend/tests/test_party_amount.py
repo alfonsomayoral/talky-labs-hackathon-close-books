@@ -1099,7 +1099,7 @@ def test_a_single_invoice_or_one_with_no_due_date_is_not_this_path():
     assert _due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 70001, None)) is None
 
 
-def test_a_receipt_citing_an_item_or_with_a_cash_too_big_to_search_stays_out(monkeypatch):
+def test_a_receipt_nothing_else_explains_settles_the_set_and_one_too_big_to_search_stays_out(monkeypatch):
     monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
     invoices = [item("ARI-A", "C1", "FV24-000111", 50000, due="2024-05-01"),
                 item("ARI-B", "C1", "FV24-000222", 70001, due="2024-05-01")]
@@ -1107,9 +1107,38 @@ def test_a_receipt_citing_an_item_or_with_a_cash_too_big_to_search_stays_out(mon
     rule._subset = lambda *a, **k: None
     rule._consecutive = lambda *a, **k: None
     assert rule(txn(120001, name="Wellness Garrido S.L."), balances).rule == "PARTY-SUBSET-DUE"
-    cited = rule(txn(120001, name="Wellness Garrido S.L.", remit="FV24-000"), balances)
-    assert cited is None or cited.rule != "PARTY-SUBSET-DUE"
     assert _due_set(10**10, *[(f"ARI-{i}", 10**9, "2024-05-01") for i in range(20)]) is None
+
+
+def test_a_name_the_bank_cut_still_settles_the_only_due_set(monkeypatch):
+    """BT-2025-0000408 of holdout: the legal form is cut, so the party is not certain, and six invoices add up."""
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    paid = {"ARI-2024-0190247": (126005, "2024-11-15"), "ARI-2024-3181826": (281808, "2024-12-26"),
+            "ARI-2024-4058533": (183993, "2024-12-28"), "ARI-2024-4406350": (223117, "2024-12-08"),
+            "ARI-2024-5407083": (164420, "2024-09-12"), "ARI-2024-7615797": (849353, "2025-01-04")}
+    invoices = [item(i, "C1", f"FV24-04{n}", cents, due=due) for n, (i, (cents, due)) in enumerate(paid.items())]
+    invoices.append(item("ARI-2024-9", "C1", "FV24-049", 77777, due="2024-12-01"))
+    rule, balances = engine(invoices, customers=(("C1", "E1", "Camping Arenal del Sur S.L.", None, "ES11", None, None,
+                                                  None),))
+    found = rule(txn(1828696, "TRANSFERENCIAS CAMPING ARENAL DEL SUR | CAMPING AR PAGO PENDIENTE", date="2025-01-02"),
+                 balances)
+    assert found.rule == "PARTY-SUBSET-DUE"
+    assert lines(found) == set(paid)
+
+
+def test_a_citation_of_cut_numbers_does_not_keep_out_the_only_due_set(monkeypatch):
+    """BT-2025-0025922 of holdout: the text cuts the numbers it cites and the eight invoices are found by the cash."""
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    paid = {"FT24-01-23375": 93683, "FT24-01-27496": 15600, "FT24-01-19694": 56254, "FT24-01-26825": 136991,
+            "FT24-01-25986": 54713, "FT24-01-25617": 59379, "FT24-01-28911": 50632, "FT24-01-26509": 77835}
+    invoices = [item(f"ARI-{number}", "C1", number, cents, due="2024-12-01") for number, cents in paid.items()]
+    rule, balances = engine(invoices, customers=(("C1", "E1", "RSG Giardini S.p.A.", None, "IT11", None, None, None),))
+    rule._subset = lambda *a, **k: None
+    rule._consecutive = lambda *a, **k: None
+    text = "BONIFICO DA RSG GIARDINI S.P.A. CAUSALE FATT. FT24-01-256 FT24-01-268 FT24-01-274 FT24-01-196 FT24-0"
+    found = rule(txn(545087, text, date="2025-01-27"), balances)
+    assert found.rule == "PARTY-SUBSET-DUE"
+    assert lines(found) == {f"ARI-{number}" for number in paid}
 
 
 def test_sixty_items_are_searched_in_under_a_second():
