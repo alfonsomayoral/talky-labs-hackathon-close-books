@@ -1050,3 +1050,11 @@ def test_a_noticed_account_the_master_gives_to_someone_else_is_as_ambiguous_as_a
     customers = (*NOTICED, ("C3", "E1", "Tercero Dos S.L.", None, NEW_IBAN, None, None, None))
     rule, _ = noticed_engine(tmp_path, customers)
     assert rule.parties.find(txn(5000, "TRANSF", iban=NEW_IBAN, date="2023-04-01"), "customer") == ["C1", "C3"]
+
+
+def test_a_stated_fee_of_a_customer_in_sepa_is_found_with_no_citation():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 2556975)])
+    rule.countries = {"C1": "ES"}
+    assert lines(rule(txn(2553275, NAME + "/CHGS/EUR37,00"), balances)) == {"ARI-1"}
+    assert rule(txn(2553275, NAME), balances) is None
+
