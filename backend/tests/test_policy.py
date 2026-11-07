@@ -204,3 +204,25 @@ def test_two_invoices_whose_discount_is_the_gap_are_not_guessed():
     items = [("ARI-1", 50000, _terms(2.0, 50000)), ("ARI-2", 50000, _terms(2.0, 50000))]
     out = allocate(99000, items, "2025-06-05", False)
     assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}
+
+
+def test_a_gap_that_is_the_discount_of_two_invoices_of_three_goes_to_those_two():
+    items = [("ARI-1", 100000, _terms(2.0, 100000, "2025-05-01")), ("ARI-2", 50000, _terms(2.0, 50000)),
+             ("ARI-3", 70700, _terms(2.0, 70700))]
+    # ARI-2 in terms and ARI-1 long past them: POLICIES clears the first and leaves the second open.
+    assert allocate(217700, items, "2025-06-05", False) == {
+        "ARI-1": (98000, "PARTIAL"), "ARI-2": (50000, "SHORT_DISCOUNT"), "ARI-3": (70700, "")}
+
+
+def test_two_sets_whose_discounts_are_the_gap_are_not_guessed():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(2.0, 50000)),
+             ("ARI-3", 50000, _terms(2.0, 50000)), ("ARI-4", 100000, _terms(2.0, 100000))]
+    out = allocate(297000, items, "2025-06-05", False)
+    assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}
+
+
+def test_many_small_discounts_that_could_add_up_to_any_gap_prove_nothing():
+    items = [(f"ARI-{i}", 2000 + i, _terms(2.0, 2000 + i)) for i in range(12)]
+    gap = round(2000 * 0.02) + round(2001 * 0.02)  # any two of them would do: nothing says it was these
+    out = allocate(sum(o for _, o, _ in items) - gap, items, "2025-06-05", False)
+    assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}

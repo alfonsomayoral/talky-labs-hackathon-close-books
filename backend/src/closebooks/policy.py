@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, timedelta
+from itertools import combinations
 
 CREDIT_NOTES = ("ARC", "APC")
 GRACE_DAYS = 3
@@ -19,6 +20,12 @@ FEE_LIMIT_EUR_CENTS = 6000
 FEE_LIMIT_RATIO = 0.02
 DISCOUNT_WORDS = ("DISCOUNT", "DESCUENTO", "DTO", "SKONTO", "ESCOMPTE", "SCONTO")
 WITHHOLDING_WORDS = ("RET", "RETENCION", "RETENCIÓN", "WITHHOLDING", "WHT", "ISR", "IRRF")
+MAX_CHANCE = 0.05  # sets we expect to add up to any cash by chance: above this, one that does proves nothing
+
+
+def _chance(sets: float, values: list[int]) -> float:
+    """How many of the sets searched would add up to a given cash by chance: they spread over the cents of the sum."""
+    return sets / max(sum(abs(v) for v in values), 1)
 
 
 def cross_border(bank_code: str | None, text: str | None) -> bool:
@@ -140,19 +147,11 @@ def _explain(gap: int, cash: int, invoices: list, notes: list, booking_date: str
         return clear
     full = [(i, o, t) for i, o, t in invoices if o == t.total_cents]
     discounts = {i: d for i, _, t in full if (d := _discount_cents(t))}
-    if discounts and abs(sum(discounts.values()) - gap) <= len(discounts):
+    taken = _discounts_taken(discounts, gap)
+    if taken:
         out = {}
         for i, o, t in invoices:
-            if i not in discounts:
-                out[i] = (o, "")
-            else:
-                out[i] = (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")
-        return out
-    only = [i for i, d in discounts.items() if abs(d - gap) <= 1]
-    if len(only) == 1:  # the discount of one invoice of several, the rest paid as they are
-        out = {}
-        for i, o, t in invoices:
-            if i != only[0]:
+            if i not in taken:
                 out[i] = (o, "")
             else:
                 out[i] = (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")
@@ -167,6 +166,25 @@ def _explain(gap: int, cash: int, invoices: list, notes: list, booking_date: str
         if fee_ok and terms.country and terms.country not in SEPA_COUNTRIES:
             return {item: (open_cents, "SHORT_BANK_CHARGES")}
     return _oldest_first(cash + sum(o for _, o, _ in notes), invoices)
+
+
+def _discounts_taken(discounts: dict[str, int], gap: int) -> tuple[str, ...]:
+    """The invoices whose discounts make up the shortfall: all of them, or the one smallest set that does.
+
+    Why it generalizes: POLICIES §3 judges each invoice by its own terms, so a payment can hold one in terms
+    (SHORT_DISCOUNT) and one out of them (PARTIAL), and the shortfall is what they took together. The official example
+    BT-2025-0000118 is the case of one; nothing here depends on how many. Percentages and days are the invoice's, and
+    a set of several only counts within MAX_CHANCE: many small discounts could add up to any gap."""
+    if not discounts:
+        return ()
+    if abs(sum(discounts.values()) - gap) <= len(discounts):
+        return tuple(discounts)
+    largest = len(discounts) if _chance(2 ** len(discounts), list(discounts.values())) <= MAX_CHANCE else 1
+    for size in range(1, largest + 1):
+        found = [c for c in combinations(discounts, size) if abs(sum(discounts[i] for i in c) - gap) <= size]
+        if found:
+            return found[0] if len(found) == 1 else ()
+    return ()
 
 
 def _oldest_first(available: int, invoices: list) -> dict[str, tuple[int, str]]:

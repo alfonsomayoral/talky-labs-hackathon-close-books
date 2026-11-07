@@ -15,10 +15,12 @@ from ..model import Proposal
 from ..policy import (
     FEE_LIMIT_EUR_CENTS,
     FEE_LIMIT_RATIO,
+    MAX_CHANCE,
     SEPA_COUNTRIES,
     WITHHOLDING_COUNTRIES,
     WITHHOLDING_RATES,
     Terms,
+    _chance,
     _in_terms,
     cross_border,
 )
@@ -35,7 +37,6 @@ MAX_SUBSET_ITEMS = 24
 MAX_FULL_SEARCH = 22  # a bound on the search per line; what a unique subset means is `_chance`
 ALWAYS_SEARCHED = 16  # up to here a unique subset has always been taken, whatever its chance
 MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
-MAX_CHANCE = 0.05  # sets we expect to add up to any cash by chance: above this, one that does proves nothing
 NUMBER_ALONE_TOLERANCE = 0.05
 MONTHS = {name: number for number, names in enumerate((
     "ENERO JANUARY JANVIER JANUAR GENNAIO JANEIRO ENE JAN", "FEBRERO FEBRUARY FEVRIER FEBRUAR FEBBRAIO FEVEREIRO FEB",
@@ -69,11 +70,6 @@ def _discount_pct(phase) -> dict[str, float]:
 
 
 _MANY = object()
-
-
-def _chance(sets: float, values: list[int]) -> float:
-    """How many of the sets searched would add up to a given cash by chance: they spread over the cents of the sum."""
-    return sets / max(sum(abs(v) for v in values), 1)
 
 
 def _sums(pairs: list) -> dict:
