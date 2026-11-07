@@ -118,6 +118,10 @@ def propose(phase: Phase) -> dict[str, Proposal]:
         if not lines:
             continue
         returned = txn["amount_cents"] > 0
+        transfers = {r["end_to_end_id"]: r for r in rows}
+        if not returned and len(transfers) == 1 and abs(txn["amount_cents"]) != rows[0]["transfer_cents"]:
+            # Paid in another currency: if it is rejected, what comes back is what the account paid.
+            sent[account, abs(txn["amount_cents"])].append(rows[0])
         proposals[txn["bank_txn_id"]] = Proposal(
             rule="FILE-PAYMENT-RETURN" if returned else "FILE-PAYMENT-RUN", lines=lines,
             party_id=rows[0]["party_id"], reference=reference, returned=returned,

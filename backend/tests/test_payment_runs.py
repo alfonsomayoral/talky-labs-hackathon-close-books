@@ -84,6 +84,18 @@ def test_rejected_transfer_with_no_reference_is_found_by_its_reason_code_amount_
     assert proposal.reference == "PR010125052693-0302"
 
 
+def test_rejected_transfer_in_another_currency_comes_back_for_what_the_account_paid(tmp_path):
+    # BT-2025-0074863: -53733.48 EUR for a transfer of 58064.93 USD; it returns as +53733.48 EUR, with nothing else.
+    phase = _phase_with_a_run(tmp_path, "PR010125052693-0302", -1200000)
+    back = phase.txns.with_columns(pl.lit("BT-2").alias("bank_txn_id"), pl.lit("2025-05-29").alias("booking_date"),
+                                   pl.lit(1200000, pl.Int64).alias("amount_cents"),
+                                   pl.lit("DEVOLUCION TRANSFERENCIA AC01 | ROTULACION TECH S.R.L.").alias("text"))
+    phase.txns = pl.concat([phase.txns.with_columns(pl.lit(1368140, pl.Int64).alias("orig_cents"),
+                                                    pl.lit("USD").alias("orig_currency")),
+                            back.with_columns(pl.col("orig_cents").cast(pl.Int64))], how="vertical_relaxed")
+    assert payment_runs.propose(phase)["BT-2"].lines == [("API-2025-0000001", 1368140)]
+
+
 def test_credit_of_that_amount_and_supplier_with_no_reason_code_is_not_a_rejection(tmp_path):
     assert _rejected(tmp_path, "REEMBOLSO PAGO DOBLE | ROTULACION TECH S.R.L.") == {}
 
