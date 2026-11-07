@@ -138,7 +138,7 @@ describe('keyParams', () => {
     createdFrom: {},
     by: '',
     at: '',
-    active: true,
+    active: true, affectedTxns: 0,
   })
   it('lists the params in the order of the form, with their labels, skipping what is empty or unknown', () => {
     expect(keyParams(rule({ forPartyId: 'C2', payerPartyId: 'C1', extra: 'x', empty: '' }))).toEqual([

@@ -16,6 +16,10 @@ class Proposal:
     sources: list[dict] = field(default_factory=list)
     candidates: list[dict] = field(default_factory=list)
     returned: bool = False  # the bank line reverses an earlier settlement of these items
+    category: str | None = None  # the bank line settles no item: lines stay empty (POLICIES §4)
+    by_cash: bool = False  # no document says how much goes to each item: policy explains the cash against the balances
+    # item_id -> (deduction in cents as the document prints it, negative when the payer paid less, reason as printed)
+    deductions: dict[str, tuple[int, str | None]] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

@@ -1,4 +1,4 @@
-"""closebooks run | score | validate | holdout build."""
+"""closebooks run | score | diff | validate | holdout build | serve."""
 from __future__ import annotations
 
 import argparse
@@ -69,6 +69,20 @@ def _cmd_holdout(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    from .api.app import create_app
+    from .api.store import Store
+
+    store = Store(RUNS)
+    ids = store.run_ids()
+    warm = _run_dir(args.run).name if args.run else (ids[0] if ids else None)
+    print(f"serving {RUNS} on http://{args.host}:{args.port}" + (f", opening {warm}" if warm else ""))
+    uvicorn.run(create_app(store=store, warm=warm), host=args.host, port=args.port, log_level="warning")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="closebooks")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -98,6 +112,12 @@ def main(argv: list[str] | None = None) -> int:
     build = holdout_sub.add_parser("build")
     build.add_argument("--drift", action="store_true")
     build.set_defaults(func=_cmd_holdout)
+
+    serve = sub.add_parser("serve")
+    serve.add_argument("run", nargs="?", help="run to open at startup (default: the most recent)")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.set_defaults(func=_cmd_serve)
 
     args = parser.parse_args(argv)
     return args.func(args)

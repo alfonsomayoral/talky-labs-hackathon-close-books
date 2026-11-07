@@ -1,0 +1,6639 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Close the Books",
+    "version": "2.1"
+  },
+  "paths": {
+    "/api/runs": {
+      "get": {
+        "summary": "List Runs",
+        "operationId": "list_runs_api_runs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Runs Api Runs Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Run",
+        "operationId": "create_run_api_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRun"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}": {
+      "get": {
+        "summary": "Get Run",
+        "operationId": "get_run_api_runs__runId__get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/status": {
+      "get": {
+        "summary": "Run Status",
+        "operationId": "run_status_api_runs__runId__status_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/stats": {
+      "get": {
+        "summary": "Run Stats",
+        "operationId": "run_stats_api_runs__runId__stats_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStats"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/validate": {
+      "post": {
+        "summary": "Validate Run",
+        "operationId": "validate_run_api_runs__runId__validate_post",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads": {
+      "post": {
+        "summary": "Upload",
+        "description": "A zip with the structure of a phase. Becomes db/<name>/ and can be run like any phase.",
+        "operationId": "upload_api_uploads_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_uploads_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/transactions": {
+      "get": {
+        "summary": "List Transactions",
+        "operationId": "list_transactions_api_runs__runId__transactions_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Accountid"
+            }
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rule"
+            }
+          },
+          {
+            "name": "exception",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exception"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "caseStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Casestatus"
+            }
+          },
+          {
+            "name": "statementFormat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Statementformat"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_TxnRow_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/transactions/{bankTxnId}": {
+      "get": {
+        "summary": "Transaction Detail",
+        "operationId": "transaction_detail_api_runs__runId__transactions__bankTxnId__get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "bankTxnId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Banktxnid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TxnDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/cases": {
+      "get": {
+        "summary": "List Cases",
+        "operationId": "list_cases_api_runs__runId__cases_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CasePage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/cases/{caseId}": {
+      "get": {
+        "summary": "Get Case",
+        "operationId": "get_case_api_runs__runId__cases__caseId__get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Caseid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/cases/{caseId}/decision": {
+      "post": {
+        "summary": "Decide Case",
+        "operationId": "decide_case_api_runs__runId__cases__caseId__decision_post",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Caseid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/questions": {
+      "get": {
+        "summary": "List Questions",
+        "operationId": "list_questions_api_runs__runId__questions_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_Question_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/questions/{questionId}/answer": {
+      "post": {
+        "summary": "Answer Question",
+        "operationId": "answer_question_api_runs__runId__questions__questionId__answer_post",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Questionid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/drafts": {
+      "get": {
+        "summary": "List Drafts",
+        "operationId": "list_drafts_api_runs__runId__drafts_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_Draft_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Draft",
+        "operationId": "create_draft_api_runs__runId__drafts_post",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Draft"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/drafts/{draftId}": {
+      "put": {
+        "summary": "Edit Draft",
+        "operationId": "edit_draft_api_runs__runId__drafts__draftId__put",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Draftid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Draft"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/drafts/{draftId}/send": {
+      "post": {
+        "summary": "Send Draft",
+        "description": "A record in outbox.jsonl: no e-mail leaves.",
+        "operationId": "send_draft_api_runs__runId__drafts__draftId__send_post",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Draftid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/DraftAction"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Draft"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/drafts/{draftId}/manual": {
+      "post": {
+        "summary": "Manual Draft",
+        "operationId": "manual_draft_api_runs__runId__drafts__draftId__manual_post",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Draftid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/DraftAction"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Draft"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/memory-rules": {
+      "get": {
+        "summary": "List Memory Rules",
+        "operationId": "list_memory_rules_api_runs__runId__memory_rules_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemoryRule"
+                  },
+                  "title": "Response List Memory Rules Api Runs  Runid  Memory Rules Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Memory Rule",
+        "operationId": "create_memory_rule_api_runs__runId__memory_rules_post",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryRuleCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryRule"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/memory-rules/{ruleId}": {
+      "delete": {
+        "summary": "Delete Memory Rule",
+        "description": "Appends the rule again with active=false: the file keeps its history and the last line wins.",
+        "operationId": "delete_memory_rule_api_runs__runId__memory_rules__ruleId__delete",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ruleid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/open-items": {
+      "get": {
+        "summary": "List Open Items",
+        "operationId": "list_open_items_api_runs__runId__open_items_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "partyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Partyid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Overdue"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_OpenItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/aging": {
+      "get": {
+        "summary": "Aging",
+        "description": "Open invoices (ARI for customers, API for suppliers) at the end of the phase, by days past due.",
+        "operationId": "aging_api_runs__runId__aging_get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "partyKind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "customer",
+                "supplier"
+              ],
+              "type": "string",
+              "default": "customer",
+              "title": "Partykind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Aging"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{runId}/parties/{partyId}": {
+      "get": {
+        "summary": "Party Detail",
+        "operationId": "party_detail_api_runs__runId__parties__partyId__get",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Runid"
+            }
+          },
+          {
+            "name": "partyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Partyid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartyDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/{phase}/accounts": {
+      "get": {
+        "summary": "Accounts",
+        "operationId": "accounts_api_data__phase__accounts_get",
+        "parameters": [
+          {
+            "name": "phase",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Phase"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Runid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Account"
+                  },
+                  "title": "Response Accounts Api Data  Phase  Accounts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/{phase}/items": {
+      "get": {
+        "summary": "Items",
+        "operationId": "items_api_data__phase__items_get",
+        "parameters": [
+          {
+            "name": "phase",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Phase"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "partyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Partyid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_DataItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/{phase}/parties": {
+      "get": {
+        "summary": "Parties",
+        "operationId": "parties_api_data__phase__parties_get",
+        "parameters": [
+          {
+            "name": "phase",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Phase"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_Party_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/{phase}/documents": {
+      "get": {
+        "summary": "Documents",
+        "operationId": "documents_api_data__phase__documents_get",
+        "parameters": [
+          {
+            "name": "phase",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Phase"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_DocumentRow_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/{phase}/documents/{path}": {
+      "get": {
+        "summary": "Document",
+        "description": "Text and, when a run has extracted them, facts. `runId` defaults to the latest run of the phase.",
+        "operationId": "document_api_data__phase__documents__path__get",
+        "parameters": [
+          {
+            "name": "phase",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Phase"
+            }
+          },
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Path"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Runid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/{phase}/detail-files": {
+      "get": {
+        "summary": "Detail Files",
+        "operationId": "detail_files_api_data__phase__detail_files_get",
+        "parameters": [
+          {
+            "name": "phase",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Phase"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paged_DetailFileRow_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Account": {
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "title": "Accountid"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "bank": {
+            "type": "string",
+            "title": "Bank"
+          },
+          "bankName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bankname"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iban"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
+          "inMaster": {
+            "type": "boolean",
+            "title": "Inmaster"
+          },
+          "formats": {
+            "items": {
+              "$ref": "#/components/schemas/FormatPeriod"
+            },
+            "type": "array",
+            "title": "Formats"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          },
+          "inflowCents": {
+            "type": "integer",
+            "title": "Inflowcents"
+          },
+          "outflowCents": {
+            "type": "integer",
+            "title": "Outflowcents"
+          },
+          "netCents": {
+            "type": "integer",
+            "title": "Netcents"
+          },
+          "firstDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firstdate"
+          },
+          "lastDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastdate"
+          },
+          "reconciledRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconciledrate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accountId",
+          "entity",
+          "bank",
+          "bankName",
+          "currency",
+          "iban",
+          "purpose",
+          "inMaster",
+          "formats",
+          "txns",
+          "inflowCents",
+          "outflowCents",
+          "netCents",
+          "firstDate",
+          "lastDate",
+          "reconciledRate"
+        ],
+        "title": "Account"
+      },
+      "Aging": {
+        "properties": {
+          "asOf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asof"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "not_due",
+                "d1_30",
+                "d31_60",
+                "d61_90",
+                "d90_plus"
+              ]
+            },
+            "type": "object",
+            "title": "Totals"
+          },
+          "openEur": {
+            "type": "integer",
+            "title": "Openeur"
+          },
+          "overdueEur": {
+            "type": "integer",
+            "title": "Overdueeur"
+          },
+          "parties": {
+            "items": {
+              "$ref": "#/components/schemas/AgingParty"
+            },
+            "type": "array",
+            "title": "Parties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asOf",
+          "totals",
+          "openEur",
+          "overdueEur",
+          "parties"
+        ],
+        "title": "Aging"
+      },
+      "AgingParty": {
+        "properties": {
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "openEur": {
+            "type": "integer",
+            "title": "Openeur"
+          },
+          "overdueEur": {
+            "type": "integer",
+            "title": "Overdueeur"
+          },
+          "buckets": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "not_due",
+                "d1_30",
+                "d31_60",
+                "d61_90",
+                "d90_plus"
+              ]
+            },
+            "type": "object",
+            "title": "Buckets"
+          },
+          "openItems": {
+            "type": "integer",
+            "title": "Openitems"
+          },
+          "oldestDaysOverdue": {
+            "type": "integer",
+            "title": "Oldestdaysoverdue"
+          },
+          "disputes": {
+            "type": "integer",
+            "title": "Disputes"
+          },
+          "duplicates": {
+            "type": "integer",
+            "title": "Duplicates"
+          },
+          "caseId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caseid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "partyId",
+          "partyName",
+          "entity",
+          "openEur",
+          "overdueEur",
+          "buckets",
+          "openItems",
+          "oldestDaysOverdue",
+          "disputes",
+          "duplicates",
+          "caseId"
+        ],
+        "title": "AgingParty"
+      },
+      "AnswerBody": {
+        "properties": {
+          "optionId": {
+            "type": "string",
+            "title": "Optionid"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "saveAsRule": {
+            "type": "boolean",
+            "title": "Saveasrule",
+            "default": false
+          },
+          "by": {
+            "type": "string",
+            "title": "By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "optionId",
+          "by"
+        ],
+        "title": "AnswerBody"
+      },
+      "Assignment": {
+        "properties": {
+          "itemId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Itemid"
+          },
+          "documentNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documentnumber"
+          },
+          "amountCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amountcents"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "exception": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception"
+          }
+        },
+        "type": "object",
+        "required": [
+          "itemId",
+          "documentNumber",
+          "amountCents",
+          "currency",
+          "category",
+          "exception"
+        ],
+        "title": "Assignment"
+      },
+      "BankLine": {
+        "properties": {
+          "bankTxnId": {
+            "type": "string",
+            "title": "Banktxnid"
+          },
+          "accountId": {
+            "type": "string",
+            "title": "Accountid"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "bank": {
+            "type": "string",
+            "title": "Bank"
+          },
+          "statementFormat": {
+            "type": "string",
+            "title": "Statementformat"
+          },
+          "statementFile": {
+            "type": "string",
+            "title": "Statementfile"
+          },
+          "bookingDate": {
+            "type": "string",
+            "title": "Bookingdate"
+          },
+          "valueDate": {
+            "type": "string",
+            "title": "Valuedate"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "bankCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bankcode"
+          },
+          "bankSubcode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banksubcode"
+          },
+          "ref1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref1"
+          },
+          "ref2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref2"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "counterpartyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterpartyname"
+          },
+          "counterpartyAccount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterpartyaccount"
+          },
+          "endToEndId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endtoendid"
+          },
+          "remittanceInfo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remittanceinfo"
+          },
+          "origAmountCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origamountcents"
+          },
+          "origCurrency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origcurrency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bankTxnId",
+          "accountId",
+          "entity",
+          "bank",
+          "statementFormat",
+          "statementFile",
+          "bookingDate",
+          "valueDate",
+          "amountCents",
+          "currency",
+          "bankCode",
+          "bankSubcode",
+          "ref1",
+          "ref2",
+          "text",
+          "counterpartyName",
+          "counterpartyAccount",
+          "endToEndId",
+          "remittanceInfo",
+          "origAmountCents",
+          "origCurrency"
+        ],
+        "title": "BankLine"
+      },
+      "Body_upload_api_uploads_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_api_uploads_post"
+      },
+      "Candidate": {
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "title": "Itemid"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          }
+        },
+        "type": "object",
+        "required": [
+          "itemId",
+          "amountCents",
+          "currency",
+          "why"
+        ],
+        "title": "Candidate"
+      },
+      "Case": {
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "title": "Caseid"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "needs_review",
+              "question",
+              "fallback",
+              "done"
+            ],
+            "title": "Status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "bankTxnId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banktxnid"
+          },
+          "partyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyid"
+          },
+          "itemIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Itemids"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "amountEur": {
+            "type": "integer",
+            "title": "Amounteur"
+          },
+          "bookingDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bookingdate"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "suggestedAction": {
+            "type": "string",
+            "title": "Suggestedaction"
+          },
+          "questionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questionid"
+          },
+          "draftId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draftid"
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "caseId",
+          "kind",
+          "status",
+          "priority",
+          "entity",
+          "bankTxnId",
+          "partyId",
+          "itemIds",
+          "amountCents",
+          "currency",
+          "amountEur",
+          "bookingDate",
+          "summary",
+          "suggestedAction",
+          "questionId",
+          "draftId",
+          "rule",
+          "createdAt"
+        ],
+        "title": "Case"
+      },
+      "CaseDetail": {
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "title": "Caseid"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "needs_review",
+              "question",
+              "fallback",
+              "done"
+            ],
+            "title": "Status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "bankTxnId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banktxnid"
+          },
+          "partyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyid"
+          },
+          "itemIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Itemids"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "amountEur": {
+            "type": "integer",
+            "title": "Amounteur"
+          },
+          "bookingDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bookingdate"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "suggestedAction": {
+            "type": "string",
+            "title": "Suggestedaction"
+          },
+          "questionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questionid"
+          },
+          "draftId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draftid"
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Question"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Draft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "caseId",
+          "kind",
+          "status",
+          "priority",
+          "entity",
+          "bankTxnId",
+          "partyId",
+          "itemIds",
+          "amountCents",
+          "currency",
+          "amountEur",
+          "bookingDate",
+          "summary",
+          "suggestedAction",
+          "questionId",
+          "draftId",
+          "rule",
+          "createdAt",
+          "partyName",
+          "question",
+          "draft"
+        ],
+        "title": "CaseDetail"
+      },
+      "CasePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CaseRow"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "sumAmountEur": {
+            "type": "integer",
+            "title": "Sumamounteur"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "sumAmountEur"
+        ],
+        "title": "CasePage",
+        "description": "Sum of amountEur over every case matching the filter, not only this page."
+      },
+      "CaseRow": {
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "title": "Caseid"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "needs_review",
+              "question",
+              "fallback",
+              "done"
+            ],
+            "title": "Status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "bankTxnId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banktxnid"
+          },
+          "partyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyid"
+          },
+          "itemIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Itemids"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "amountEur": {
+            "type": "integer",
+            "title": "Amounteur"
+          },
+          "bookingDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bookingdate"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "suggestedAction": {
+            "type": "string",
+            "title": "Suggestedaction"
+          },
+          "questionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questionid"
+          },
+          "draftId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draftid"
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          }
+        },
+        "type": "object",
+        "required": [
+          "caseId",
+          "kind",
+          "status",
+          "priority",
+          "entity",
+          "bankTxnId",
+          "partyId",
+          "itemIds",
+          "amountCents",
+          "currency",
+          "amountEur",
+          "bookingDate",
+          "summary",
+          "suggestedAction",
+          "questionId",
+          "draftId",
+          "rule",
+          "createdAt",
+          "partyName"
+        ],
+        "title": "CaseRow"
+      },
+      "CategoryStats": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          },
+          "amountEur": {
+            "type": "integer",
+            "title": "Amounteur"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "txns",
+          "amountEur"
+        ],
+        "title": "CategoryStats"
+      },
+      "CreateRun": {
+        "properties": {
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "memoryFrom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memoryfrom"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phase"
+        ],
+        "title": "CreateRun"
+      },
+      "DataItem": {
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "title": "Itemid"
+          },
+          "itemType": {
+            "type": "string",
+            "enum": [
+              "ARI",
+              "ARC",
+              "API",
+              "APC"
+            ],
+            "title": "Itemtype"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "documentNumber": {
+            "type": "string",
+            "title": "Documentnumber"
+          },
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "issueDate": {
+            "type": "string",
+            "title": "Issuedate"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "totalCents": {
+            "type": "integer",
+            "title": "Totalcents"
+          },
+          "openAtStartCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openatstartcents"
+          },
+          "relatedDocument": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relateddocument"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "type": "object",
+        "required": [
+          "itemId",
+          "itemType",
+          "entity",
+          "documentNumber",
+          "partyId",
+          "partyName",
+          "issueDate",
+          "dueDate",
+          "currency",
+          "totalCents",
+          "openAtStartCents",
+          "relatedDocument",
+          "reference"
+        ],
+        "title": "DataItem"
+      },
+      "DayStats": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          },
+          "txnsAuto": {
+            "type": "integer",
+            "title": "Txnsauto"
+          },
+          "reviewQueue": {
+            "type": "integer",
+            "title": "Reviewqueue"
+          },
+          "identifiedEur": {
+            "type": "integer",
+            "title": "Identifiedeur"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "txns",
+          "txnsAuto",
+          "reviewQueue",
+          "identifiedEur"
+        ],
+        "title": "DayStats"
+      },
+      "DecisionBody": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "done",
+              "review",
+              "manual"
+            ],
+            "title": "Action"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "by": {
+            "type": "string",
+            "title": "By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "by"
+        ],
+        "title": "DecisionBody"
+      },
+      "DetailFileRow": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "directDebitBatch",
+              "cardSettlement",
+              "chequeDeposit",
+              "paymentRun"
+            ],
+            "title": "Kind"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "kind",
+          "entity",
+          "month",
+          "rows"
+        ],
+        "title": "DetailFileRow"
+      },
+      "DetailRow": {
+        "properties": {
+          "bankTxnId": {
+            "type": "string",
+            "title": "Banktxnid"
+          },
+          "itemId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Itemid"
+          },
+          "amountCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amountcents"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "exception": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "partyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyid"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRef"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "item": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ItemSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "bankTxnId",
+          "itemId",
+          "amountCents",
+          "currency",
+          "category",
+          "exception",
+          "rule",
+          "confidence",
+          "partyId",
+          "reference",
+          "sources",
+          "candidates",
+          "item"
+        ],
+        "title": "DetailRow"
+      },
+      "DocumentDetail": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "remittanceAdvice",
+              "invoicePdf",
+              "creditNotePdf",
+              "proformaPdf",
+              "bankAccountNotice"
+            ],
+            "title": "Kind"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentFact"
+            },
+            "type": "array",
+            "title": "Facts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "kind",
+          "entity",
+          "format",
+          "name",
+          "date",
+          "partyName",
+          "text",
+          "facts"
+        ],
+        "title": "DocumentDetail"
+      },
+      "DocumentFact": {
+        "properties": {
+          "lineNo": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lineno"
+          },
+          "documentNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documentnumber"
+          },
+          "documentNumberNorm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documentnumbernorm"
+          },
+          "grossCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grosscents"
+          },
+          "deductionCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deductioncents"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "paidCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paidcents"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "customerPo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customerpo"
+          },
+          "voucher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voucher"
+          },
+          "clause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clause"
+          },
+          "clauseValue": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clausevalue"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "parser",
+              "model"
+            ],
+            "title": "Method"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lineNo",
+          "documentNumber",
+          "documentNumberNorm",
+          "grossCents",
+          "deductionCents",
+          "reason",
+          "paidCents",
+          "currency",
+          "customerPo",
+          "voucher",
+          "clause",
+          "clauseValue",
+          "method",
+          "model"
+        ],
+        "title": "DocumentFact"
+      },
+      "DocumentRow": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "remittanceAdvice",
+              "invoicePdf",
+              "creditNotePdf",
+              "proformaPdf",
+              "bankAccountNotice"
+            ],
+            "title": "Kind"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "kind",
+          "entity",
+          "format",
+          "name",
+          "date",
+          "partyName"
+        ],
+        "title": "DocumentRow"
+      },
+      "Draft": {
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "title": "Draftid"
+          },
+          "caseId": {
+            "type": "string",
+            "title": "Caseid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "email_customer",
+              "email_supplier"
+            ],
+            "title": "Kind"
+          },
+          "to": {
+            "type": "string",
+            "title": "To"
+          },
+          "toName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Toname"
+          },
+          "partyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyid"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "es"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/DraftAttachment"
+            },
+            "type": "array",
+            "title": "Attachments"
+          },
+          "generatedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedby"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "sent",
+              "manual"
+            ],
+            "title": "Status"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "draftId",
+          "caseId",
+          "kind",
+          "to",
+          "subject",
+          "body",
+          "status",
+          "createdAt"
+        ],
+        "title": "Draft"
+      },
+      "DraftAction": {
+        "properties": {
+          "by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By"
+          }
+        },
+        "type": "object",
+        "title": "DraftAction"
+      },
+      "DraftAttachment": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "ref": {
+            "type": "string",
+            "title": "Ref"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "ref"
+        ],
+        "title": "DraftAttachment"
+      },
+      "DraftCreate": {
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "title": "Caseid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "email_customer",
+              "email_supplier"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "caseId",
+          "kind"
+        ],
+        "title": "DraftCreate"
+      },
+      "DraftEdit": {
+        "properties": {
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subject",
+          "body"
+        ],
+        "title": "DraftEdit"
+      },
+      "EntityStats": {
+        "properties": {
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          },
+          "txnsAuto": {
+            "type": "integer",
+            "title": "Txnsauto"
+          },
+          "reviewQueue": {
+            "type": "integer",
+            "title": "Reviewqueue"
+          },
+          "identifiedEur": {
+            "type": "integer",
+            "title": "Identifiedeur"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entity",
+          "name",
+          "txns",
+          "txnsAuto",
+          "reviewQueue",
+          "identifiedEur"
+        ],
+        "title": "EntityStats"
+      },
+      "Evidence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "ref": {
+            "type": "string",
+            "title": "Ref"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "content": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceDocument"
+              },
+              {
+                "$ref": "#/components/schemas/EvidenceDetailFile"
+              },
+              {
+                "$ref": "#/components/schemas/EvidenceRecord"
+              },
+              {
+                "$ref": "#/components/schemas/EvidenceNone"
+              }
+            ],
+            "title": "Content",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "detailFile": "#/components/schemas/EvidenceDetailFile",
+                "document": "#/components/schemas/EvidenceDocument",
+                "none": "#/components/schemas/EvidenceNone",
+                "record": "#/components/schemas/EvidenceRecord"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "ref",
+          "content"
+        ],
+        "title": "Evidence"
+      },
+      "EvidenceDetailFile": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "detailFile",
+            "title": "Type",
+            "default": "detailFile"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Rows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "columns",
+          "rows"
+        ],
+        "title": "EvidenceDetailFile"
+      },
+      "EvidenceDocument": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "document",
+            "title": "Type",
+            "default": "document"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentFact"
+            },
+            "type": "array",
+            "title": "Facts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "text",
+          "facts"
+        ],
+        "title": "EvidenceDocument"
+      },
+      "EvidenceNone": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "none",
+            "title": "Type",
+            "default": "none"
+          }
+        },
+        "type": "object",
+        "title": "EvidenceNone"
+      },
+      "EvidenceRecord": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "record",
+            "title": "Type",
+            "default": "record"
+          },
+          "fields": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fields"
+        ],
+        "title": "EvidenceRecord"
+      },
+      "ExceptionStats": {
+        "properties": {
+          "exception": {
+            "type": "string",
+            "title": "Exception"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "amountEur": {
+            "type": "integer",
+            "title": "Amounteur"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exception",
+          "rows",
+          "amountEur"
+        ],
+        "title": "ExceptionStats"
+      },
+      "FormatPeriod": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "from": {
+            "type": "string",
+            "title": "From"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "format",
+          "from",
+          "to"
+        ],
+        "title": "FormatPeriod"
+      },
+      "GroupMember": {
+        "properties": {
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "partyId",
+          "name",
+          "entity"
+        ],
+        "title": "GroupMember"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ItemHistoryEntry": {
+        "properties": {
+          "bankTxnId": {
+            "type": "string",
+            "title": "Banktxnid"
+          },
+          "bookingDate": {
+            "type": "string",
+            "title": "Bookingdate"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "exception": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bankTxnId",
+          "bookingDate",
+          "amountCents",
+          "exception"
+        ],
+        "title": "ItemHistoryEntry"
+      },
+      "ItemSummary": {
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "title": "Itemid"
+          },
+          "itemType": {
+            "type": "string",
+            "enum": [
+              "ARI",
+              "ARC",
+              "API",
+              "APC"
+            ],
+            "title": "Itemtype"
+          },
+          "documentNumber": {
+            "type": "string",
+            "title": "Documentnumber"
+          },
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "issueDate": {
+            "type": "string",
+            "title": "Issuedate"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "totalCents": {
+            "type": "integer",
+            "title": "Totalcents"
+          },
+          "openAtStartCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openatstartcents"
+          },
+          "openAtEndCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openatendcents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "itemId",
+          "itemType",
+          "documentNumber",
+          "partyId",
+          "partyName",
+          "issueDate",
+          "dueDate",
+          "currency",
+          "totalCents",
+          "openAtStartCents",
+          "openAtEndCents"
+        ],
+        "title": "ItemSummary"
+      },
+      "KindStats": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "cases": {
+            "type": "integer",
+            "title": "Cases"
+          },
+          "amountEur": {
+            "type": "integer",
+            "title": "Amounteur"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "cases",
+          "amountEur"
+        ],
+        "title": "KindStats"
+      },
+      "MemoryRule": {
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "title": "Ruleid"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "scope": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scope"
+          },
+          "createdFrom": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Createdfrom"
+          },
+          "by": {
+            "type": "string",
+            "title": "By"
+          },
+          "at": {
+            "type": "string",
+            "title": "At"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "affectedTxns": {
+            "type": "integer",
+            "title": "Affectedtxns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ruleId",
+          "kind",
+          "params",
+          "description",
+          "scope",
+          "createdFrom",
+          "by",
+          "at",
+          "active",
+          "affectedTxns"
+        ],
+        "title": "MemoryRule"
+      },
+      "MemoryRuleCreate": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "payer_is_customer",
+              "reference_alias",
+              "supplier_nets_credit_notes",
+              "always_category",
+              "ignore_suffix",
+              "parent_pays"
+            ],
+            "title": "Kind"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "scope": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scope"
+          },
+          "createdFrom": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Createdfrom"
+          },
+          "by": {
+            "type": "string",
+            "title": "By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "params",
+          "description",
+          "by"
+        ],
+        "title": "MemoryRuleCreate"
+      },
+      "ModelUsage": {
+        "properties": {
+          "calls": {
+            "type": "integer",
+            "title": "Calls"
+          },
+          "inputTokens": {
+            "type": "integer",
+            "title": "Inputtokens"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "title": "Outputtokens"
+          },
+          "costUsd": {
+            "type": "number",
+            "title": "Costusd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "calls",
+          "inputTokens",
+          "outputTokens",
+          "costUsd"
+        ],
+        "title": "ModelUsage"
+      },
+      "OpenItem": {
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "title": "Itemid"
+          },
+          "itemType": {
+            "type": "string",
+            "enum": [
+              "ARI",
+              "ARC",
+              "API",
+              "APC"
+            ],
+            "title": "Itemtype"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "documentNumber": {
+            "type": "string",
+            "title": "Documentnumber"
+          },
+          "issueDate": {
+            "type": "string",
+            "title": "Issuedate"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "totalCents": {
+            "type": "integer",
+            "title": "Totalcents"
+          },
+          "openAtStartCents": {
+            "type": "integer",
+            "title": "Openatstartcents"
+          },
+          "appliedCents": {
+            "type": "integer",
+            "title": "Appliedcents"
+          },
+          "openAtEndCents": {
+            "type": "integer",
+            "title": "Openatendcents"
+          },
+          "openAtEndEur": {
+            "type": "integer",
+            "title": "Openatendeur"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "partial",
+              "cleared",
+              "disputed",
+              "returned"
+            ],
+            "title": "Status"
+          },
+          "daysOverdue": {
+            "type": "integer",
+            "title": "Daysoverdue"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ItemHistoryEntry"
+            },
+            "type": "array",
+            "title": "History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "itemId",
+          "itemType",
+          "entity",
+          "partyId",
+          "partyName",
+          "documentNumber",
+          "issueDate",
+          "dueDate",
+          "currency",
+          "totalCents",
+          "openAtStartCents",
+          "appliedCents",
+          "openAtEndCents",
+          "openAtEndEur",
+          "status",
+          "daysOverdue",
+          "history"
+        ],
+        "title": "OpenItem"
+      },
+      "Paged_DataItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DataItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[DataItem]"
+      },
+      "Paged_DetailFileRow_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DetailFileRow"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[DetailFileRow]"
+      },
+      "Paged_DocumentRow_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentRow"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[DocumentRow]"
+      },
+      "Paged_Draft_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Draft"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[Draft]"
+      },
+      "Paged_OpenItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OpenItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[OpenItem]"
+      },
+      "Paged_Party_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Party"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[Party]"
+      },
+      "Paged_Question_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[Question]"
+      },
+      "Paged_TxnRow_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TxnRow"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size"
+        ],
+        "title": "Paged[TxnRow]"
+      },
+      "Party": {
+        "properties": {
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "supplier"
+            ],
+            "title": "Kind"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "tradeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tradename"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "taxId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxid"
+          },
+          "iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iban"
+          },
+          "paymentTerms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paymentterms"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "groupId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groupid"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parentid"
+          },
+          "blockedSince": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blockedsince"
+          }
+        },
+        "type": "object",
+        "required": [
+          "partyId",
+          "kind",
+          "entity",
+          "name",
+          "tradeName",
+          "type",
+          "country",
+          "taxId",
+          "iban",
+          "paymentTerms",
+          "currency",
+          "groupId",
+          "parentId",
+          "blockedSince"
+        ],
+        "title": "Party"
+      },
+      "PartyAlternative": {
+        "properties": {
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "partyId",
+          "partyName",
+          "score"
+        ],
+        "title": "PartyAlternative"
+      },
+      "PartyDetail": {
+        "properties": {
+          "party": {
+            "$ref": "#/components/schemas/Party"
+          },
+          "group": {
+            "items": {
+              "$ref": "#/components/schemas/GroupMember"
+            },
+            "type": "array",
+            "title": "Group"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OpenItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/TxnRow"
+            },
+            "type": "array",
+            "title": "Transactions"
+          },
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/CaseRow"
+            },
+            "type": "array",
+            "title": "Cases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "party",
+          "group",
+          "items",
+          "transactions",
+          "cases"
+        ],
+        "title": "PartyDetail"
+      },
+      "PartyResolution": {
+        "properties": {
+          "partyId": {
+            "type": "string",
+            "title": "Partyid"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "partyKind": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "supplier"
+            ],
+            "title": "Partykind"
+          },
+          "payerName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payername"
+          },
+          "how": {
+            "type": "string",
+            "title": "How"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/PartyAlternative"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          }
+        },
+        "type": "object",
+        "required": [
+          "partyId",
+          "partyName",
+          "partyKind",
+          "payerName",
+          "how",
+          "confidence",
+          "alternatives"
+        ],
+        "title": "PartyResolution"
+      },
+      "Question": {
+        "properties": {
+          "questionId": {
+            "type": "string",
+            "title": "Questionid"
+          },
+          "caseId": {
+            "type": "string",
+            "title": "Caseid"
+          },
+          "bankTxnId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banktxnid"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            },
+            "type": "array",
+            "title": "Options"
+          },
+          "defaultOption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Defaultoption"
+          },
+          "rulePreview": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rulepreview"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "answered"
+            ],
+            "title": "Status"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "questionId",
+          "caseId",
+          "bankTxnId",
+          "entity",
+          "question",
+          "options",
+          "defaultOption",
+          "rulePreview",
+          "status",
+          "createdAt"
+        ],
+        "title": "Question"
+      },
+      "QuestionOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "QuestionOption"
+      },
+      "RelatedTxn": {
+        "properties": {
+          "bankTxnId": {
+            "type": "string",
+            "title": "Banktxnid"
+          },
+          "bookingDate": {
+            "type": "string",
+            "title": "Bookingdate"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "relation": {
+            "type": "string",
+            "title": "Relation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bankTxnId",
+          "bookingDate",
+          "amountCents",
+          "currency",
+          "text",
+          "relation"
+        ],
+        "title": "RelatedTxn"
+      },
+      "RuleStats": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "rows",
+          "txns"
+        ],
+        "title": "RuleStats"
+      },
+      "Run": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "dataDir": {
+            "type": "string",
+            "title": "Datadir"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "gitCommit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gitcommit"
+          },
+          "durationMs": {
+            "type": "integer",
+            "title": "Durationms"
+          },
+          "stages": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Stages"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "csvBytes": {
+            "type": "integer",
+            "title": "Csvbytes"
+          },
+          "byRule": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Byrule"
+          },
+          "byException": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Byexception"
+          },
+          "byCategory": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Bycategory"
+          },
+          "cases": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Cases"
+          },
+          "models": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ModelUsage"
+            },
+            "type": "object",
+            "title": "Models"
+          },
+          "memoryRulesApplied": {
+            "type": "integer",
+            "title": "Memoryrulesapplied"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Score"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "phase",
+          "dataDir",
+          "createdAt",
+          "gitCommit",
+          "durationMs",
+          "stages",
+          "txns",
+          "rows",
+          "csvBytes",
+          "byRule",
+          "byException",
+          "byCategory",
+          "cases",
+          "models",
+          "memoryRulesApplied",
+          "score"
+        ],
+        "title": "Run"
+      },
+      "RunCreated": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "status"
+        ],
+        "title": "RunCreated"
+      },
+      "RunStats": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "entity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity"
+          },
+          "periodFrom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Periodfrom"
+          },
+          "periodTo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Periodto"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          },
+          "txnsAuto": {
+            "type": "integer",
+            "title": "Txnsauto"
+          },
+          "identifiedEur": {
+            "type": "integer",
+            "title": "Identifiedeur"
+          },
+          "totalEur": {
+            "type": "integer",
+            "title": "Totaleur"
+          },
+          "reviewQueue": {
+            "type": "integer",
+            "title": "Reviewqueue"
+          },
+          "reviewQueueEur": {
+            "type": "integer",
+            "title": "Reviewqueueeur"
+          },
+          "byStatus": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Bystatus"
+          },
+          "byKind": {
+            "items": {
+              "$ref": "#/components/schemas/KindStats"
+            },
+            "type": "array",
+            "title": "Bykind"
+          },
+          "byEntity": {
+            "items": {
+              "$ref": "#/components/schemas/EntityStats"
+            },
+            "type": "array",
+            "title": "Byentity"
+          },
+          "byRule": {
+            "items": {
+              "$ref": "#/components/schemas/RuleStats"
+            },
+            "type": "array",
+            "title": "Byrule"
+          },
+          "byException": {
+            "items": {
+              "$ref": "#/components/schemas/ExceptionStats"
+            },
+            "type": "array",
+            "title": "Byexception"
+          },
+          "byCategory": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryStats"
+            },
+            "type": "array",
+            "title": "Bycategory"
+          },
+          "byDay": {
+            "items": {
+              "$ref": "#/components/schemas/DayStats"
+            },
+            "type": "array",
+            "title": "Byday"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Score"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "phase",
+          "entity",
+          "periodFrom",
+          "periodTo",
+          "txns",
+          "txnsAuto",
+          "identifiedEur",
+          "totalEur",
+          "reviewQueue",
+          "reviewQueueEur",
+          "byStatus",
+          "byKind",
+          "byEntity",
+          "byRule",
+          "byException",
+          "byCategory",
+          "byDay",
+          "score"
+        ],
+        "title": "RunStats"
+      },
+      "RunStatus": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "stages": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Stages"
+          },
+          "startedAt": {
+            "type": "string",
+            "title": "Startedat"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finishedat"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "status",
+          "stage",
+          "stages",
+          "startedAt",
+          "finishedAt",
+          "error"
+        ],
+        "title": "RunStatus"
+      },
+      "RunSummary": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "gitCommit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gitcommit"
+          },
+          "durationMs": {
+            "type": "integer",
+            "title": "Durationms"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "cases": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Cases"
+          },
+          "memoryRulesApplied": {
+            "type": "integer",
+            "title": "Memoryrulesapplied"
+          },
+          "modelCalls": {
+            "type": "integer",
+            "title": "Modelcalls"
+          },
+          "modelCostUsd": {
+            "type": "number",
+            "title": "Modelcostusd"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "served": {
+            "type": "boolean",
+            "title": "Served"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "phase",
+          "createdAt",
+          "gitCommit",
+          "durationMs",
+          "txns",
+          "rows",
+          "cases",
+          "memoryRulesApplied",
+          "modelCalls",
+          "modelCostUsd",
+          "score",
+          "served"
+        ],
+        "title": "RunSummary"
+      },
+      "Score": {
+        "properties": {
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metrics"
+          },
+          "segments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Segments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "score",
+          "metrics",
+          "segments"
+        ],
+        "title": "Score"
+      },
+      "SourceRef": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "ref": {
+            "type": "string",
+            "title": "Ref"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "ref"
+        ],
+        "title": "SourceRef"
+      },
+      "TxnDetail": {
+        "properties": {
+          "txn": {
+            "$ref": "#/components/schemas/BankLine"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/DetailRow"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "party": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartyResolution"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "related": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedTxn"
+            },
+            "type": "array",
+            "title": "Related"
+          },
+          "case": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Case"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "txn",
+          "rows",
+          "party",
+          "candidates",
+          "evidence",
+          "related",
+          "case"
+        ],
+        "title": "TxnDetail"
+      },
+      "TxnRow": {
+        "properties": {
+          "bankTxnId": {
+            "type": "string",
+            "title": "Banktxnid"
+          },
+          "accountId": {
+            "type": "string",
+            "title": "Accountid"
+          },
+          "entity": {
+            "type": "string",
+            "title": "Entity"
+          },
+          "bank": {
+            "type": "string",
+            "title": "Bank"
+          },
+          "statementFormat": {
+            "type": "string",
+            "title": "Statementformat"
+          },
+          "bookingDate": {
+            "type": "string",
+            "title": "Bookingdate"
+          },
+          "amountCents": {
+            "type": "integer",
+            "title": "Amountcents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "amountEur": {
+            "type": "integer",
+            "title": "Amounteur"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "counterpartyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterpartyname"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "partyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyid"
+          },
+          "partyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partyname"
+          },
+          "caseId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caseid"
+          },
+          "caseStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "needs_review",
+                  "question",
+                  "fallback",
+                  "done"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Casestatus"
+          },
+          "rowCount": {
+            "type": "integer",
+            "title": "Rowcount"
+          },
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/Assignment"
+            },
+            "type": "array",
+            "title": "Assignments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bankTxnId",
+          "accountId",
+          "entity",
+          "bank",
+          "statementFormat",
+          "bookingDate",
+          "amountCents",
+          "currency",
+          "amountEur",
+          "text",
+          "counterpartyName",
+          "rule",
+          "confidence",
+          "partyId",
+          "partyName",
+          "caseId",
+          "caseStatus",
+          "rowCount",
+          "assignments"
+        ],
+        "title": "TxnRow"
+      },
+      "UploadResult": {
+        "properties": {
+          "uploadId": {
+            "type": "string",
+            "title": "Uploadid"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uploadId",
+          "phase"
+        ],
+        "title": "UploadResult"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "ValidationIssue": {
+        "properties": {
+          "row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "row",
+          "message"
+        ],
+        "title": "ValidationIssue"
+      },
+      "ValidationResult": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "title": "Sizebytes"
+          },
+          "uncompressedBytes": {
+            "type": "integer",
+            "title": "Uncompressedbytes"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "txns": {
+            "type": "integer",
+            "title": "Txns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "errors",
+          "sizeBytes",
+          "uncompressedBytes",
+          "rows",
+          "txns"
+        ],
+        "title": "ValidationResult"
+      }
+    }
+  }
+}

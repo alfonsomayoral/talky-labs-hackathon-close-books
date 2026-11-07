@@ -1,5 +1,5 @@
 .box {
-  --cols: 104px minmax(0, 1fr) 76px 92px 92px 112px;
+  --cols: 100px minmax(0, 1fr) 76px 88px 88px 136px;
   display: flex;
   flex-direction: column;
   min-width: 0;

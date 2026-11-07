@@ -49,7 +49,7 @@ export const AGING_LABEL: Record<AgingBucket, string> = {
 }
 
 export const EXCEPTION_LABEL: Record<string, string> = {
-  SHORT_DISCOUNT: 'Descuento por pronto pago',
+  SHORT_DISCOUNT: 'Pronto pago',
   SHORT_DISPUTE: 'Disputa',
   SHORT_WITHHOLDING: 'Retención',
   SHORT_BANK_CHARGES: 'Comisión bancaria',
@@ -61,8 +61,34 @@ export const EXCEPTION_LABEL: Record<string, string> = {
   UNIDENTIFIED: 'Sin identificar',
 }
 
+/** Short names of the categories in masters/categories.csv; the master's description is the long form. */
+export const CATEGORY_LABEL: Record<string, string> = {
+  BANK_FEES: 'Comisiones bancarias',
+  INTEREST_INCOME: 'Intereses a favor',
+  INTEREST_EXPENSE: 'Intereses de deudas',
+  PAYROLL: 'Nóminas',
+  SOCIAL_SECURITY: 'Seguridad social',
+  TAX_PAYMENT: 'Impuestos',
+  TAX_REFUND: 'Devolución de impuestos',
+  LOAN_DRAWDOWN: 'Disposición de préstamo',
+  LOAN_REPAYMENT: 'Cuota de préstamo',
+  LEASING: 'Leasing',
+  FX_DEAL: 'Compraventa de divisa',
+  CASH_POOL: 'Cash pooling',
+  INTERCOMPANY: 'Intragrupo',
+  INTERNAL_TRANSFER: 'Traspaso entre cuentas',
+  CUSTOMER_ADVANCE: 'Anticipo de cliente',
+  CUSTOMER_REFUND: 'Devolución a cliente',
+  SUPPLIER_REFUND: 'Reembolso de proveedor',
+  CARD_EXPENSES: 'Tarjetas de empresa',
+  INSURANCE: 'Seguros',
+  BANK_REVERSAL: 'Apunte erróneo del banco',
+  UNIDENTIFIED: 'Sin identificar',
+}
+
 /** Unknown values stay readable: the vocabulary may grow with the contract. */
 export const exceptionLabel = (exception: string) => EXCEPTION_LABEL[exception] ?? exception
+export const categoryLabel = (category: string) => CATEGORY_LABEL[category] ?? category
 export const caseKindLabel = (kind: string) => CASE_KIND_LABEL[kind as CaseKind] ?? kind
 
 /** Share of movements closed with no intervention, 0..1. */

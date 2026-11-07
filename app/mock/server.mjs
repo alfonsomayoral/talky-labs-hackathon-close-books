@@ -92,7 +92,7 @@ function computeStats(entity) {
   return {
     runId: run.runId, phase: run.phase, entity: entity ?? null, periodFrom: txns.reduce((a, t) => (t.bookingDate < a ? t.bookingDate : a), txns[0].bookingDate), periodTo: data.asOf, ...summary(scoped), reviewQueue: queue.length, totalEur: sum(scoped, (t) => Math.abs(t.amountEur)), reviewQueueEur: sum(queue, (c) => c.amountEur),
     byStatus: Object.fromEntries([...groupBy(scopedCases, (c) => c.status)].map(([k, v]) => [k, v.length])),
-    byKind: [...groupBy(scopedCases, (c) => c.kind)].map(([kind, v]) => ({ kind, cases: v.length, amountEur: sum(v, (c) => c.amountEur) })).sort((a, b) => b.cases - a.cases),
+    byKind: [...groupBy(queue, (c) => c.kind)].map(([kind, v]) => ({ kind, cases: v.length, amountEur: sum(v, (c) => c.amountEur) })).sort((a, b) => b.cases - a.cases),
     byEntity: [...groupBy(txns, (t) => t.entity)].map(([e, v]) => ({ entity: e, name: masters.entities.find((x) => x.entity === e)?.name ?? e, ...summary(v) })).sort((a, b) => b.txns - a.txns),
     byRule: [...groupBy(scopedRows, (r) => r.rule)].map(([rule, v]) => ({ rule, rows: v.length, txns: new Set(v.map((r) => r.bankTxnId)).size })).sort((a, b) => b.rows - a.rows),
     byException: tally('exception').map(([exception, v]) => ({ exception, rows: v.length, amountEur: sum(v, (r) => r.amountCents ?? eurOf(r)) })).sort((a, b) => b.rows - a.rows),
@@ -105,7 +105,7 @@ function computeStats(entity) {
 // Scrolling asks for page after page with the same filters: keep the last filtered and sorted list.
 const lastList = { key: null, source: null, rows: null }
 
-function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r, key) => r[key] } = {}) {
+function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r, key) => r[key], withSum = false } = {}) {
   const params = new URLSearchParams(query)
   params.delete('page')
   params.delete('size')
@@ -140,7 +140,7 @@ function list(all, query, { search, filters = {}, map = (r) => r, sortValue = (r
   }
   const page = Math.max(1, Number(query.get('page') ?? 1))
   const size = Math.min(200, Number(query.get('size') ?? 50))
-  return { items: rows.slice((page - 1) * size, page * size).map(map), total: rows.length, page, size }
+  return { items: rows.slice((page - 1) * size, page * size).map(map), total: rows.length, page, size, ...(withSum ? { sumAmountEur: rows.reduce((acc, r) => acc + r.amountEur, 0) } : {}) }
 }
 
 function txnDetail(t) {
@@ -223,7 +223,7 @@ function accountsOf(runId) {
 const summaryOf = (r) => {
   const models = Object.values(r.models ?? {})
   const { stages, byRule, byException, byCategory, models: _m, dataDir, score, ...rest } = r
-  return { ...rest, modelCalls: models.reduce((a, m) => a + m.calls, 0), modelCostUsd: models.reduce((a, m) => a + m.costUsd, 0), score: score?.score ?? null }
+  return { ...rest, served: runArg > 0 && r.runId === run.runId, modelCalls: models.reduce((a, m) => a + m.calls, 0), modelCostUsd: models.reduce((a, m) => a + m.costUsd, 0), score: score?.score ?? null }
 }
 
 class Problem extends Error {
@@ -285,6 +285,8 @@ async function route(method, path, query, readBody) {
   const resource = seg[3]
   if (!resource) return current.run
   if (resource === 'status') return current.status
+  // Only in the mock, which keeps human/ in memory: what `closebooks serve` writes to runs/<id>/human/.
+  if (resource === 'human') return human
   if (resource === 'stats') return stats(query.get('entity'))
   if (resource === 'validate') return { ok: true, errors: [], sizeBytes: 9200000, uncompressedBytes: 34500000, rows: run.rows, txns: run.txns }
 
@@ -316,12 +318,12 @@ async function route(method, path, query, readBody) {
   }
 
   if (resource === 'cases') {
-    if (!seg[4]) return list(cases, query, { map: caseRow, sortValue: (c, key) => (key === 'partyName' ? partyById.get(c.partyId)?.name : c[key]), search: (c) => [c.caseId, c.summary, partyById.get(c.partyId)?.name], filters: { status: 'status', kind: 'kind', entity: 'entity', priority: 'priority' } })
+    if (!seg[4]) return list(cases, query, { withSum: true, map: caseRow, sortValue: (c, key) => (key === 'partyName' ? partyById.get(c.partyId)?.name : c[key]), search: (c) => [c.caseId, c.summary, partyById.get(c.partyId)?.name], filters: { status: 'status', kind: 'kind', entity: 'entity', priority: 'priority' } })
     const c = found(caseById.get(seg[4]), 'ese caso')
     if (seg[5] === 'decision' && method === 'POST') {
       const body = await readBody()
       human.decisions.push({ decisionId: decisionId(), caseId: c.caseId, ...body, at: now() })
-      if (body.action === 'done') c.status = 'done'
+      c.status = body.action === 'review' ? 'needs_review' : 'done'
       statsCache.clear()
       accountsCache.clear()
       return caseDetail(c)
@@ -332,6 +334,7 @@ async function route(method, path, query, readBody) {
   if (resource === 'questions') {
     if (seg[5] === 'answer' && method === 'POST') {
       const q = found(questions.find((x) => x.questionId === seg[4]), 'esa pregunta')
+      if (q.status === 'answered') throw new Problem(409, 'Esa pregunta ya está respondida')
       const body = await readBody()
       human.decisions.push({ decisionId: decisionId(), questionId: q.questionId, caseId: q.caseId, ...body, at: now() })
       q.status = 'answered'
@@ -339,9 +342,14 @@ async function route(method, path, query, readBody) {
       c.status = 'done'
       statsCache.clear()
       accountsCache.clear()
-      if (body.saveAsRule && q.rulePreview) {
+      // CONTRACT.md §5.2: the rule comes from rulePreview, with the party of the chosen item; «none» creates none.
+      if (body.saveAsRule && q.rulePreview && body.optionId !== 'none') {
         const { kind, description, ...params } = q.rulePreview
-        human.memoryRules.push({ ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, kind, params: { ...params, partyId: itemById.get(body.optionId)?.partyId ?? params.partyId }, description, scope: { entity: q.entity }, createdFrom: { questionId: q.questionId, caseId: q.caseId }, by: body.by, at: now(), active: true })
+        const chosen = itemById.get(body.optionId)
+        for (const key of Object.keys(params)) {
+          if (params[key] === '<la opción elegida>') params[key] = key === 'documentNumber' ? chosen?.documentNumber : chosen?.partyId
+        }
+        human.memoryRules.push({ ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, kind, params, description, scope: { entity: q.entity }, createdFrom: { questionId: q.questionId, caseId: q.caseId }, by: body.by, at: now(), active: true })
       }
       return caseDetail(c)
     }
@@ -361,7 +369,11 @@ async function route(method, path, query, readBody) {
     }
     if (!seg[4]) return list(drafts, query, { filters: { status: 'status', kind: 'kind' } })
     const d = found(draftById(seg[4]), 'ese borrador')
-    if (method === 'PUT') return Object.assign(d, await readBody())
+    if (method === 'PUT') {
+      Object.assign(d, await readBody())
+      human.outbox.push({ draftId: d.draftId, status: 'draft', subject: d.subject, body: d.body, to: d.to, attachments: d.attachments, by: null, at: now() })
+      return d
+    }
     if (seg[5] === 'send' || seg[5] === 'manual') {
       d.status = seg[5] === 'send' ? 'sent' : 'manual'
       human.outbox.push({ draftId: d.draftId, status: d.status, subject: d.subject, body: d.body, to: d.to, attachments: d.attachments, by: 'tesoreria@valtermia.example', at: now() })
@@ -371,14 +383,15 @@ async function route(method, path, query, readBody) {
   }
 
   if (resource === 'memory-rules') {
-    if (method === 'GET') return human.memoryRules.filter((r) => r.active)
+    if (method === 'GET') return human.memoryRules.filter((r) => r.active).map((r) => ({ ...r, affectedTxns: new Set(explanations.filter((e) => e.sources.some((x) => x.kind === 'memoryRule' && x.ref === r.ruleId)).map((e) => e.bankTxnId)).size }))
     if (method === 'POST') {
       const rule = { ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, active: true, at: now(), ...(await readBody()) }
       human.memoryRules.push(rule)
       return rule
     }
     if (method === 'DELETE') {
-      found(human.memoryRules.find((r) => r.ruleId === seg[4]), 'esa regla').active = false
+      const rule = found(human.memoryRules.find((r) => r.ruleId === seg[4]), 'esa regla')
+      Object.assign(rule, { active: false, deletedAt: now() })
       return null
     }
   }

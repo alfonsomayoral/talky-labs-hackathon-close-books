@@ -27,7 +27,11 @@ export function FilterBar({ children, onClear, end, className }: FilterBarProps)
           </Button>
         )}
       </div>
-      {end != null && <div className={styles.end}>{end}</div>}
+      {end != null && (
+        <div className={styles.end} aria-live="polite">
+          {end}
+        </div>
+      )}
     </div>
   )
 }

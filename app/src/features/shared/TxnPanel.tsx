@@ -9,7 +9,7 @@ import { formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { TxnEvidence } from './TxnEvidence'
 import { TxnRows } from './TxnRows'
-import { decisionOf, distinctParties } from './txnPanelModel'
+import { decisionOf, distinctParties, soleParty } from './txnPanelModel'
 import styles from './TxnPanel.module.css'
 
 export interface TxnPanelProps {
@@ -23,6 +23,8 @@ const RELATION_LABEL: Record<string, string> = {
   duplicateOf: 'Duplicado de',
   representmentOf: 'Reintento de',
   sameBatch: 'Misma remesa',
+  duplicatedBy: 'Duplicado por',
+  sameItem: 'Misma partida',
 }
 
 const BANK_LINE_LABEL: Record<keyof BankLine, string> = {
@@ -98,6 +100,7 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
   const caseLink = useCaseLink(detail.case?.caseId)
   const decision = decisionOf(rows)
   const parties = distinctParties(rows)
+  const sole = soleParty(rows)
   return (
     <div className={styles.body}>
       <div className={styles.summary}>
@@ -119,7 +122,7 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
             </Fragment>
           )) : 'Sin regla'}
           {decision.confidence != null && <> con confianza {formatPercent(decision.confidence, { decimals: 0 })}</>}
-          {parties > 1 ? <> sobre <strong>{formatNumber(parties)} terceros</strong></> : party ? <> sobre <strong>{party.partyName}</strong></> : ', sin tercero'}
+          {parties > 1 ? <> sobre <strong>{formatNumber(parties)} terceros</strong></> : party || sole ? <> sobre <strong>{party?.partyName ?? sole?.partyName}</strong></> : ', sin tercero'}
         </p>
         <div className={styles.chips}>
           <ConfidenceBand value={decision.confidence} />
@@ -156,6 +159,14 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
       <PanelSection title="Tercero">
         {parties > 1 ? (
           <p className={styles.none}>Este movimiento paga a {formatNumber(parties)} terceros: cada partida lleva el suyo.</p>
+        ) : !party && sole ? (
+          <KeyValue
+            labelWidth={120}
+            items={[
+              { label: 'Nombre', value: sole.partyName },
+              { label: 'Id', value: sole.partyId, mono: true },
+            ]}
+          />
         ) : party ? (
           <KeyValue
             labelWidth={120}

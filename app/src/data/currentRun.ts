@@ -1,10 +1,13 @@
-// Which run the app is looking at: `?run=` in the URL, else the latest LIVE, else the latest of any phase.
+// Which run the app is looking at: `?run=` in the URL, else the one the server was started with,
+// else the latest LIVE, else the latest of any phase.
 import type { RunSummary } from '@/domain'
 import { useRunParam } from '@/lib/urlState'
 import { useRuns } from './api/queries'
 
 export function chooseRun(runs: RunSummary[], wanted: string | null): RunSummary | null {
   if (wanted) return runs.find((r) => r.runId === wanted) ?? null
+  const served = runs.find((r) => r.served)
+  if (served) return served
   const byDate = [...runs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   return byDate.find((r) => r.phase === 'live') ?? byDate[0] ?? null
 }

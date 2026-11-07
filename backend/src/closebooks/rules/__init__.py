@@ -3,9 +3,16 @@ from __future__ import annotations
 
 from ..load import Phase
 from ..model import Proposal
-from . import payment_runs
+from . import advices, card_settlements, categories, cheque_deposits, dd_batches, payment_runs
 
-PASSES = (payment_runs.propose,)
+PASSES = (
+    payment_runs.propose,
+    advices.propose,
+    dd_batches.propose,
+    card_settlements.propose,
+    cheque_deposits.propose,
+    categories.propose,
+)
 
 
 def propose(phase: Phase) -> dict[str, Proposal]:

@@ -2,14 +2,14 @@
 
 Lo que entrega el backend en cada ejecución y lo que la plataforma le devuelve. Es el **único punto de encuentro** entre `backend/` y `app/`: ninguno importa código del otro. El problema está en [PROBLEM.md](PROBLEM.md); el plan, en [docs/PLAN.md](docs/PLAN.md); cómo se produce, en [ARCHITECTURE.md](ARCHITECTURE.md) §7.
 
-> **Estado:** v2.1 (7 nov 2026): §5.1 fija las formas de las respuestas. v2: Añade a la v1 los casos, los hechos, el estado, las preguntas, los borradores, la carpeta `human/` y la API. **Cualquier cambio a este fichero va en una PR propia, que fusiona la sesión orquestadora antes de que nadie lo use.**
+> **Estado:** v2.2 (7 nov 2026): §5.2 fija las decisiones de `serve`. v2.1: §5.1 fija las formas de las respuestas. v2: Añade a la v1 los casos, los hechos, el estado, las preguntas, los borradores, la carpeta `human/` y la API. **Cualquier cambio a este fichero va en una PR propia, que fusiona la sesión orquestadora antes de que nadie lo use.**
 
 ## 1. Convenciones
 
 - Una ejecución es una carpeta `runs/<fase>-<YYYYMMDD-HHMMSS>/` (ignorada por git). `<fase>` es `sample`, `train`, `holdout`, `holdout-drift`, `live`, `final` o el nombre de un zip subido.
 - Dentro del backend, los importes van en **céntimos enteros** con su `currency`. En los ficheros de la ejecución y en la API, `amountCents` (entero) + `currency`, y `amountEur` (entero, céntimos de EUR al tipo del día) donde haga falta ordenar o sumar entre divisas. Solo `submission.csv.gz` escribe decimales.
 - JSON con claves en `camelCase`. Fechas `YYYY-MM-DD`; instantes ISO 8601 con zona.
-- Ids: `bankTxnId` (`BT-…`), `itemId` (`ARI-|ARC-|API-|APC-…`), `partyId` (`C…`/`S…` del maestro), `caseId` (`CASE-<bankTxnId>` o `CASE-<kind>-<n>`), `questionId`, `draftId`, `ruleId` (`MR-<n>`).
+- Ids: `bankTxnId` (`BT-…`), `itemId` (`ARI-|ARC-|API-|APC-…`), `partyId` (`C…`/`S…` del maestro), `caseId` (`CASE-<bankTxnId>`; por partida, `CASE-<bankTxnId>-<itemId>`; agregados, `CASE-<kind>-<n>`), `questionId`, `draftId`, `ruleId` (`MR-<n>`).
 - `rule`: `<FAMILIA>-<CASO>` en mayúsculas (`FILE-DD-BATCH`, `ADVICE-CSV`, `REF-EXACT`, `PARTY-AMOUNT`, `HISTORY-DUPLICATE`, `CAT-CODE`, `MEMORY-RULE`, `ARBITER`, `FALLBACK-UNIDENTIFIED`, `FALLBACK-CATEGORY`).
 - `SourceRef`: `{ "kind", "ref", "label"? }` con `kind` ∈ `remittanceAdvice`, `directDebitBatch`, `cardSettlement`, `chequeDeposit`, `paymentRun`, `pdf`, `customer`, `supplier`, `bankAccount`, `fxRate`, `bankLine`, `memoryRule`, `humanDecision`; `ref` es un id del dataset o una ruta relativa a la carpeta de la fase.
 
@@ -65,6 +65,7 @@ Un caso es lo que la plataforma enseña y lo que una persona decide. Hay un caso
 | --- | --- |
 | `kind` | `unidentified_receipt`, `ambiguous_match`, `dispute` (`SHORT_DISPUTE` pendiente), `short_payment` (`PARTIAL` no explicado), `duplicate_payment`, `overpayment`, `returned` (`RETURNED`), `fx_difference`, `supplier_invoice_mismatch` (AP pagada por otro importe, dos veces, rechazada o cedida), `supplier_credit_pending` (`APC` sin compensar), `unknown_debit` (`FALLBACK-CATEGORY`), `overdue_customer` (agregado por cliente: saldo vencido), `new_bank_details` |
 | `status` | `auto` (cerrado por el sistema, se enseña), `needs_review` (cerrado con confianza < 0,9), `question` (hay una `questionId`), `fallback` (sin casación), `done` (una persona lo marcó) |
+| granularidad | Un caso por movimiento, salvo `supplier_invoice_mismatch`, `dispute` y `overdue_customer`: uno por (tercero, partida) con `partyId`, `itemIds` de esa partida y su importe. `status: auto` con `suggestedAction: email_*` = movimiento cerrado, incidencia viva. Un cargo categorizado sin casación no es `ambiguous_match`: va sin caso o como `unknown_debit` con `suggestedAction: none` |
 | `priority` | 1 (alto) .. 3 |
 | `suggestedAction` | `none`, `ask`, `email_customer`, `email_supplier`, `review` |
 | `amountCents`, `amountEur` | **Magnitud positiva** siempre (también en cargos: el signo lo dice `kind` y el movimiento). En `stats`, `reviewQueueEur`, `byKind[].amountEur` e `identifiedEur` son sumas de magnitudes |
@@ -79,7 +80,7 @@ Una fila por movimiento con tercero resuelto: `bankTxnId`, `partyId`, `partyKind
 
 ### 2.5 `state/open_items.parquet`
 
-Una fila por partida con movimiento en la fase o abierta al inicio: `itemId`, `itemType`, `entity`, `partyId`, `documentNumber`, `issueDate`, `dueDate`, `currency`, `totalCents`, `openAtStartCents`, `appliedCents`, `openAtEndCents`, `status` (`open`, `partial`, `cleared`, `disputed`, `returned`), `history` (JSON: `[{bankTxnId, bookingDate, amountCents, exception}]`).
+Una fila por partida **emitida en la fase**, abierta al inicio o con movimiento en la fase (también las que no tienen ningún movimiento: sin ellas el aging no es creíble): `itemId`, `itemType`, `entity`, `partyId`, `documentNumber`, `issueDate`, `dueDate`, `currency`, `totalCents`, `openAtStartCents`, `appliedCents`, `openAtEndCents`, `status` (`open`, `partial`, `cleared`, `disputed`, `returned`), `history` (JSON: `[{bankTxnId, bookingDate, amountCents, exception}]`).
 
 ### 2.6 `questions.jsonl`
 
@@ -596,3 +597,24 @@ export interface DetailFileRow {
   rows: number
 }
 ```
+
+### 5.2 Decisiones de la implementación de `serve` (v2.2)
+
+Fijadas al integrar la API; mandan sobre lo que §4 y §5 dejaban abierto.
+
+1. `PUT …/drafts/{id}` guarda la edición en `human/outbox.jsonl` con `status: "draft"` y `by: null`; gana el último registro por `draftId`. `send` y `manual` añaden su registro después.
+2. `DELETE …/memory-rules/{ruleId}` añade a `memory_rules.jsonl` la regla con `active: false` y `deletedAt`; gana el último registro por `ruleId`; responde 204. `closebooks run --memory` aplica la misma regla de «último registro».
+3. `stats.byKind` cuenta solo los casos de la cola de revisión (`needs_review`, `question`, `fallback`).
+4. Tras una decisión: `done` y `manual` dejan el caso en `done`; `review` en `needs_review`; responder una pregunta cierra su caso. Volver a responder una pregunta devuelve 409.
+5. `saveAsRule` crea la regla a partir de `rulePreview`; si la opción elegida es una partida, el `partyId` es el de su tercero; la opción `none` no crea regla.
+6. `aging` usa `partyKind=customer` por defecto y solo cuenta facturas con saldo final > 0 (no abonos).
+7. `RunStatus.stage` es aproximado (`load` u `output`) mientras `closebooks run` solo escriba `run.json` al final.
+8. `POST /api/runs` con `memoryFrom` copia `memory_rules.jsonl` a la nueva ejecución; la aplicación de reglas llega con `--memory`.
+9. Relaciones entre movimientos en el detalle: `returnOf`, `returnedBy`, `duplicateOf`, `duplicatedBy`, `sameItem`.
+10. En `documents`, la fecha y el `partyName` de un PDF se deducen del nombre del fichero y de su partida; en avisos, `partyName` es `null`.
+11. `POST …/drafts` responde 501 hasta que exista el generador de borradores.
+12. `closebooks serve <run>` marca esa ejecución con `served: true` en `RunSummary` (las demás `false`) y es la única que precarga; la plataforma la elige por defecto. Las demás se abren bajo demanda (primera apertura, segundos).
+13. `GET …/cases` devuelve además `sumAmountEur`: suma de `amountEur` de todos los casos que cumplen el filtro, no solo de la página.
+15. `serve` no acepta conexiones hasta terminar la precarga de la ejecución servida (la primera petición nunca paga los ~30 s de apertura).
+16. `summary` de un caso describe lo resuelto (regla, partidas, excepción), nunca «sin casación» si hay filas con partida. `TxnDetail.party` solo es `null` con más de un `partyId` distinto; con 27 filas del mismo cliente lleva ese tercero con su `how` y confianza.
+14. El esquema OpenAPI de `ValidationResult.errors` es `{row: number | null, message: string}` (nombre de esquema propio, sin chocar con el `ValidationError` de FastAPI).
