@@ -178,6 +178,30 @@ _TEXT = {
 }
 
 
+_RETURNED_TEXT = {
+    "es": ("Transferencia devuelta por el banco",
+           "La transferencia de {amount} del {date} nos ha sido devuelta por su banco. Afecta a:\n\n{docs}\n\n"
+           "Por favor, confírmennos sus datos bancarios para volver a emitir el pago."),
+    "en": ("Transfer returned by the bank",
+           "Our transfer of {amount} on {date} was returned by your bank. It relates to:\n\n{docs}\n\n"
+           "Please confirm your bank details so that we can issue the payment again."),
+    "fr": ("Virement retourné par la banque",
+           "Notre virement de {amount} du {date} a été retourné par votre banque. Il concerne :\n\n{docs}\n\n"
+           "Merci de nous confirmer vos coordonnées bancaires afin de réémettre le paiement."),
+    "de": ("Überweisung von der Bank zurückgegeben",
+           "Unsere Überweisung über {amount} vom {date} wurde von Ihrer Bank zurückgegeben. Sie betrifft:\n\n{docs}\n\n"
+           "Bitte bestätigen Sie Ihre Bankverbindung, damit wir die Zahlung erneut ausführen können."),
+    "it": ("Bonifico restituito dalla banca",
+           "Il nostro bonifico di {amount} del {date} è stato restituito dalla vostra banca. Riguarda:\n\n{docs}\n\n"
+           "Vi preghiamo di confermare le vostre coordinate bancarie per poter riemettere il pagamento."),
+    "pt": ("Transferência devolvida pelo banco",
+           "A nossa transferência de {amount} de {date} foi devolvida pelo vosso banco. Refere-se a:\n\n{docs}\n\n"
+           "Por favor, confirmem os vossos dados bancários para podermos reemitir o pagamento."),
+}
+for _language, _returned in _RETURNED_TEXT.items():
+    _TEXT[_language]["returned_supplier"] = _returned
+
+
 def language_of(country: str | None) -> str:
     return _COUNTRY_LANGUAGE.get((country or "").upper(), "es")
 
@@ -199,6 +223,8 @@ def template_of(case: dict, exception: str | None = None) -> tuple[str, str] | N
     got = CASE_TEMPLATE.get(case["kind"])
     if got and got[1] == "mismatch" and exception == "DUPLICATE_PAYMENT":
         return got[0], "duplicate_supplier"
+    if got and got[1] == "mismatch" and exception == "RETURNED":
+        return got[0], "returned_supplier"
     return got
 
 
@@ -219,7 +245,7 @@ def _docs(items: list[dict], language: str, with_amount: bool) -> str:
 
 def render(case: dict, facts: dict, exception: str | None = None) -> dict | None:
     """The draft (without id) of a case, or None. `facts`: partyName, country, email, sender, items (number,
-    due_date, currency, open_cents)."""
+    due_date, currency, open_cents and, if the invoice has one, the relative path `pdf`)."""
     found = template_of(case, exception)
     if found is None or not case.get("partyId"):
         return None
@@ -244,7 +270,8 @@ def render(case: dict, facts: dict, exception: str | None = None) -> dict | None
         text["bye"], facts.get("sender") or case["entity"]])
     return {"caseId": case["caseId"], "kind": kind, "to": facts.get("email"), "toName": facts.get("partyName"),
             "partyId": case["partyId"], "language": language, "subject": subject, "body": message,
-            "attachments": [], "generatedBy": "template", "status": "draft"}
+            "attachments": [{"kind": "pdf", "ref": i["pdf"], "label": i["number"]} for i in items if i.get("pdf")],
+            "generatedBy": "template", "status": "draft"}
 
 
 def top_per_template(cases: list[dict], exceptions: dict[str, str | None]) -> list[dict]:

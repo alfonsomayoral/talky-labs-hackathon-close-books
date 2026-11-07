@@ -66,3 +66,22 @@ def test_only_the_biggest_cases_of_each_template_get_a_draft_in_a_stable_order()
     assert chosen[0] == "CASE-D" and chosen[1] == f"CASE-{DRAFTS_PER_KIND + 4}"
     duplicate = template_of(case("supplier_invoice_mismatch"), "DUPLICATE_PAYMENT")
     assert duplicate == ("email_supplier", "duplicate_supplier")
+
+
+def test_transfer_returned_by_the_bank_asks_for_bank_details_not_for_a_corrected_invoice():
+    mismatch = case("supplier_invoice_mismatch")
+    d = render(mismatch, facts("GB"), "RETURNED")
+    assert "returned" in d["subject"].lower()
+    assert "does not match" not in d["subject"].lower()
+    assert "bank details" in d["body"]
+    for country in ("ES", "FR", "DE", "IT", "PT"):
+        assert render(mismatch, facts(country), "RETURNED")["subject"] != render(mismatch, facts(country))["subject"]
+
+
+def test_draft_attaches_the_pdfs_of_its_invoices_that_exist():
+    data = facts()
+    data["items"][0]["pdf"] = "pdfs/ES01/ARI_FV1.pdf"
+    d = render(case(), data)
+    assert d["attachments"] == [{"kind": "pdf", "ref": "pdfs/ES01/ARI_FV1.pdf", "label": data["items"][0]["number"]}]
+    assert all(a["ref"] for a in d["attachments"])
+    assert render(case(), facts())["attachments"] == []
