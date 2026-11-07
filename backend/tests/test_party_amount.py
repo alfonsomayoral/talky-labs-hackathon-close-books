@@ -24,15 +24,15 @@ def masters(customers=(), suppliers=()):
 
 
 def item(item_id, party, number, cents, issued="2024-01-01", open_cents=None, name=None, po=None, currency="EUR",
-         entity="E1"):
+         entity="E1", related=None):
     return {"item_id": item_id, "item_type": item_id[:3], "entity": entity, "party_id": party,
             "party_name": name or party,
             "document_number": number, "issue_date": issued, "currency": currency, "total_cents": cents,
-            "open_cents": cents if open_cents is None else open_cents, "customer_po": po}
+            "open_cents": cents if open_cents is None else open_cents, "customer_po": po, "related_document": related}
 
 
 def engine(items, customers=(("C1", "E1", "Wellness Garrido S.L.", None, "ES11", None, None, None),), suppliers=()):
-    table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String})
+    table = pl.DataFrame(items, schema_overrides={"customer_po": pl.String, "related_document": pl.String})
     phase = SimpleNamespace(items=table, masters=masters(customers, suppliers), start="2021-01-01")
     balances = OpenBalances(dict(zip(table["item_id"], table["open_cents"], strict=True)))
     return PartyAmount(phase, reserved={}), balances
@@ -487,8 +487,9 @@ def test_a_long_cut_number_that_only_fits_one_invoice_explains_a_partial():
 
 
 def test_a_short_cut_number_that_fits_several_invoices_explains_nothing_on_its_own():
+    # 683,16 would be 60 % of ARI-1, a round share that PARTY-FRACTION explains with no citation.
     rule, balances = engine([item("ARI-1", "C1", "FT22-01-26956", 113861), item("ARI-2", "C1", "FT22-01-26999", 999)])
-    assert rule(txn(68316, NAME, remit="CAUSALE FT FT22-01-269"), balances) is None
+    assert rule(txn(68000, NAME, remit="CAUSALE FT FT22-01-269"), balances) is None
 
 
 def test_rows_of_a_completed_reference_come_in_a_stable_order():
@@ -808,3 +809,39 @@ def test_payment_factory_does_not_apply_to_what_customers_pay():
                  ("C2", "E2", "Valvulas Castro S.L.", None, None, None, None, None))
     rule, balances = engine([item("ARI-1", "C2", "500", 57297, entity="E2")], customers=customers)
     assert rule(txn(57297, "TRANSFERENCIA DE VALVULAS CASTRO S.L.", entity="E1"), balances) is None
+
+
+def test_a_round_fraction_of_the_only_open_invoice_it_fits_is_a_partial_payment():
+    # BT-2025-0065845: 594,43 is 30 % of NF0125000182 (1.981,44), with the cent rounded.
+    rule, balances = engine([item("ARI-1", "C1", "NF0125000182", 198144), item("ARI-2", "C1", "NF0125000183", 51000)])
+    wire = txn(59443, NAME)
+    proposal = rule(wire, balances)
+    assert (proposal.rule, lines(proposal)) == ("PARTY-FRACTION", {"ARI-1"})
+    book = masters(customers=(("C1", "E1", "Wellness Garrido S.L.", None, "ES11", None, None, None),))
+    book["customers"] = book["customers"].with_columns(pl.lit("ES").alias("country"))
+    book["payment_terms"] = pl.DataFrame(schema=dict.fromkeys(
+        ["code", "early_payment_discount_pct", "discount_days"], pl.String))
+    phase = SimpleNamespace(items=rule._known.with_columns(pl.lit(None, pl.String).alias("payment_terms")),
+                            masters=book, txns=pl.DataFrame([dict(wire, bank="B", bank_code="", bank_subcode="",
+                                                                amount_eur_cents=wire["amount_cents"])],
+                                                           schema_overrides={"orig_cents": pl.Int64}))
+    rows, balances = resolve(phase, {}, rule)
+    assert [(r.item_id, r.amount_cents, r.exception) for r in rows] == [("ARI-1", 59443, "PARTIAL")]
+    assert balances.open("ARI-1") == 198144 - 59443
+
+
+def test_an_invoice_with_an_open_credit_note_of_its_own_is_not_taken_for_a_fraction():
+    # Credit notes are often round fractions of their invoice: invoice minus note looks like a partial.
+    rule, balances = engine([item("ARI-1", "C1", "NF0125000182", 198144),
+                             item("ARC-1", "C1", "AB0125000007", 49536, related="NF0125000182")])
+    assert rule(txn(59443, NAME), balances) is None
+
+
+def test_a_fraction_that_two_open_invoices_fit_is_not_guessed():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 198144), item("ARI-2", "C1", "F2", 297216)])
+    assert rule(txn(59443, NAME), balances) is None
+
+
+def test_a_cash_that_is_no_round_fraction_of_the_invoice_is_not_a_partial():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 198144)])
+    assert rule(txn(73908, NAME), balances) is None
