@@ -40,7 +40,7 @@ Abiertos uno a uno en el navegador con esta ejecución. Dos cosas que se ven en 
 - La última ejecución de LIVE tiene preguntas y borradores (`questions.jsonl` y `drafts.jsonl` con filas). Sin ellos, los pasos 3 y 4 no se pueden grabar.
 - Hay al menos una pregunta con `rulePreview` y un caso `overdue_customer` con borrador. Si no hay `overdue_customer`, se graba la variante B del paso 4.
 - Se conoce un movimiento con un aviso de remesa en su evidencia: apúntate su id para el paso 2.
-- No se dice una cifra que no esté en pantalla. Si la ejecución no es `live-kpi6-cases2`, actualiza esta página antes de grabar.
+- No se dice una cifra que no esté en pantalla. Si la ejecución no es `live-final-a`, actualiza esta página antes de grabar.
 - Nunca se enseña el token ni la terminal desde la que se envía a la clasificación.
 
 | # | Tiempo | Pantalla | Qué se hace | Qué se dice |
