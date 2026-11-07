@@ -92,7 +92,12 @@ def build_cases(rows: list[Row], txns: dict[str, dict], created_at: str) -> list
         kind, action = _classify(first, exception)
         who = txn["counterparty_name"] or (txn["text"] or "")[:60]
         verb = "Cobro" if txn["amount_cents"] > 0 else "Cargo"
-        tail = exception or "sin casación"
+        settled = sum(1 for r in lines if r.item_id)
+        if first.rule.startswith("FALLBACK-"):
+            tail = exception or "sin casación"
+        else:
+            plural = "s" if settled != 1 else ""
+            tail = f"{first.rule}, {settled} partida{plural}" + (f", {exception}" if exception else "")
         cases.append({
             "caseId": f"CASE-{txn_id}", "kind": kind, "status": _status(first),
             "priority": _priority(txn["amount_eur_cents"]), "entity": txn["entity"], "bankTxnId": txn_id,

@@ -105,14 +105,13 @@ def _related(cur, txn_id: str, rows: list[dict]) -> list[dict]:
     return out[:20]
 
 
-def _party_resolution(run: RunData, cur, txn_id: str) -> dict | None:
+def _party_resolution(run: RunData, cur, txn_id: str, rows: list[dict], bank: dict) -> dict | None:
+    """The facts row if the run has one; else the party the rows carry, with the rule as `how`."""
     parquet = run.dir / "facts" / "parties.parquet"
-    if not parquet.exists():
-        return None
     got = fetch(duckdb.connect(), f'SELECT * FROM read_parquet({lit(parquet)}) WHERE "bankTxnId" = ? LIMIT 1',
-                [txn_id])
+                [txn_id]) if parquet.exists() else []
     if not got:
-        return None
+        return _party_from_rows(cur, rows, bank)
     p = got[0]
     names = dict(cur.execute('SELECT "partyId", name FROM party').fetchall())
     alternatives = orjson.loads(p["alternatives"]) if p["alternatives"] else []
@@ -135,6 +134,18 @@ def _belongs(header: list[str], row: list[str], keys: set[str], account_id: str)
         return any(len(c) >= 6 and c in keys for c in row)
     account = next((cell[c] for c in ACCOUNT_COLUMNS if c in cell), None)
     return any(cell[c] in keys for c in id_columns) and (account is None or account == account_id)
+
+
+def _party_from_rows(cur, rows: list[dict], bank: dict) -> dict | None:
+    first = next((r for r in rows if r["partyId"]), None)
+    if first is None:
+        return None
+    found = cur.execute('SELECT name, kind FROM party WHERE "partyId" = ?', [first["partyId"]]).fetchone()
+    if found is None:
+        return None
+    return {"partyId": first["partyId"], "partyName": found[0], "partyKind": found[1],
+            "payerName": bank["counterpartyName"], "how": first["rule"], "confidence": first["confidence"],
+            "alternatives": []}
 
 
 def _detail_file(run: RunData, ref: str, bank: dict, references: set[str]) -> dict:
@@ -199,7 +210,7 @@ def transaction_detail(runId: str, bankTxnId: str, request: Request):
         raise not_found("Transaction", bankTxnId)
     bank = banks[0]
     rows = fetch(cur, f'SELECT {cols(EXPLANATION_FIELDS, "r.")}, o."itemType" AS _t, '
-                      f'{cols([f for f in ITEM_FIELDS if f not in ("itemId", "itemType")], "o.")} '
+                      f'{", ".join(f'o."{f}" AS "i_{f}"' for f in ITEM_FIELDS if f not in ("itemId", "itemType"))} '
                       f'FROM rows r LEFT JOIN open_items o ON o."itemId" = r."itemId" '
                       f'WHERE r."bankTxnId" = ? ORDER BY r."rowNo"', [bankTxnId])
     detail_rows = []
@@ -207,7 +218,7 @@ def transaction_detail(runId: str, bankTxnId: str, request: Request):
         item = None
         if r["_t"]:
             item = {"itemId": r["itemId"], "itemType": r["_t"]} | {
-                f: r[f] for f in ITEM_FIELDS if f not in ("itemId", "itemType")}
+                f: r[f"i_{f}"] for f in ITEM_FIELDS if f not in ("itemId", "itemType")}
         detail_rows.append({f: r[f] for f in EXPLANATION_FIELDS} | {"item": item})
     candidates = {c["itemId"]: c for r in rows for c in r["candidates"] or []}
     sources = {(s["kind"], s["ref"]): s for r in rows for s in r["sources"] or []}
@@ -217,7 +228,7 @@ def transaction_detail(runId: str, bankTxnId: str, request: Request):
     case = fetch(cur, f'SELECT {cols(CASE_FIELDS)} FROM cases WHERE "bankTxnId" = ? ORDER BY "caseId" LIMIT 1',
                  [bankTxnId])
     several_parties = len({r["partyId"] for r in rows if r["partyId"]}) > 1  # a remittance paying several parties
-    party = None if several_parties else _party_resolution(run, cur, bankTxnId)
+    party = None if several_parties else _party_resolution(run, cur, bankTxnId, rows, bank)
     return {"txn": bank, "rows": detail_rows, "party": party,
             "candidates": list(candidates.values()), "evidence": evidence, "related": _related(cur, bankTxnId, rows),
             "case": case[0] if case else None}

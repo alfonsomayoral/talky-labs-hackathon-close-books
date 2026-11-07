@@ -488,3 +488,26 @@ def test_validation_errors_have_their_own_schema_with_row_and_message():
     issue = schemas["ValidationResult"]["properties"]["errors"]["items"]["$ref"].rsplit("/", 1)[1]
     assert issue != "ValidationError" and set(schemas[issue]["properties"]) == {"row", "message"}
     assert {"loc", "msg"} <= set(schemas["ValidationError"]["properties"])  # FastAPI's own, untouched
+
+
+def test_party_comes_from_the_rows_when_the_run_has_no_resolution_for_it(api):
+    one = get(api, "/transactions/BT-8")["party"]  # 1 row, C1, no row in facts/parties.parquet
+    assert (one["partyId"], one["partyName"], one["partyKind"]) == ("C1", "Acme Ñandú S.L.", "customer")
+    assert (one["how"], one["confidence"], one["payerName"], one["alternatives"]) == (
+        "ADVICE-TXT", 1.0, "Acme Ñandú S.L.", [])
+    two = get(api, "/transactions/BT-2")  # two rows of C1 paying items of C1 and C2
+    assert {r["partyId"] for r in two["rows"]} == {"C1"} and two["party"]["partyId"] == "C1"
+    assert {r["item"]["partyId"] for r in two["rows"]} == {"C1", "C2"}  # the row's party is not the item's
+    assert get(api, "/transactions/BT-3")["party"] is None  # no party at all
+
+
+def test_serve_accepts_connections_only_after_preloading_the_served_run(env, monkeypatch):
+    import closebooks.cli as cli
+    import closebooks.paths as p
+
+    seen = {}
+    monkeypatch.setattr("uvicorn.run", lambda app, **kw: seen.update(
+        opened=set(app.state.store._runs), phases=set(app.state.store._phases), served=app.state.store.served))
+    monkeypatch.setattr(cli, "RUNS", p.RUNS)
+    assert cli.main(["serve", RUN]) == 0
+    assert seen == {"opened": {RUN}, "phases": {"p"}, "served": RUN}

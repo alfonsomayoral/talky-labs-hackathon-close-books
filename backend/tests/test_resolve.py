@@ -138,3 +138,16 @@ def test_return_of_a_payment_made_before_the_data_starts_never_opens_more_than_t
     b = OpenBalances({"ARI-2": 1000}, totals={"ARI-2": 1000})
     b.apply("ARI-2", 1000, "RETURNED", "BT-1", "2025-01-01")
     assert b.open("ARI-2") == 1000
+
+
+def _customer_rows(rule, confidence, n, exception=None):
+    return [Row("BT-1", f"ARI-{i}", 100, "EUR", None, exception, rule, confidence, party_id="C1") for i in range(n)]
+
+
+def test_case_summary_describes_what_was_settled_and_only_fallbacks_say_no_match():
+    settled = _case(_customer_rows("ADVICE-CSV", 0.8, 27))[0]["summary"]
+    assert "sin casación" not in settled and "ADVICE-CSV, 27 partidas" in settled
+    assert "1 partida)" in _case(_customer_rows("ADVICE-CSV", 0.8, 1))[0]["summary"]
+    assert "PARTIAL" in _case(_customer_rows("REF-EXACT", 1.0, 2, "PARTIAL"))[0]["summary"]
+    fallback_row = Row("BT-1", None, None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED", 0.0)
+    assert "sin casación" in _case([fallback_row])[0]["summary"]
