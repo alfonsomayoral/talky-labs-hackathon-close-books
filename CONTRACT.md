@@ -46,7 +46,7 @@ Lo que entrega el backend en cada ejecución y lo que la plataforma le devuelve.
 | `partyId` | `string \| null` | Tercero resuelto (cliente o proveedor por el que se paga, no el ordenante) |
 | `reference` | `string \| null` | Lo que la regla extrajo del texto (número, referencia de aviso, mandato, id de remesa) |
 | `sources` | `SourceRef[]` | Lo que respalda la fila, además del movimiento y la partida |
-| `candidates` | `{itemId, amountCents, currency, why}[]` | Partidas consideradas y descartadas. Solo en reglas ambiguas y en `FALLBACK-*` (vacío si no hay) |
+| `candidates` | `{itemId, amountCents, currency, why}[]` | Partidas consideradas y descartadas. Solo en reglas ambiguas y en `FALLBACK-*` (vacío si no hay). Cuando la política explica un hueco o hipótesis que compiten, una entrada por hipótesis: `why` dice si es la elegida o una descartada (`chosen`, `discarded`), su nivel de evidencia, su excepción y por qué |
 
 ### 2.2 `cases.jsonl.gz`
 

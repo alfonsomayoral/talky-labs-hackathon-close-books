@@ -212,3 +212,6 @@ Ningún segmento baja, y `unidentified` y `unidentified_lookalike` siguen en 1,0
 
 Los recuentos de la tabla son del análisis con saldos reconstruidos del golden, así que son aproximados y optimistas.
 
+### 7.6 Deuda para después del evento
+
+**Panel: unir `candidates` por `(itemId, why)` y titular «Hipótesis».** Hoy `api/routes_txns.py` une por `itemId` y `TxnPanel.tsx` titula «Candidatos descartados» con `key={c.itemId}`. Dos hipótesis sobre una misma partida se quedan en una, la última; por eso `as_candidates` deja la elegida al final. `explanations.jsonl.gz` sí las lleva todas.

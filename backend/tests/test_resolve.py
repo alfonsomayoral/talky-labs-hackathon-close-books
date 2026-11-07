@@ -537,3 +537,23 @@ def test_a_number_that_does_not_fit_the_plan_of_the_pdf_says_nothing():
     for text in ("FECHA 12/05", "PAGO 2/3", "REF 5/2", "VTO 01/02/25", "FV 2/2-7"):
         assert _plan_rows(20000, 40000, [20000, 20000], text).exception == "PARTIAL"
     assert _plan_rows(20000, 40000, [20000, 20000], "PLAZO 1/2 Y 2/2").exception == "PARTIAL"
+
+
+def test_a_gap_explained_by_policy_leaves_its_hypothesis_as_evidence():
+    assert _plan_rows(60000, 100000, [50000, 20000, 30000]).candidates[-1]["why"].startswith("chosen DEFAULT PARTIAL")
+
+
+def test_the_balances_being_the_cash_leave_no_hypothesis():
+    assert _plan_rows(100000, 100000, [50000, 20000, 30000]).candidates == []
+
+
+def test_a_clause_that_rewrites_the_exception_drops_the_hypothesis_it_overruled():
+    # The row says what the plan says: evidence saying PARTIAL was chosen would contradict it.
+    row = _plan_rows(30000, 100000, [50000, 20000, 30000])
+    assert (row.exception, row.candidates) == (None, [])
+
+
+def test_a_policy_rule_is_for_review_whatever_its_confidence():
+    case = _case([_row(rule="POLICY-OVERPAYMENT", exception="OVERPAYMENT", item="ARI-1")])[0]
+    assert case["status"] == "needs_review"
+    assert "por tercero e importe explicado" in case["summary"]

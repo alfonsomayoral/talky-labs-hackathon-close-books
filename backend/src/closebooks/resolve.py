@@ -8,7 +8,7 @@ from dataclasses import replace
 from .categories import fallback
 from .load import Phase, cancelled_item_ids
 from .model import Proposal, Row
-from .policy import CREDIT_NOTES, Terms, as_candidates, cross_border, decide, fee_fits, search
+from .policy import CREDIT_NOTES, Terms, as_candidates, cross_border, decide, fee_fits, search, weighed
 from .rules.party_amount import document_says
 from .state import OpenBalances
 
@@ -53,22 +53,30 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
             candidates = [*candidates, *as_candidates(considered, currency[proposal.lines[0][0]])]
         rows_before = len(rows)
         for item_id, applied in proposal.lines:
+            evidence = candidates
             if decided is not None:
                 if item_id not in decided:
                     continue
                 amount, exception = decided[item_id]
             else:
+                open_cents = applied if proposal.settles_rest else balances.open(item_id)
+                deduction = proposal.deductions.get(item_id)
                 amount, exception = decide(
-                    item_id, currency[item_id], txn["currency"],
-                    applied if proposal.settles_rest else balances.open(item_id), applied, proposal.returned,
-                    deduction=proposal.deductions.get(item_id), terms=terms_of(item_id),
-                    booking_date=txn["booking_date"])
+                    item_id, currency[item_id], txn["currency"], open_cents, applied, proposal.returned,
+                    deduction=deduction, terms=terms_of(item_id), booking_date=txn["booking_date"])
+                if deduction is not None and applied is not None and not proposal.returned:
+                    foreign = currency[item_id] != txn["currency"]
+                    evidence = [*candidates, *as_candidates(weighed(
+                        item_id, foreign, open_cents, applied, deduction, terms_of(item_id), txn["booking_date"]),
+                        currency[item_id])]
             if amount < 0:  # FORMAT.md: one negative amount invalidates the whole CSV
                 print(f"warning: negative amount {amount} on {item_id} of {txn_id} by {proposal.rule}: line left out",
                       file=sys.stderr)
                 continue
-            exception = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception, txn,
-                                          currency[item_id] != txn["currency"])
+            as_planned = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception, txn,
+                                           currency[item_id] != txn["currency"])
+            if as_planned != exception:  # the clause overruled what policy chose: what it weighed says nothing
+                exception, evidence = as_planned, proposal.candidates
             balance_effect = exception
             doubts_first = item_id in settled_uncited and proposal.rule != "PARTY-DUPLICATE"
             if exception == "DUPLICATE_PAYMENT" and doubts_first:
@@ -81,7 +89,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
             balances.apply(item_id, amount, balance_effect, txn_id, txn["booking_date"])
             rows.append(Row(txn_id, item_id, amount, currency[item_id], None, exception or None, proposal.rule,
                             proposal.confidence, party[item_id], proposal.reference, proposal.sources,
-                            candidates))
+                            evidence))
         if len(rows) == rows_before:
             rows.append(_fallback_row(txn))
     return rows, balances

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
@@ -148,10 +149,23 @@ def _printed(item: str, open_cents: int, applied: int, shortfall: int, reason: s
 def _deducted(item: str, open_cents: int, applied: int, deduction: tuple[int, str | None], terms: Terms | None,
               booking_date: str | None) -> tuple[int, str]:
     """A document prints what was deducted and, usually, why."""
+    hypotheses = _printed_gap(item, open_cents, applied, deduction, terms, booking_date)
+    return choose(hypotheses).lines[item] if hypotheses else (open_cents, "")
+
+
+def _printed_gap(item: str, open_cents: int, applied: int, deduction: tuple[int, str | None], terms: Terms | None,
+                 booking_date: str | None) -> list[Hypothesis]:
     shortfall, reason = abs(deduction[0]), (deduction[1] or "").strip().upper()
     if not shortfall or applied >= open_cents:
-        return open_cents, ""
-    return choose(list(_printed(item, open_cents, applied, shortfall, reason, terms, booking_date))).lines[item]
+        return []
+    return list(_printed(item, open_cents, applied, shortfall, reason, terms, booking_date))
+
+
+def weighed(item: str, foreign: bool, open_cents: int, applied: int, deduction: tuple[int, str | None],
+            terms: Terms | None, booking_date: str | None) -> list[Hypothesis]:
+    """What `decide` weighed on a deduction a document prints, the chosen one first: the evidence of its row."""
+    hypotheses = _printed_gap(item, open_cents, applied, deduction, terms, booking_date) if open_cents > 0 else []
+    return _considered(choose(hypotheses), hypotheses, foreign) if hypotheses else []
 
 
 def decide(item_id: str, item_currency: str, txn_currency: str, open_cents: int, applied_cents: int | None,
@@ -204,10 +218,15 @@ def search(cash: int | None, items: list[tuple[str, int, Terms]], booking_date: 
     case = Gap(net - cash, cash, invoices, notes, booking_date, eur_per_cent)
     hypotheses = [hypothesis for node in NODES for hypothesis in node(case)]
     chosen = choose(hypotheses)
+    return _with_fx_on({**settled_notes, **chosen.lines}, foreign), _considered(chosen, hypotheses, foreign)
+
+
+def _considered(chosen: Hypothesis, hypotheses: list[Hypothesis], foreign: bool) -> list[Hypothesis]:
+    """The chosen one first and the other explanations, saying what their rows would say."""
     considered = [chosen, *(h for h in _distinct(hypotheses) if h.lines != chosen.lines)]
-    if len(considered) > 1:
-        considered = [replace(h, lines=_with_fx_on(h.lines, foreign)) for h in considered]
-    return _with_fx_on({**settled_notes, **chosen.lines}, foreign), considered
+    if chosen.evidence == Evidence.EXACT:  # nearly every line: nothing will read it
+        return considered
+    return [replace(h, lines=_with_fx_on(h.lines, foreign)) for h in considered]
 
 
 def _with_fx_on(lines: dict[str, tuple[int, str]], foreign: bool) -> dict[str, tuple[int, str]]:
@@ -215,16 +234,22 @@ def _with_fx_on(lines: dict[str, tuple[int, str]], foreign: bool) -> dict[str, t
 
 
 def as_candidates(considered: list[Hypothesis], currency: str) -> list[dict]:
-    """The hypotheses of a row for its evidence, one entry per item: nothing when there was only one to consider."""
-    if len(considered) < 2:
+    """The evidence of a row, one entry per hypothesis, whatever its invoices: every row of a bank line repeats them.
+    Nothing when the balances were the cash. The chosen one last: an item keeps its last entry in the API (panel debt,
+    docs/ACCURACY_PLAN.md §7.6)."""
+    if not considered or considered[0].evidence == Evidence.EXACT:
         return []
-    out = []
-    for item in {item: None for hypothesis in considered for item in hypothesis.lines}:
-        mine = [h for h in considered if item in h.lines]
-        why = "; ".join(f"{'chosen ' if h is considered[0] else ''}{h.evidence.name} {h.lines[item][1] or '-'} "
-                        f"{h.lines[item][0]}: {h.why}" for h in mine)
-        out.append({"itemId": item, "amountCents": mine[0].lines[item][0], "currency": currency, "why": why})
-    return out
+    return [_as_candidate(h, currency, "chosen" if h is considered[0] else "discarded")
+            for h in reversed(considered) if h.lines]
+
+
+def _as_candidate(hypothesis: Hypothesis, currency: str, verdict: str) -> dict:
+    lines = hypothesis.lines
+    said = Counter(exception or "-" for _, exception in lines.values())
+    what = ", ".join(name if n == 1 else f"{name} x{n}" for name, n in said.items())
+    named = next((item for item, (_, exception) in lines.items() if exception), next(iter(lines)))
+    return {"itemId": named, "amountCents": sum(amount for amount, _ in lines.values()), "currency": currency,
+            "why": f"{verdict} {hypothesis.evidence.name} {what}: {hypothesis.why}"}
 
 
 @dataclass(slots=True)

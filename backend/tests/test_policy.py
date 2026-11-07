@@ -14,6 +14,7 @@ from closebooks.policy import (
     decide,
     fee_fits,
     search,
+    weighed,
 )
 
 D2N30 = Terms(discount_pct=2.0, discount_days=10, issue_date="2025-06-01", total_cents=140394, country="ES")
@@ -320,10 +321,45 @@ def test_search_keeps_the_explanation_it_rejected_for_the_evidence():
     assert [(h.evidence, h.lines) for h in considered] == [
         (Evidence.ALL_DISCOUNTS, {"ARI-1": (100000, "SHORT_DISCOUNT")}),
         (Evidence.DEFAULT, {"ARI-1": (98000, "PARTIAL")})]
-    entry = as_candidates(considered, "EUR")[0]
-    assert (entry["itemId"], entry["amountCents"]) == ("ARI-1", 100000)
-    assert entry["why"].startswith("chosen ALL_DISCOUNTS SHORT_DISCOUNT") and "DEFAULT PARTIAL 98000" in entry["why"]
+    discarded, chosen = as_candidates(considered, "EUR")
+    assert (discarded["itemId"], discarded["amountCents"], chosen["itemId"], chosen["amountCents"]) == (
+        "ARI-1", 98000, "ARI-1", 100000)
+    assert discarded["why"].startswith("discarded DEFAULT PARTIAL")
+    assert chosen["why"].startswith("chosen ALL_DISCOUNTS SHORT_DISCOUNT")
 
 
 def test_one_hypothesis_says_nothing_to_the_evidence():
     assert as_candidates(search(100000, [("ARI-1", 100000, PLAIN)], "2025-06-05", False)[1], "EUR") == []
+
+
+def test_a_gap_nothing_explains_still_says_what_was_chosen():
+    entries = as_candidates(search(60000, [("ARI-1", 100000, PLAIN)], "2025-06-05", False)[1], "EUR")
+    assert [(e["amountCents"], e["why"].split(":")[0]) for e in entries] == [(60000, "chosen DEFAULT PARTIAL")]
+
+
+def test_many_invoices_are_one_entry_per_hypothesis_not_one_per_invoice():
+    # A row of the bank line repeats its candidates: an advice of 886 invoices cannot write 886 entries on each row.
+    items = [(f"ARI-{n}", 100000, _terms(2.0)) for n in range(3)]
+    discarded, chosen = as_candidates(search(294000, items, "2025-06-05", False)[1], "EUR")
+    assert chosen["amountCents"] == 300000 and chosen["why"].startswith("chosen ALL_DISCOUNTS SHORT_DISCOUNT x3:")
+    assert discarded["amountCents"] == 294000 and discarded["why"].startswith("discarded DEFAULT -")
+
+
+def test_the_hypotheses_of_a_foreign_payment_say_what_its_row_says():
+    out, considered = search(98000, [("ARI-1", 100000, _terms(2.0))], "2025-06-05", True)
+    assert out == {"ARI-1": (100000, "FX_DIFFERENCE")}
+    assert as_candidates(considered, "USD")[-1]["why"].startswith("chosen ALL_DISCOUNTS FX_DIFFERENCE")
+
+
+def test_a_printed_deduction_weighs_what_decide_chose_against_what_nothing_explains():
+    considered = weighed("ARI-1", False, 100000, 95000, (-5000, "GOODS DAMAGED"), PLAIN, "2025-06-05")
+    assert [(h.evidence, h.lines["ARI-1"]) for h in considered] == [
+        (Evidence.PRINTED_REASON, (95000, "SHORT_DISPUTE")), (Evidence.DEFAULT, (95000, "PARTIAL"))]
+    assert decide("ARI-1", "EUR", "EUR", 100000, 95000, deduction=(-5000, "GOODS DAMAGED"), terms=PLAIN,
+                  booking_date="2025-06-05") == considered[0].lines["ARI-1"]
+
+
+def test_a_deduction_that_leaves_nothing_to_explain_weighs_nothing():
+    assert weighed("ARI-1", False, 100000, 100000, (-5000, None), PLAIN, "2025-06-05") == []
+    assert weighed("ARI-1", False, 100000, 95000, (0, None), PLAIN, "2025-06-05") == []
+    assert weighed("ARI-1", False, 0, 95000, (-5000, None), PLAIN, "2025-06-05") == []
