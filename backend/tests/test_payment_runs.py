@@ -49,6 +49,7 @@ def _phase_with_a_run(tmp_path, txn_text, amount_cents):
     items = pl.DataFrame({
         "item_id": ["API-2025-0000001"], "item_type": ["API"], "entity": ["ES01"], "party_id": ["SES01000001"],
         "party_name": ["ROTULACION TECH S.R.L."], "document_number": ["F-1"], "total_cents": [1368140],
+        "open_cents": [1368140],
         "due_date": ["2025-05-26"]})
     txns = pl.DataFrame({
         "bank_txn_id": ["BT-1"], "account_id": ["ES01-PENA-EUR"], "booking_date": ["2025-05-26"],
@@ -115,6 +116,7 @@ def _confirming_phase(tmp_path, booking_date, amount_cents):
         "item_id": ["API-1", "API-2", "API-3", "API-4"], "item_type": ["API"] * 4, "entity": ["ES01"] * 4,
         "party_id": ["SA", "SA", "SB", "SC"], "party_name": ["A SL", "A SL", "B SL", "C SL"],
         "document_number": ["A-1", "A-2", "B-1", "C-1"], "total_cents": [10000, 5100, 4000, 2900],
+        "open_cents": [10000, 5100, 4000, 2900],
         "due_date": ["2021-08-18", "2021-09-07", "2021-09-07", "2021-09-20"]})
     txns = pl.DataFrame({
         "bank_txn_id": ["BT-1"], "account_id": ["ES01-RIBA-EUR"], "booking_date": [booking_date],
@@ -182,4 +184,32 @@ def test_aggregated_debit_with_another_count_and_sum_is_not_guessed(tmp_path):
     file = tmp_path / "payment_runs" / "ES01_202109_0.csv"
     file.write_text(file.read_text().replace(",confirming,", ",aggregated,"))
     phase.txns = phase.txns.with_columns(pl.lit("BULK PAYMENT CF010021091055 7 TRANSFERS").alias("text"))
+    assert payment_runs.propose(phase) == {}
+
+
+def _factored(tmp_path, totals_opens):
+    phase = _phase_with_a_run(tmp_path, "PR010125052693-0302", -9582)
+    file = tmp_path / "payment_runs" / "ES01_202505_1.csv"
+    lines = file.read_text().splitlines()
+    file.write_text("\n".join([lines[0], lines[1].replace("ROTULACION TECH S.R.L.", "CREDIFACIL EFC")
+                               .replace("13681.40", "95.82")]) + "\n")
+    base = phase.items
+    phase.items = pl.concat([base.with_columns(pl.lit(f"API-{i}").alias("item_id"), pl.lit("ES01").alias("entity"),
+                                               pl.lit(t).alias("total_cents"), pl.lit(o).alias("open_cents"))
+                             for i, (t, o) in enumerate(totals_opens)])
+    return phase
+
+
+def test_item_closed_in_an_earlier_phase_does_not_hide_the_open_one_with_the_same_number(tmp_path):
+    phase = _factored(tmp_path, [(50000, 0), (45000, 45000)])
+    assert payment_runs.propose(phase)["BT-1"].lines == [("API-1", 9582)]
+
+
+def test_of_two_open_items_with_the_same_number_the_one_whose_balance_is_paid_wins(tmp_path):
+    phase = _factored(tmp_path, [(50000, 9582), (45000, 45000)])
+    assert payment_runs.propose(phase)["BT-1"].lines == [("API-0", 9582)]
+
+
+def test_two_open_items_with_the_same_number_and_no_other_evidence_are_not_guessed(tmp_path):
+    phase = _factored(tmp_path, [(50000, 50000), (45000, 45000)])
     assert payment_runs.propose(phase) == {}

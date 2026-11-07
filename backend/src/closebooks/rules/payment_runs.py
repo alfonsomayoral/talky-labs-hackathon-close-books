@@ -32,7 +32,8 @@ def _documents(phase: Phase) -> pl.DataFrame:
         .alias("item_type"),
     )
     items = phase.items.filter(pl.col("item_type").is_in(["API", "APC"])).select(
-        "item_id", "item_type", "entity", "party_id", "party_name", "document_number", "total_cents", "due_date")
+        "item_id", "item_type", "entity", "party_id", "party_name", "document_number", "total_cents", "open_cents",
+        "due_date")
     by_number = runs.select("_row", "document_number", "item_type", "beneficiary", "doc_cents", "_payer").join(
         items, on=["document_number", "item_type"])
     # The same supplier may repeat a number across entities: the entity that pays first, then the same amount.
@@ -46,8 +47,12 @@ def _documents(phase: Phase) -> pl.DataFrame:
     # A partial payment to a factor matches no total: the number must be unique in the entity that pays.
     settled = pl.concat([by_name.select("_row"), by_amount.select("_row")])
     in_payer = by_number.join(settled, on="_row", how="anti").filter(
-        pl.col("entity") == pl.col("_payer"), pl.col("total_cents") >= pl.col("doc_cents")
-    ).filter(pl.len().over("_row") == 1)
+        pl.col("entity") == pl.col("_payer"), pl.col("total_cents") >= pl.col("doc_cents"), pl.col("open_cents") > 0
+    )
+    # Tied on the number: the item whose balance is exactly what was paid. Otherwise no guess.
+    pays_balance = in_payer.filter(pl.col("open_cents") == pl.col("doc_cents"))
+    in_payer = pl.concat([pays_balance, in_payer.join(pays_balance.select("_row"), on="_row", how="anti")]).filter(
+        pl.len().over("_row") == 1)
     found = pl.concat([by_name, by_amount, in_payer]).select("_row", "item_id", "party_id", "due_date")
     return runs.join(found, on="_row", how="left").sort("_row")
 

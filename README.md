@@ -71,4 +71,4 @@ Pasa typecheck, lint, tests y build.
 
 ### Backend
 
-`backend/` está vacío: se monta el día del evento y entregará al frontend el formato de [CONTRACT.md](CONTRACT.md).
+`backend/` es el conciliador: lee una fase, aplica reglas por certeza y escribe la carpeta de ejecución de [CONTRACT.md](CONTRACT.md), que la API (`just be-serve`) sirve al frontend. Cómo se ejecuta y se mide: [backend/README.md](backend/README.md).

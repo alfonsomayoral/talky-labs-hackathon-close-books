@@ -10,8 +10,11 @@ from .state import OpenBalances
 
 def resolve(phase: Phase, proposals: dict[str, Proposal]) -> tuple[list[Row], OpenBalances]:
     items = phase.items
-    balances = OpenBalances(dict(zip(items["item_id"].to_list(), items["open_cents"].to_list(), strict=True)))
-    currency = dict(zip(items["item_id"].to_list(), items["currency"].to_list(), strict=True))
+    ids = items["item_id"].to_list()
+    balances = OpenBalances(dict(zip(ids, items["open_cents"].to_list(), strict=True)),
+                            dict(zip(ids, items["total_cents"].to_list(), strict=True)))
+    currency = dict(zip(ids, items["currency"].to_list(), strict=True))
+    party = dict(zip(ids, items["party_id"].to_list(), strict=True))
     rows: list[Row] = []
     for txn in phase.txns.select(
         "bank_txn_id", "booking_date", "amount_cents", "currency", "bank", "bank_code", "bank_subcode", "text"
@@ -33,6 +36,6 @@ def resolve(phase: Phase, proposals: dict[str, Proposal]) -> tuple[list[Row], Op
                                        proposal.returned)
             balances.apply(item_id, amount, exception, txn_id, txn["booking_date"])
             rows.append(Row(txn_id, item_id, amount, currency[item_id], None, exception or None, proposal.rule,
-                            proposal.confidence, proposal.party_id, proposal.reference, proposal.sources,
+                            proposal.confidence, party[item_id], proposal.reference, proposal.sources,
                             proposal.candidates))
     return rows, balances
