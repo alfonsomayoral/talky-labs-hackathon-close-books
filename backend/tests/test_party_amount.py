@@ -852,3 +852,9 @@ def test_a_unique_round_fraction_among_many_open_invoices_means_nothing_and_is_n
     many = [item(f"ARI-{n}", "C1", f"F{n}", 60001 + n) for n in range(100)]
     rule, balances = engine([*many, item("ARI-X", "C1", "NF0125000182", 198144)])
     assert rule(txn(59443, NAME), balances) is None
+
+
+def test_a_round_fraction_needs_a_party_known_for_certain_not_a_name_the_bank_cut():
+    rule, balances = engine([item("ARI-1", "C1", "NF0125000182", 198144)])
+    assert lines(rule(txn(59443, "TRANSFERENCIA DE WELLNESS GARRIDO S.L."), balances)) == {"ARI-1"}
+    assert rule(txn(59443, "ACH CREDIT WELLNESS GARR"), balances) is None

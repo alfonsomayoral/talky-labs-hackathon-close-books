@@ -421,11 +421,11 @@ class PartyAmount:
         planned = self._explained_by_state(free, cash, party)
         if planned:
             return planned
+        if not self.parties.certain:
+            return None
         fraction = self._round_fraction(free, cash, open_now, mine)
         if fraction:
             return Proposal("PARTY-FRACTION", [(fraction, cash)], confidence=0.85, party_id=party)
-        if not self.parties.certain:
-            return None
         run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
         if run:
             return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)

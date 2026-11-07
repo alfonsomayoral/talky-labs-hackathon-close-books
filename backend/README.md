@@ -37,4 +37,4 @@ Son cotas de búsqueda, no valores aprendidos. Un candidato solo se acepta si es
 | `MAX_FULL_SEARCH` | 22 | Facturas abiertas del tercero en la búsqueda completa de un subconjunto: cota de tiempo por movimiento |
 | `MAX_SKIPPED` | 2 | Facturas que un cliente puede saltarse dentro de la ventana que paga |
 | `MAX_CHANCE` | 0,05 | Conjuntos que se esperaría que sumaran el cobro por azar (conjuntos buscados ÷ céntimos que suman las candidatas). Por encima, una solución única no prueba nada y no se toma. Se fijó de antemano, no mirando el golden |
-| `ROUND_FRACTIONS` | 20 | `PARTY-FRACTION`: un cobro parcial sin referencia es un porcentaje redondo, múltiplo del 5 %, del total de una factura abierta entera (±1 céntimo). Se toma si es la única del tercero que encaja y no tiene un abono abierto que la cite |
+| `ROUND_FRACTIONS` | 20 | `PARTY-FRACTION`: un cobro parcial sin referencia es un porcentaje redondo, múltiplo del 5 %, del total de una factura abierta entera (±1 céntimo). Se toma con el tercero seguro, si es la única que encaja, no tiene un abono abierto que la cite y las fracciones de sus facturas abiertas no explicarían el cobro por azar (`MAX_CHANCE`) |
