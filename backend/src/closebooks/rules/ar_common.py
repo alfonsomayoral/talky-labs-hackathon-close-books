@@ -15,7 +15,10 @@ def cents(column: str) -> pl.Expr:
 
 
 def entity_of_account(phase: Phase) -> pl.DataFrame:
-    return phase.masters["bank_accounts"].select("account_id", "entity")
+    """One row per account. The master says; an account it does not list takes the entity of its bank lines."""
+    in_lines = phase.txns.select("account_id", "entity").drop_nulls().unique().sort("account_id", "entity")
+    known = pl.concat([phase.masters["bank_accounts"].select("account_id", "entity"), in_lines])
+    return known.unique("account_id", keep="first", maintain_order=True)
 
 
 def tokens(txns: pl.DataFrame, pattern: str = TOKEN) -> pl.DataFrame:

@@ -224,7 +224,7 @@ class PartyAmount:
         self.credits = {} if "related_document" not in items.columns else {
             note: _alnum(number) for note, number in items.filter(pl.col("related_document").is_not_null()).select(
                 "item_id", "related_document").iter_rows()}
-        self.parties = PartyIndex(phase.masters, known.select("entity", "party_id", "party_name").unique())
+        self.parties = PartyIndex(phase.masters, known.select("entity", "party_id", "party_name", "item_type").unique())
         self.related = {} if "related_document" not in items.columns else {
             i: _alnum(r) for i, r in items.filter(pl.col("related_document").is_not_null())
             .select("item_id", "related_document").iter_rows() if i[:3] in CREDIT_NOTES}

@@ -9,7 +9,7 @@ import polars as pl
 import pytest
 
 from closebooks import paths
-from closebooks.load import MASTER_FILES, load_detail, load_masters, short_masters, to_cents
+from closebooks.load import MASTER_FILES, load_detail, load_masters, prior_dirs, short_masters, to_cents
 from closebooks.paths import phase_dir
 
 
@@ -183,3 +183,17 @@ def test_every_rate_found_says_nothing(capsys):
     rates = pl.DataFrame({"date": ["2025-01-01"], "currency": ["USD"], "units_per_eur": ["1.10"]})
     _with_eur(lines, rates)
     assert capsys.readouterr().err == ""
+
+
+def test_a_declared_prior_phase_that_is_not_on_disk_is_left_out_and_warned(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(paths, "DB", tmp_path)
+    monkeypatch.setattr(paths, "PKG", tmp_path / "pkg")
+    (tmp_path / "train").mkdir()
+    (tmp_path / "train" / "bank_transactions.csv.gz").touch()
+    phase = tmp_path / "final"
+    phase.mkdir()
+    (phase / "prior_phases").write_text("gone\ntrain\n")
+    assert prior_dirs(phase, "final") == [tmp_path / "train"]
+    err = capsys.readouterr().err
+    assert err.startswith("warning: prior phase gone not found")
+    assert "train" not in err

@@ -462,3 +462,60 @@ def test_a_shortfall_outside_sepa_is_bank_charges_only_if_the_bank_stated_that_f
     assert resolved("BONIFICO DA ACME AG CAUSALE F1 /CHGS/EUR45,00") == (294540, "SHORT_BANK_CHARGES")
     assert resolved("BONIFICO DA ACME AG CAUSALE F1 /CHGS/EUR25,00") == (290040, "PARTIAL")
     assert resolved("BONIFICO DA ACME AG CAUSALE F1 /CHGS/USD45,00") == (290040, "PARTIAL")
+
+
+def _phase(opening: dict[str, int], bank_lines: list[int]):
+    """Invoices of 10,00 EUR with their opening balance, and one EUR bank line per amount."""
+    n = len(opening)
+    items = pl.DataFrame({"item_id": list(opening), "open_cents": list(opening.values()), "total_cents": [1000] * n,
+                          "currency": ["EUR"] * n, "party_id": ["C1"] * n, "payment_terms": ["T30"] * n,
+                          "issue_date": ["2025-01-01"] * n})
+    masters = {"payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None],
+                                              "discount_days": [None]},
+                                             schema_overrides={"early_payment_discount_pct": pl.String,
+                                                               "discount_days": pl.String}),
+               "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["ES"]})}
+    n = len(bank_lines)
+    empty = ("orig_currency", "counterparty_name", "counterparty_account", "remittance_info", "ref1", "ref2",
+             "end_to_end_id")
+    t = pl.DataFrame({"bank_txn_id": [f"BT-{i + 1}" for i in range(n)], "booking_date": ["2025-01-02"] * n,
+                      "amount_cents": bank_lines, "currency": ["EUR"] * n, "bank": ["B"] * n, "bank_code": [""] * n,
+                      "bank_subcode": [""] * n, "text": ["X"] * n, "orig_cents": [None] * n,
+                      "amount_eur_cents": bank_lines, "entity": ["E1"] * n, **{c: [None] * n for c in empty}},
+                     schema_overrides={c: pl.String for c in empty} | {"orig_cents": pl.Int64})
+    return SimpleNamespace(items=items, txns=t, masters=masters)
+
+
+def test_a_negative_amount_never_reaches_the_csv_nor_the_balance_and_the_bank_line_falls_back(capsys):
+    proposals = {"BT-1": Proposal("REF-TEXT", [("ARI-1", -500)])}
+    rows, balances = resolve(_phase({"ARI-1": 1000}, [1000]), proposals)
+    assert [(r.bank_txn_id, r.item_id, r.amount_cents, r.category, r.exception, r.rule) for r in rows] == [
+        ("BT-1", None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED")]
+    assert balances.open("ARI-1") == 1000
+    assert balances.history("ARI-1") == []
+    err = capsys.readouterr().err
+    assert err.startswith("warning: ")
+    assert all(said in err for said in ("BT-1", "ARI-1", "-500", "REF-TEXT"))
+
+
+def test_only_the_negative_line_of_a_proposal_is_left_out_and_the_rest_needs_no_fallback():
+    proposals = {"BT-1": Proposal("REF-TEXT", [("ARI-1", -500), ("ARI-2", 300)])}
+    rows, balances = resolve(_phase({"ARI-1": 1000, "ARI-2": 1000}, [300]), proposals)
+    assert [(r.item_id, r.amount_cents, r.exception, r.rule) for r in rows] == [("ARI-2", 300, "PARTIAL", "REF-TEXT")]
+    assert (balances.open("ARI-1"), balances.open("ARI-2")) == (1000, 700)
+
+
+def test_a_left_out_line_does_not_count_as_settled_by_a_rule_that_cited_nothing():
+    proposals = {"BT-1": Proposal("PARTY-AMOUNT", [("ARI-1", -500)]),
+                 "BT-2": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)}
+    rows, _ = resolve(_phase({"ARI-1": 0}, [1000, 1000]), proposals)
+    assert (rows[1].bank_txn_id, rows[1].exception) == ("BT-2", "DUPLICATE_PAYMENT")
+
+
+def test_cash_that_reaches_none_of_the_items_of_the_proposal_leaves_the_bank_line_with_its_fallback():
+    # No cash to share out: allocate returns no item at all, and the bank line used to end up with no row.
+    proposals = {"BT-1": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)}
+    rows, balances = resolve(_phase({"ARI-1": 1000}, [0]), proposals)
+    assert [(r.bank_txn_id, r.item_id, r.amount_cents) for r in rows] == [("BT-1", None, None)]
+    assert rows[0].rule.startswith("FALLBACK-")
+    assert balances.open("ARI-1") == 1000

@@ -9,6 +9,7 @@ import polars as pl
 
 MIN_NAME_CHARS = 10
 PREFIX_CHARS = 8
+SIDE_OF_ITEM = {"API": "supplier", "APC": "supplier", "ARI": "customer", "ARC": "customer"}
 # Words of a company's legal form, in any of the group's markets. What is left after them is the name.
 LEGAL_FORMS = frozenset("""
 S A L U C V R DE RL COOP SA SL SLU SAS SARL EURL GMBH CO KG AG EK E LTD LTDA LLC LLP INC CORP PTY BV NV SRL SNC SPA
@@ -43,9 +44,11 @@ class PartyIndex:
                 self._add("customer", row["entity"], row["customer_id"], row["trade_name"], None)
         for row in masters["suppliers"].iter_rows(named=True):
             self._add("supplier", row["entity"], row["supplier_id"], row["name"], row["iban"])
-        for entity, party, name in printed.select("entity", "party_id", "party_name").iter_rows():
-            kind = "supplier" if party and party.startswith("S") else "customer"
-            self._add(kind, entity, party, name, None)
+        for row in printed.iter_rows(named=True):
+            party = row["party_id"]
+            # The id's prefix is a habit of the data, not a rule: it only says when the item does not.
+            by_id = "supplier" if party and party.startswith("S") else "customer"
+            self._add(SIDE_OF_ITEM.get(row.get("item_type"), by_id), row["entity"], party, row["party_name"], None)
         members: dict[tuple[str, str], list[str]] = defaultdict(list)
         columns = ("customer_id", "entity", "group_id", "parent_customer_id")
         for row in customers.select(columns).iter_rows(named=True):

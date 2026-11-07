@@ -45,7 +45,7 @@ def phase_factory(tmp_path):
             (tmp_path / folder).mkdir(exist_ok=True)
             (tmp_path / folder / "ES01_202505.csv").write_text(text)
         item_defaults = {"item_type": "ARI", "currency": "EUR", "party_id": None, "party_name": None}
-        txn_defaults = {"ref1": None, "ref2": None, "end_to_end_id": None, "remittance_info": None}
+        txn_defaults = {"entity": None, "ref1": None, "ref2": None, "end_to_end_id": None, "remittance_info": None}
         return SimpleNamespace(
             dir=tmp_path, name="synthetic",
             items=pl.DataFrame([{**item_defaults, **i} for i in items],
