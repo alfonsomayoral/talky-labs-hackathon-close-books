@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from closebooks.documents.advices import AdviceError, normalize_number, parse_advice, parse_advices
+from closebooks.documents.advices import AdviceError, normalize_number, parse_advice, parse_advices, read_cells
 
 FIXTURES = Path(__file__).parent / "fixtures" / "advices"
 
@@ -189,3 +189,119 @@ def test_an_invented_layout_whose_amounts_do_not_add_up_to_the_total_is_rejected
 def test_an_invented_layout_with_no_total_is_rejected(tmp_path):
     with pytest.raises(AdviceError):
         parse_advice(invented(tmp_path, body=BODY.replace("TOTAL;;;;;14229.42;\n", "")))
+
+
+# Two e-mails and two PDFs nobody has seen. Nothing but the arithmetic of the advice says which column is which.
+MAIL = """Subject: Payment advice 250102632763
+From: pay@customer.example
+Date: Thu, 02 Jan 2025 09:00:00 +0000
+
+Buenos dias,
+Les confirmamos la transferencia emitida con el siguiente detalle.
+Total ordenado: AUD 1,869.61 (fecha valor 01/02/2025).
+Relacion de documentos liquidados:
+Fecha doc;Documento;Importe;Descuento;Motivo
+16/12/24;INV24-0126826;560.44
+03/12/24;INV24-0125773;1,309.17
+Un saludo,
+Backyard Pty Ltd
+"""
+SHORT_MAIL = MAIL.replace("Total ordenado: AUD 1,869.61", "Total ordenado: AUD 1,769.61").replace(
+    "03/12/24;INV24-0125773;1,309.17", "03/12/24;INV24-0125773;1,309.17;-100.00;DAMAGED GOODS")
+
+
+def test_an_email_in_another_order_is_read_by_what_its_cells_hold(tmp_path):
+    path = tmp_path / "advice.txt"
+    path.write_text(MAIL)
+    advice = parse_advice(path)
+    assert advice.closes and advice.payment_ref == "250102632763" and advice.currency == "AUD"
+    assert lines(advice) == [("INV24-0126826", 56044, 0, None, 56044), ("INV24-0125773", 130917, 0, None, 130917)]
+    assert advice.lines[0].doc_date == "2024-12-16"
+
+
+def test_an_email_with_a_deduction_in_another_order_keeps_gross_deduction_reason_and_paid(tmp_path):
+    path = tmp_path / "advice.txt"
+    path.write_text(SHORT_MAIL)
+    advice = parse_advice(path)
+    assert lines(advice)[1] == ("INV24-0125773", 130917, -10000, "DAMAGED GOODS", 120917)
+
+
+def test_an_email_with_one_amount_per_line_and_another_total_is_read_but_does_not_close(tmp_path):
+    # A discount taken without saying it: the known layouts read these too, and the cash has to agree with the total.
+    path = tmp_path / "advice.txt"
+    path.write_text(MAIL.replace("1,869.61", "1,800.00"))
+    advice = parse_advice(path)
+    assert advice.total_cents == 180000 and not advice.closes
+
+
+def test_several_amounts_per_line_that_add_up_to_no_printed_total_are_rejected(tmp_path):
+    path = tmp_path / "advice.txt"
+    path.write_text(SHORT_MAIL.replace("1,769.61", "9,999.99"))
+    with pytest.raises(AdviceError):
+        parse_advice(path)
+
+
+def test_an_email_with_two_numbers_per_line_and_no_year_to_tell_them_apart_is_rejected(tmp_path):
+    body = MAIL.replace("INV24-0126826;560.44", "ABC-1;XYZ-7;560.44").replace(
+        "INV24-0125773;1,309.17", "ABC-2;XYZ-8;1,309.17")
+    path = tmp_path / "advice.txt"
+    path.write_text(body)
+    with pytest.raises(AdviceError):
+        parse_advice(path)
+
+
+CELLS = """Notificacion de transferencia
+Referencia de pago: REM/2025/1771
+Fecha valor: 30/05/2025
+Total: AUD 3,869.61
+Factura
+Fecha doc.
+Liquidado
+Importe doc.
+Descuento
+Motivo
+INV25-0310764
+30/04/2025
+1,869.61
+2,670.86
+-801.25
+DAMAGED GOODS
+GS250100170
+15/04/2025
+-500.00
+-500.00
+INV25-0310999
+02/05/2025
+2,500.00
+2,500.00
+"""
+
+
+def test_a_table_of_loose_cells_with_paid_before_gross_is_read_by_what_they_hold():
+    advice = read_cells(CELLS.split("\n"), "pdf", "x.pdf", None)
+    assert advice.closes and advice.payment_ref == "REM/2025/1771" and advice.currency == "AUD"
+    assert lines(advice) == [("INV25-0310764", 267086, -80125, "DAMAGED GOODS", 186961),
+                             ("GS250100170", -50000, 0, None, -50000), ("INV25-0310999", 250000, 0, None, 250000)]
+
+
+def test_paid_before_gross_with_no_deduction_column_reads_the_shortfall(tmp_path):
+    # RA_20250115: 2.485,23 of 2.535,95, unsaid; the bigger of the two amounts of a line is what the document was worth.
+    cells = ["Total: AUD 7,776.29", "Fecha doc.", "03/01/2025", "INV25-0100504", "2,485.23", "2,535.95",
+             "10/12/2024", "INV24-0126363", "5,291.06", "5,291.06", "Referencia 250110274015"]
+    advice = read_cells(cells[:-1], "pdf", "x.pdf", None, ref="250110274015")
+    assert lines(advice)[0] == ("INV25-0100504", 253595, -5072, None, 248523)
+
+
+def test_a_total_in_the_foot_is_never_the_reason_or_an_amount_of_the_last_line():
+    cells = ["Total remitted 1,800.00 AUD", "INV25-1000001", "02.01.2025", "1,000.00", "1,000.00",
+             "INV25-1000002", "03.01.2025", "800.00", "800.00", "TOTAL REMITTED", "1,800.00"]
+    advice = read_cells(cells, "pdf", "x.pdf", None, ref="1000")
+    assert lines(advice)[1] == ("INV25-1000002", 80000, 0, None, 80000)
+
+
+def test_the_subject_says_the_reference_in_the_word_with_digits(tmp_path):
+    path = tmp_path / "advice.txt"
+    path.write_text(MAIL.replace("Subject: Payment advice 250102632763",
+                                 "Subject: Payment no. 250102632763 (Accounts Payable)"))
+    assert parse_advice(path).payment_ref == "250102632763"
+
