@@ -80,6 +80,13 @@ class Run(BaseModel):
     score: Score | None
 
 
+class OfficialResult(BaseModel):
+    """What the challenge's leaderboard answered for this run's submission (`live_result.json`, written by a person)."""
+    score: float
+    createdAt: str
+    metrics: dict[str, float]
+
+
 class RunSummary(BaseModel):
     runId: str
     phase: str
@@ -94,6 +101,7 @@ class RunSummary(BaseModel):
     modelCostUsd: float
     score: float | None
     served: bool
+    officialResult: OfficialResult | None
 
 
 class Case(BaseModel):

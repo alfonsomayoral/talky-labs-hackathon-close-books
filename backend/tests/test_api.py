@@ -83,6 +83,17 @@ def test_runs_newest_first_with_summary(api):
     assert set(full["score"]) == {"score", "metrics", "segments"}
 
 
+def test_official_result_comes_from_the_run_folder(env):
+    api, runs, _ = env
+    (runs / RUN / "live_result.json").write_text(json.dumps({
+        "sub_id": "s_1", "phase": "LIVE", "created_at": "2026-11-07T11:39:12Z", "status": "scored", "score": 91.86,
+        "metrics": {"allocation_f1": 0.9377, "txn_accuracy": 0.9407, "counts": {"rows": 1}, "segments": []}}))
+    runs_out = {r["runId"]: r["officialResult"] for r in api.get("/api/runs").json()}
+    assert runs_out[RUN] == {"score": 91.86, "createdAt": "2026-11-07T11:39:12Z",
+                             "metrics": {"allocation_f1": 0.9377, "txn_accuracy": 0.9407}}
+    assert runs_out["p-20250101-000000"] is None
+
+
 def test_filters_accept_several_values(api):
     assert len(get(api, "/transactions", entity="E1,E2")["items"]) == 9
     assert ids(get(api, "/transactions", entity="E2", sort="bankTxnId")) == ["BT-5", "BT-7"]

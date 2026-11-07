@@ -41,6 +41,15 @@ class Store:
             raise not_found("Run", run_id)
         return {**orjson.loads(path.read_bytes()), "runId": run_id}  # the folder is the id, not what run.json says
 
+    def official_result(self, run_id: str) -> dict | None:
+        """The leaderboard's answer, when a person saved it next to the submission (CONTRACT §2.9)."""
+        path = self.runs_dir / run_id / "live_result.json"
+        if not path.exists():
+            return None
+        result = orjson.loads(path.read_bytes())
+        metrics = {k: v for k, v in (result.get("metrics") or {}).items() if isinstance(v, (int, float))}
+        return {"score": result["score"], "createdAt": result["created_at"], "metrics": metrics}
+
     def run(self, run_id: str) -> RunData:
         self.run_meta(run_id)
         with self._lock:  # one build at a time: it is a few seconds and the next caller wants its result
