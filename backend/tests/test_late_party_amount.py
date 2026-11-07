@@ -259,3 +259,36 @@ def test_an_invoice_settled_before_the_run_may_only_look_like_the_cash():
     rows, *_ = run([invoice(cents=67657, open_cents=0)], [line(cents=67657, date="2025-01-15")])
     assert [r.rule for r in rows] == [FALLBACK]
 
+
+def test_another_invoice_of_that_total_within_a_year_looks_like_a_fixed_instalment():
+    invoices = [invoice(cents=67657), invoice("ARI-2", cents=67657, open_cents=0, issued="2024-11-01")]
+    rows, *_ = run(invoices, [line(cents=67657, date="2025-01-15")], paid=[settled_on("2025-01-13")])
+    assert [r.rule for r in rows] == [FALLBACK]
+
+
+def test_another_invoice_of_that_total_over_a_year_ago_does_not_stop_the_duplicate():
+    invoices = [invoice(cents=67657, issued="2024-12-01"),
+                invoice("ARI-2", cents=67657, open_cents=0, issued="2023-11-01")]
+    rows, *_ = run(invoices, [line(cents=67657, date="2025-01-15")], paid=[settled_on("2025-01-13")])
+    assert [r.rule for r in rows] == ["PARTY-DUPLICATE-LATE"]
+
+
+def test_an_invoice_settled_by_two_receipts_is_no_exact_first_payment():
+    paid = [(INVOICE, 30000, "PARTIAL", "BT-A", "2025-01-10"), (INVOICE, 37657, "", "BT-B", "2025-01-13")]
+    rows, *_ = run([invoice(cents=67657)], [line(cents=67657, date="2025-01-15")], paid=paid)
+    assert [r.rule for r in rows] == [FALLBACK]
+
+
+def test_an_invoice_settled_within_a_set_is_no_exact_first_payment():
+    first = [Row("BT-FIRST", item_id, 67657, "EUR", None, None, "REF-TEXT", 1.0) for item_id in (INVOICE, "ARI-9")]
+    rows, *_ = run([invoice(cents=67657)], [line(cents=67657, date="2025-01-15")], rows=[fallback(), *first],
+                   paid=[settled_on("2025-01-13")])
+    assert rows[0].rule == FALLBACK
+
+
+def test_a_receipt_citing_another_invoice_is_not_paying_this_one_again():
+    invoices = [invoice(cents=67657), item("ARI-8", "C1", "FV24-012061", 90000)]
+    text = f"{CUT} FV24-012061"
+    rows, *_ = run(invoices, [line(cents=67657, date="2025-01-15", text=text)], paid=[settled_on("2025-01-13")])
+    assert [r.rule for r in rows] == [FALLBACK]
+
