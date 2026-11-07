@@ -164,3 +164,16 @@ Cómo leerlo:
 **Decisión de la orquestadora:** no se apaga ninguna regla. `PARTY-NET-SUBSET` se queda con la nota «muestra pequeña, vigilar».
 
 Sin comprobar: LIVE y FINAL, que no tienen golden; el efecto real de apagar cada regla, que exigiría una ejecución por regla.
+
+## Falsos DUPLICATE_PAYMENT: dos causas, sin regla
+
+28 filas de holdout (`seg-main-d9e4ef8-holdout`) con la misma partida que el golden, marcadas duplicado y sin excepción en el golden. Ninguna causa explica las 28, así que no se cambió el código: decisión de la orquestadora, duplicados y `_returns` quedan sin abrir.
+
+| Causa (dato: nuestras filas frente al golden) | Filas | Señal | Replay holdout | Replay drift |
+| --- | --- | --- | --- | --- |
+| La devolución de esta partida se imputó a otra partida del mismo cliente e importe | 13 | Hermana de igual cliente e importe reabierta y sin volver a cobrar | 13 de 13, 0 duplicados reales | 13 de 13, 0 duplicados reales |
+| La devolución cayó en `BANK_FEES` | 1 | Ninguna | | |
+| Un cobro anterior cerró la partida y su caja no cuadra con sus filas | 11 | Primera línea sin cuadrar | 11 de 11, 0 duplicados reales | 10 de 10, 0 duplicados reales |
+| Un cobro anterior la cerró con un subconjunto que sí cuadra (`PARTY-WINDOW`, `PARTY-SUBSET`) | 3 | Ninguna | | |
+
+El replay solo mide la excepción sobre las 681 filas marcadas en holdout y las 678 de drift (`seg-main-6c6c9b7-drift`); no ejecuta el pipeline. [Inferencia] La línea en `BANK_FEES` (BT-2025-0082726) es la segunda devolución del mismo lote y mandato que BT-2025-0082693, y `_returns` usa (lote, mandato) como clave de lo ya usado. No se trazó la ejecución.

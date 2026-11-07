@@ -1,7 +1,7 @@
 """POLICIES §2-§3, clause by clause. Amounts from real lines of sample/TRAIN where the comment says so."""
 from __future__ import annotations
 
-from closebooks.policy import Terms, allocate, cross_border, decide
+from closebooks.policy import Terms, allocate, cross_border, decide, fee_fits
 
 D2N30 = Terms(discount_pct=2.0, discount_days=10, issue_date="2025-06-01", total_cents=140394, country="ES")
 PLAIN = Terms(discount_pct=None, discount_days=None, issue_date="2025-06-01", total_cents=100000, country="ES")
@@ -146,6 +146,21 @@ def test_cross_border_signal_comes_from_the_iso_code_or_the_bank_text():
     assert cross_border("PMNT/RCDT/XBCT", "WIRE IN /ORG/LAKEVIEW")
     assert cross_border("13", "TRANSFER. EN DIV. | CDDJCBXX | GASTOS SHA")
     assert not cross_border("PMNT/RCDT/ESCT", "ACH CREDIT WATER CARE BLUE")
+
+
+def test_a_fee_the_bank_states_is_a_cross_border_signal_even_on_a_plain_transfer_code():
+    # Invented: a plain transfer code and the intermediary's fee printed by the bank (POLICIES §3).
+    plain = "BONIFICO DA ACME AG CAUSALE F1"
+    assert not cross_border("NTRF", plain)
+    assert cross_border("NTRF", plain + " /CHGS/EUR45,00")
+
+
+def test_a_stated_fee_only_explains_the_shortfall_of_its_amount_and_currency():
+    stated = "BONIFICO DA ACME AG CAUSALE F1 /CHGS/EUR45,00"
+    assert fee_fits(stated, "EUR", 4500)
+    assert not fee_fits(stated, "EUR", 4501)
+    assert not fee_fits(stated, "USD", 4500)
+    assert fee_fits("TRANSFER. EN DIV. | GASTOS SHA", "EUR", 4501)  # no amount stated: only the limits can decide
 
 
 def test_duplicate_needs_the_exact_amount_of_the_settled_item():

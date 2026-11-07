@@ -318,6 +318,14 @@ def test_uncited_small_shortfall_outside_sepa_is_found_for_the_only_invoice_it_f
     assert proposal.by_cash
 
 
+def test_a_stated_fee_finds_the_invoice_only_if_it_is_the_shortfall():
+    rule, balances = engine([item("ARI-1", "C1", "FV1234", 2556975), item("ARI-2", "C1", "FV1235", 9000)],
+                            customers=(("C1", "E1", "Wellness Garrido S.L.", None, None, None, None, None),))
+    rule.countries = {"C1": "CH"}
+    assert lines(rule(txn(2553275, NAME + "/CHGS/EUR37,00"), balances)) == {"ARI-1"}
+    assert rule(txn(2553275, NAME + "/CHGS/EUR25,00"), balances) is None
+
+
 def test_more_than_four_invoices_add_up_to_the_cash():
     items = [item(f"ARI-{i}", "C1", f"F{i}", c, f"2024-01-{i + 1:02d}")
              for i, c in enumerate((1009, 2017, 4001, 8009, 16001, 32003, 64007))]

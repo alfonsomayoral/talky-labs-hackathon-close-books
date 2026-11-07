@@ -1,6 +1,7 @@
 """Amount and exception of each row (POLICIES §2-§3), in one place whichever rule produced the match."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -15,6 +16,7 @@ SEPA_COUNTRIES = frozenset(
 SMALL_OVERPAYMENT_RATIO = 0.02
 ROUND_OVERPAYMENT_RATIO = 0.10
 CROSS_BORDER_MARKS = ("EN DIV", "GASTOS SHA", "GASTOS BEN")
+STATED_FEE = re.compile(r"/CHGS/([A-Z]{3})(\d+)[.,](\d{2})")
 FEE_LIMIT_EUR_CENTS = 6000
 FEE_LIMIT_RATIO = 0.02
 DISCOUNT_WORDS = ("DISCOUNT", "DESCUENTO", "DTO", "SKONTO", "ESCOMPTE", "SCONTO")
@@ -24,7 +26,18 @@ WITHHOLDING_WORDS = ("RET", "RETENCION", "RETENCIÓN", "WITHHOLDING", "WHT", "IS
 def cross_border(bank_code: str | None, text: str | None) -> bool:
     """The bank says it came from abroad: only then can a small shortfall be an intermediary's fee."""
     upper = (text or "").upper()
-    return "XBCT" in (bank_code or "") or any(mark in upper for mark in CROSS_BORDER_MARKS)
+    return ("XBCT" in (bank_code or "") or any(mark in upper for mark in CROSS_BORDER_MARKS)
+            or STATED_FEE.search(upper) is not None)
+
+
+def fee_fits(text: str | None, currency: str, shortfall: int) -> bool:
+    """A fee the bank states explains the shortfall of exactly that amount and currency; with none stated, the limits.
+
+    Why it generalizes: /CHGS/ is not a word of one bank but the movement stating the fee an intermediary took (POLICIES
+    §3), whatever the transfer code, and the check is its own amount against the cash, with no cut learned from data.
+    The customer's country and the 60 EUR and 2 % limits still decide, from the master and the policy."""
+    stated = STATED_FEE.search((text or "").upper())
+    return stated is None or (stated[1], int(stated[2]) * 100 + int(stated[3])) == (currency, shortfall)
 
 
 @dataclass(slots=True)
