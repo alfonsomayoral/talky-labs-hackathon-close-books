@@ -77,11 +77,18 @@ def _drafts(cases, rows, phase, balances, names, countries, created_at: str) -> 
     chosen = top_per_template(cases, exceptions)
     info = _item_info(phase, [i for c in chosen for i in c["itemIds"]], names)
     senders = dict(phase.masters["entities"].select("entity", "legal_name").iter_rows())
+    pdfs = phase_clauses(phase)
+
+    def pdf_of(item_id: str) -> str | None:
+        doc = pdfs.doc_for_item(item_id)
+        return f"pdfs/{doc.path}" if doc and not doc.path.startswith("pdfs/") else (doc.path if doc else None)
+
     drafts = []
     for case in chosen:
         facts = {"partyName": names.get(case["partyId"]), "country": countries.get(case["partyId"]), "email": None,
                  "sender": senders.get(case["entity"]),
-                 "items": [{**info[i], "open_cents": balances.open(i)} for i in case["itemIds"] if i in info]}
+                 "items": [{**info[i], "open_cents": balances.open(i), "pdf": pdf_of(i)}
+                           for i in case["itemIds"] if i in info]}
         draft = render(case, facts, exceptions.get(case["caseId"]))
         if draft:
             case["draftId"] = f"D-{len(drafts) + 1:06d}"
