@@ -141,8 +141,8 @@ def _net(pairs: list) -> int:
 
 def document_says(clauses: dict | None, total: int, cash: int) -> str | None:
     """The exception of a cash the invoice's own PDF foresees, or None. Why it generalizes: the official example of
-    ar_retention pays the PDF's amount without citing the invoice and its row is PARTIAL, and POLICIES §3 lists the first
-    payment of a guarantee retention and of an invoice net of an advance as PARTIAL, and the release as empty.
+    ar_retention pays the PDF's amount without citing the invoice and its row is PARTIAL, and POLICIES §3 lists the
+    first payment of a guarantee retention and of an invoice net of an advance as PARTIAL, and the release as empty.
 
     The percentage gives the retained part, rounded half up, whatever the total: the PDF prints it cut, so what it says
     is payable can be a cent above the cash. The advance is an amount, so its net is the one printed."""

@@ -91,3 +91,29 @@ def test_a_cent_off_a_retention_of_a_withholding_rate_settles_nothing():
 def test_the_amount_of_the_percentage_without_the_party_settles_nothing(line, name):
     pdf = retention_pdf("5", "50,00", "950,12")
     assert retention_rows(100012, pdf, 95011, line=line, name=name) == UNIDENTIFIED
+
+
+def test_the_release_of_a_retention_whose_first_payment_we_did_not_see_settles_with_no_exception():
+    pdf = retention_pdf("5", "50,00", "950,12")
+    assert retention_rows(100012, pdf, 5001) == [("ARI-1", 5001, None)]
+
+
+@pytest.mark.parametrize("country", ["MX", "BR", "MA"])
+def test_a_retention_of_a_withholding_rate_is_partial_where_that_tax_exists(country):
+    """POLICIES §3: the first payment of an invoice with a guarantee retention is PARTIAL; SHORT_WITHHOLDING is the tax
+    some customers withhold. §5.8: only the PDF says an invoice retains, so its clause wins over the country."""
+    pdf = retention_pdf("10", "1.640,50", "14.764,50")
+    assert retention_rows(1640500, pdf, 1476450, country=country) == [("ARI-1", 1476450, "PARTIAL")]
+
+
+def test_an_advance_of_a_withholding_rate_is_partial_where_that_tax_exists():
+    pdf = "A deducir anticipo recibido según proforma PF24-0100009 de 100,00 EUR. Importe neto a pagar 900,00 EUR."
+    line = txn(90000, "TRANSFERENCIA DE ROBLEDO PISCINAS S.L. | FRA. FV24-0113001")
+    rows = walked([item("ARI-1", "C1", "FV24-0113001", 100000)], line, ROBLEDO, country="MX", pdfs={"ARI-1": pdf})
+    assert rows == [("ARI-1", 90000, "PARTIAL")]
+
+
+def test_a_withholding_with_no_clause_stays_a_withholding():
+    line = txn(90000, "TRANSFERENCIA DE ROBLEDO PISCINAS S.L. | FRA. FV24-0113001")
+    rows = walked([item("ARI-1", "C1", "FV24-0113001", 100000)], line, ROBLEDO, country="MX")
+    assert rows == [("ARI-1", 100000, "SHORT_WITHHOLDING")]

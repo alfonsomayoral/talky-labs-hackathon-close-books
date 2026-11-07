@@ -7,6 +7,7 @@ from .categories import fallback
 from .load import Phase, cancelled_item_ids
 from .model import Proposal, Row
 from .policy import Terms, allocate, cross_border, decide
+from .rules.party_amount import document_says
 from .state import OpenBalances
 
 
@@ -43,7 +44,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                             proposal.confidence, proposal.party_id, proposal.reference, proposal.sources,
                             proposal.candidates))
             continue
-        decided = _by_cash(proposal, txn, currency, balances, terms_of) if proposal.by_cash else None
+        decided = _by_cash(proposal, txn, currency, balances, terms_of, plans) if proposal.by_cash else None
         for item_id, applied in proposal.lines:
             if decided is not None:
                 if item_id not in decided:
@@ -80,12 +81,17 @@ def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: 
     return "" if amount == amounts[-1] else "PARTIAL"
 
 
-def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalances, terms_of) -> dict:
+def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalances, terms_of, plans: dict) -> dict:
     first = proposal.lines[0][0]
     foreign = currency[first] != txn["currency"]
     cash = abs(txn["amount_cents"])
     if foreign:
         cash = txn["orig_cents"] if txn["orig_currency"] == currency[first] else None
+    total = terms_of(first).total_cents
+    if len(proposal.lines) == 1 and cash is not None and balances.open(first) == total:
+        said = document_says(plans.get(first), total, cash)
+        if said is not None:  # the clause wins over any rate the shortfall happens to match (POLICIES §3)
+            return {first: (cash, said)}
     from_abroad = not foreign and cross_border(txn["bank_code"], txn["text"])
     eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if from_abroad else None
     items = [(item, balances.open(item), terms_of(item)) for item, _ in proposal.lines]
