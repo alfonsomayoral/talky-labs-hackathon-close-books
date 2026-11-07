@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { Brain } from 'lucide-react'
-import { Button, toast } from '@/components'
+import { Button, toast, Mono } from '@/components'
 import { useAnswerQuestion } from '@/data'
 import type { CaseDetail } from '@/domain'
 import { useScopedTo } from '@/lib/urlState'
@@ -18,7 +18,7 @@ interface QuestionFormProps {
 /** The system's question about a case, its options, an optional note and, if offered, the memory rule it would create. */
 export function QuestionForm({ caseDetail, runId, onResolved }: QuestionFormProps) {
   const question = caseDetail.question
-  const [optionId, setOptionId] = useState(question?.defaultOption ?? '')
+  const [optionId, setOptionId] = useState('')
   const [note, setNote] = useState('')
   const [saveAsRule, setSaveAsRule] = useState(false)
   const answer = useAnswerQuestion(runId)
@@ -57,7 +57,9 @@ export function QuestionForm({ caseDetail, runId, onResolved }: QuestionFormProp
         {question.options.map((option) => (
           <label key={option.id} className={styles.option}>
             <input type="radio" name={question.questionId} value={option.id} checked={optionId === option.id} onChange={() => setOptionId(option.id)} />
-            <span>{option.label}</span>
+            <span>
+              {option.label} {option.id !== 'none' && <Mono>{option.id}</Mono>}
+            </span>
           </label>
         ))}
       </fieldset>
@@ -73,7 +75,7 @@ export function QuestionForm({ caseDetail, runId, onResolved }: QuestionFormProp
           </span>
         </label>
       )}
-      <Button type="submit" variant="primary" loading={answer.isPending}>
+      <Button type="submit" variant="primary" disabled={!optionId} loading={answer.isPending}>
         Responder
       </Button>
     </form>

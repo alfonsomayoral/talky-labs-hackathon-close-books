@@ -17,7 +17,7 @@ const getRowId = (t: TxnRow) => t.bankTxnId
 const COLUMNS: Column<TxnRow>[] = [
   { id: 'bookingDate', header: 'Fecha', width: 92, cell: (t) => <span className={styles.muted}>{formatDate(t.bookingDate)}</span>, sortValue: (t) => t.bookingDate },
   { id: 'entity', header: 'Sociedad', width: 96, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
-  { id: 'text', header: 'Texto del banco', width: 'minmax(160px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
+  { id: 'text', header: 'Texto del banco', width: 'minmax(280px, 3fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
   { id: 'amountEur', header: 'Importe', width: 152, align: 'right', cell: (t) => <Amount cents={t.amountCents} currency={t.currency} signed colorize />, sortValue: (t) => t.amountEur },
   {
     id: 'rowCount',
@@ -46,7 +46,6 @@ const COLUMNS: Column<TxnRow>[] = [
     sortValue: (t) => t.caseStatus,
   },
   // Last: the account is also a filter and the panel's header, so it is what falls off a narrow screen, not the rule.
-  { id: 'accountId', header: 'Cuenta', width: 128, cell: (t) => <Mono>{t.accountId}</Mono>, sortValue: (t) => t.accountId },
 ]
 
 export function ReconciliationPage() {

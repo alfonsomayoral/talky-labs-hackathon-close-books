@@ -110,6 +110,9 @@ export function InboxPage() {
     [asOf],
   )
 
+  // Every decision is the same kind of work on a movement with no party yet: those two columns say nothing there.
+  const shownColumns = queue.id === 'decidir' ? columns.filter((c) => c.id !== 'party' && c.id !== 'action') : columns
+
   const filtered = kinds.length > 0 || priorities.length > 0 || q != null
   const clear = () => {
     setKinds([])
@@ -147,7 +150,7 @@ export function InboxPage() {
         variant="cards"
         rowHeight={ROW_HEIGHT}
         rows={cases.rows}
-        columns={columns}
+        columns={shownColumns}
         getRowId={(c) => c.caseId}
         serverSort
         sort={sortFromParam(orden)}

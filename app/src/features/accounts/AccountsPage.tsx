@@ -26,13 +26,12 @@ const COLUMNS: Column<Account>[] = [
     ),
     sortValue: (a) => a.accountId,
   },
-  { id: 'bank', header: 'Banco', width: 'minmax(136px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
+  { id: 'bank', header: 'Banco', width: 'minmax(136px, 1fr)', cell: (a) => <span className={styles.bank} title={a.bankName ?? a.bank}>{a.bankName ?? a.bank}</span>, sortValue: (a) => a.bankName ?? a.bank },
   { id: 'entity', header: 'Sociedad', width: 92, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
-  { id: 'currency', header: 'Divisa', width: 72, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
   {
     id: 'format',
     header: 'Formato de extracto',
-    width: 'minmax(256px, 1fr)',
+    width: 'minmax(290px, 1fr)',
     cell: (a) => {
       const change = formatChange(a.formats)
       return change ? (

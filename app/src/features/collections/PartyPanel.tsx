@@ -116,7 +116,7 @@ export function PartyPanel({ runId, partyId, aging, onClose }: PartyPanelProps) 
             ) : chaseCaseId ? (
               <Skeleton height={80} />
             ) : (
-              <p className={styles.muted}>Este cliente no tiene un caso de cobro abierto, así que no hay correo que preparar desde aquí.</p>
+              <p className={styles.muted}>Sin caso de cobro: el sistema solo los abre a los clientes con más saldo vencido de cada sociedad que no tienen movimientos recientes. Por eso no hay correo que preparar desde aquí.</p>
             )}
           </Section>
 

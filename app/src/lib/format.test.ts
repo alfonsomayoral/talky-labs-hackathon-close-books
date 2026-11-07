@@ -63,7 +63,7 @@ describe('formatCompactMoney', () => {
   it('uses M€ and k€ suffixes', () => {
     expect(formatCompactMoney(123_456_789)).toBe('1,2 M€')
     expect(formatCompactMoney(1_234_567)).toBe('12,3 k€')
-    expect(formatCompactMoney(-4_500_000_000)).toBe('-45 M€')
+    expect(formatCompactMoney(-4_500_000_000)).toBe('-45,0 M€')
   })
 
   it('keeps small amounts whole', () => {

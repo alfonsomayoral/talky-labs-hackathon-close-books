@@ -43,7 +43,7 @@ export function CollectionsPage() {
         cell: (p) => <span className="tabular">{p.oldestDaysOverdue > 0 ? `${formatNumber(p.oldestDaysOverdue)} d` : '—'}</span>,
       },
       { id: 'disputes', header: 'Disputas', width: 100, align: 'right', sortValue: (p) => p.disputes, cell: (p) => <span className="tabular">{p.disputes || '—'}</span> },
-      { id: 'duplicates', header: 'Duplicados', width: 112, align: 'right', sortValue: (p) => p.duplicates, cell: (p) => <span className="tabular">{p.duplicates || '—'}</span> },
+      { id: 'chase', header: 'Reclamar', width: 112, sortValue: (p) => (p.caseId ? 0 : 1), cell: (p) => <Badge emphasis={p.caseId ? 'medium' : 'quiet'}>{p.caseId ? 'Con caso' : 'Sin caso'}</Badge> },
       {
         id: 'risk',
         header: (
