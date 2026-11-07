@@ -74,6 +74,13 @@ def test_the_wrong_booking_of_a_bank_reversal_is_a_bare_generic_word_and_nothing
     assert rules.claim(txn(7000, "NEWB", "ZZ", "9", "ABONO FACTURA FV25-0001"), {}) is None
 
 
+def test_a_proforma_cited_only_in_the_remittance_info_is_a_customer_advance():
+    # BT-2025-0001280 (holdout): the camt text carries only the payer; the proforma lives in the remittance info.
+    line = txn(232038, "HPNB", "PMNT/RCDT/ESCT", "", "ACH CREDIT SUN PRAIRIE HILL CCD PAYMENT ID:4767902036")
+    assert rules.claim({**line, "remittance_info": "PROFORMA PF24-0700009"}, {}).category == "CUSTOMER_ADVANCE"
+    assert rules.claim({**line, "remittance_info": "INV ARI-2025-0001"}, {}) is None
+
+
 def test_intragroup_loan_texts_are_intercompany_not_a_customer_refund():
     assert rules.claim(txn(-700000, text="VIR SEPA EMIS /A /MOTIF DEVOLUCION PRESTAMO IC VALTERMIA IN /REF"),
                        {}).category == "INTERCOMPANY"
