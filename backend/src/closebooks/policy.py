@@ -81,15 +81,16 @@ class Evidence(IntEnum):
     DEFAULT = 0  # nothing explains the gap: what the cash reaches
     TERMS_ONLY = 1  # the cash pays more than is cited: the terms say what each invoice took, unchecked against the cash
     ROUND_SHARE = 2  # with the others cleared whole, the cash pays a round share of this invoice, to the cent
-    BOUNDED = 3  # within the limits POLICIES sets, not exact: an overpayment
-    MOVEMENT_MARK = 4  # the bank line marks it as from abroad and the fee is within the limits of POLICIES
-    RATE_ON_ALL = 5  # the rate of POLICIES on every invoice, to the rounding of each
-    ONE_DISCOUNT = 6  # the gap is the discount in the terms of one invoice of several
-    ALL_DISCOUNTS = 7  # the gap is the discounts in the terms of all of them
-    EXACT = 8  # the open balances are the cash to the cent
-    PRINTED_DISCOUNT = 9  # a document prints the amount, with no reason: it is the discount in the terms
-    PRINTED_RATE = 10  # a document prints the amount, with no reason: it is a rate where that tax is withheld
-    PRINTED_REASON = 11  # a document prints the amount and why
+    SEEN_RATE = 3  # an inference: the one set net of the rate an earlier line of this customer was explained by
+    BOUNDED = 4  # within the limits POLICIES sets, not exact: an overpayment
+    MOVEMENT_MARK = 5  # the bank line marks it as from abroad and the fee is within the limits of POLICIES
+    RATE_ON_ALL = 6  # the rate of POLICIES on every invoice, to the rounding of each
+    ONE_DISCOUNT = 7  # the gap is the discount in the terms of one invoice of several
+    ALL_DISCOUNTS = 8  # the gap is the discounts in the terms of all of them
+    EXACT = 9  # the open balances are the cash to the cent
+    PRINTED_DISCOUNT = 10  # a document prints the amount, with no reason: it is the discount in the terms
+    PRINTED_RATE = 11  # a document prints the amount, with no reason: it is a rate where that tax is withheld
+    PRINTED_REASON = 12  # a document prints the amount and why
 
 
 @dataclass(slots=True)

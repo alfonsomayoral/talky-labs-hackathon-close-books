@@ -25,6 +25,13 @@ class OpenBalances:
         self._history[item_id].append(
             {"bankTxnId": txn_id, "bookingDate": booking_date, "amountCents": amount_cents, "exception": exception})
 
+    def restate(self, item_id: str, txn_id: str, amount_cents: int, exception: str) -> None:
+        """A stage after the walk corrects what this line did to the item."""
+        for move in self._history[item_id]:
+            if move["bankTxnId"] == txn_id:
+                self._open[item_id] += move["amountCents"] - amount_cents
+                move["amountCents"], move["exception"] = amount_cents, exception
+
     def history(self, item_id: str) -> list[dict]:
         return self._history.get(item_id, [])
 
