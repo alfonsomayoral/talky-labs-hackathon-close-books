@@ -1,6 +1,6 @@
 # Plan: juicios de Jev en el pipeline, con Claude solo para excepciones
 
-Estado: **en ejecución desde las 13:20** (autorización de Alfonso para enviar datos del paquete a TypeSafe; clave en `backend/.env`, fuera del repo). Lectura aplicada de CLAUDE.md §5: Jev extrae qué número cita el texto, como un parser; el importe y la partida abierta deciden la casación. Escrito el 7 nov 2026 a las 12:10, con el backend en holdout 91,77 (main c44e505) y la sesión de Exactitud a mitad de su plan. Nada de esto entra hoy antes de la congelación de reglas de las 17:00 salvo decisión expresa; el piloto de §6 es lo único que cabe en una hora.
+Estado: **piloto medido, FINAL sin Jev (§10)**; en ejecución desde las 13:20 (autorización de Alfonso para enviar datos del paquete a TypeSafe; clave en `backend/.env`, fuera del repo). Lectura aplicada de CLAUDE.md §5: Jev extrae qué número cita el texto, como un parser; el importe y la partida abierta deciden la casación. Escrito el 7 nov 2026 a las 12:10, con el backend en holdout 91,77 (main c44e505) y la sesión de Exactitud a mitad de su plan. Nada de esto entra hoy antes de la congelación de reglas de las 17:00 salvo decisión expresa; el piloto de §6 es lo único que cabe en una hora.
 
 ## 1. Objetivo
 
@@ -93,3 +93,26 @@ Total previsto: < 40 $ de los 100 $. Ninguno de los bloques 2–6 cabe antes de 
 1. Si se hace el piloto hoy (1 h de la sesión de backend parada, sin carga) o queda para después del hackathon.
 2. Clave de TypeSafe: ¿existe ya? Va en `TYPESAFE_API_KEY`, nunca en el repo.
 3. Si C1 (Claude en avisos sin parser) se prepara como seguro para FINAL aunque Jev quede para después, dado el riesgo de 8 puntos medido con un layout inventado.
+
+## 10. Piloto, medido (7 nov, API real, unos 0,035 $)
+
+**Decisión:** FINAL va sin Jev. J1, J2 y J3 no pasan la puerta fijada antes de medir (precisión ≥ 0,98 al umbral 0,8 y, en J3, mejorar a las listas). El umbral no se movió después. El cliente queda en la rama `KPI-9_jev-client` (commit 019a954), sin fusionar: con tests y cliente falso, sin enganchar al pipeline.
+
+| Medida a 0,8 | J1 documento citado | J2 tercero | J3 motivo de deducción |
+| --- | --- | --- | --- |
+| Precisión | **0,942** | **0,516** | 1,000 |
+| Mejor precisión en cualquier umbral | 0,959 (a 0,6) | 0,680 (a 0,9) | 1,000 |
+| Cobertura | 10,4 % de 2.500 fallos | 13,9 % de 570 fallos | 84,5 % de 14.325 líneas |
+| Falsos en `unidentified` | 0, con solo 1 línea evaluable: no concluye | **10 de 300** | No aplica |
+| Techo | Bajo: 78 % de los fallos no cita nada legible | 72 % tiene al tercero entre los candidatos | **0 o 1 de 1.161 fallos** |
+
+**Por qué falla, según los ejemplos:**
+
+- **J1:** Jev lee bien el número que cita el texto (p ≥ 0,97), pero el golden liquida otra partida: el ruido está en el dato, no en la lectura. En `ar_ref_noise` la precisión es 0,667. El 1,000 de `ar_1toN_text` (229 de 229) es casi trivial: el motor ya cita esos documentos.
+- **J2:** falla en homónimos (misma razón social en varios terceros) y elige tercero en movimientos sin partida, justo el síntoma de forzar una casación. El IBAN no se envió, así que no se mide si ayudaría.
+- **J3:** solo hay 8 motivos distintos, los mismos en TRAIN y holdout, y las listas aciertan los 14.325. Jev no reconoce la abreviatura «RET» (responde «none»). Casi todos los fallos de esos segmentos son de casación, no del motivo.
+
+**Medidas de API:** latencia mediana 0,6 s por petición (p95 0,7 s). Los lotes de 150 líneas no caben: la API devuelve `max_tokens_exceeded`; 60 líneas con dos preguntas y 100 con una sí.
+
+**Sin medir:** otros prompts, la cobertura del `Noul`, el impacto en la nota, y motivos de FINAL ausentes de TRAIN. Un motivo nuevo sería hoy `SHORT_DISPUTE`, como manda `_deducted`.
+
