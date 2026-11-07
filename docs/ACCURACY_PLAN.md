@@ -53,7 +53,9 @@ FINAL trae a propósito: una sociedad nueva con banco, divisa (ZAR) y numeració
 
 ## 4. Plan de trabajo (por puntos esperados por hora; cada bloque con su puerta)
 
-Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, precisión de clase de excepción según §4.1, `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 180 s en holdout (era 150; relajado a las 14:30 porque el límite real es la memoria y FINAL corre en ~3 min). Medir con `just be-score --compare` y `just be-diff`.
+**Puerta desde las 17:40 (decisión de Alfonso):** decide la **nota total**. Una PR entra si sube la nota en holdout (y en drift si hay slot) aunque baje la precisión de pares, `unidentified`, `unidentified_lookalike` o un segmento; la tabla por segmento es diagnóstico. Siguen vigentes: CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 180 s en holdout, y nada aprendido del golden. Las PR de los compañeros se fusionan con el CI en verde y se miden en la LIVE siguiente, sin revertirlas (CLAUDE.md §4 y §5).
+
+Puerta anterior (hasta las 17:40, se conserva como referencia): holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, precisión de clase de excepción según §4.1, `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 180 s en holdout (era 150; relajado a las 14:30 porque el límite real es la memoria y FINAL corre en ~3 min). Medir con `just be-score --compare` y `just be-diff`.
 
 **Excepción conocida a la puerta (15:20):** `PARTY-FRACTION` (PR 109, de PabloGMadrono) casa BT-2025-0074167, un cobro sin partida (`unidentified_lookalike` 1,000 → 0,9993 en holdout y en drift). Se mantiene por decisión de la orquestadora con los datos delante: 464 de 466 facturas correctas, +0,26 en LIVE oficial (92,59 → 92,85), +0,25 en drift, dos cobros sin partida casados (el otro, BT-2025-0188058, en `customer_advance`). Es la única regla del día fuera de la puerta.
 
