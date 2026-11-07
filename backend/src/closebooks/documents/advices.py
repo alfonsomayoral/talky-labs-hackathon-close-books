@@ -435,8 +435,9 @@ def _rows_of(cells: list[str], offset: int, by_word: bool) -> tuple[list[list[st
                 break
             continue
         if amounts_at and at > amounts_at[0] and _amount_cell(cell) is None and not _is_number_cell(cell):
-            ends_line = not _PRINTED_AMOUNT.search(cell) and not (at + 1 < len(last) and (
-                _amount_cell(last[at + 1]) is not None or _PRINTED_AMOUNT.search(last[at + 1])))
+            amount_next = at + 1 < len(last) and _amount_cell(last[at + 1]) is not None
+            ends_line = not _PRINTED_AMOUNT.search(cell) and not amount_next and not (
+                at + 1 < len(last) and _PRINTED_AMOUNT.search(last[at + 1]))
             cut = at + 1 if ends_line else at
             foot, pieces[-1] = last[cut:], last[:cut]
             break
@@ -571,7 +572,9 @@ def _by_content(kind: str, path: Path, rel: str, received: date | None) -> Advic
         return read_cells(text.splitlines(), kind, rel, received)
     head, _, body = _read_text(path).partition("\n\n")
     subject = re.search(r"^Subject:\s*(.+?)\s*$", head, re.M)
-    return read_cells(body.splitlines(), kind, rel, received, subject[1].split()[-1] if subject else None)
+    words = subject[1].split() if subject else []
+    with_digits = [w for w in words if any(c.isdigit() for c in w)]
+    return read_cells(body.splitlines(), kind, rel, received, with_digits[-1] if with_digits else None)
 
 
 # --- entry points --------------------------------------------------------------------------------------------------

@@ -291,3 +291,17 @@ def test_paid_before_gross_with_no_deduction_column_reads_the_shortfall(tmp_path
     advice = read_cells(cells[:-1], "pdf", "x.pdf", None, ref="250110274015")
     assert lines(advice)[0] == ("INV25-0100504", 253595, -5072, None, 248523)
 
+
+def test_a_total_in_the_foot_is_never_the_reason_or_an_amount_of_the_last_line():
+    cells = ["Total remitted 1,800.00 AUD", "INV25-1000001", "02.01.2025", "1,000.00", "1,000.00",
+             "INV25-1000002", "03.01.2025", "800.00", "800.00", "TOTAL REMITTED", "1,800.00"]
+    advice = read_cells(cells, "pdf", "x.pdf", None, ref="1000")
+    assert lines(advice)[1] == ("INV25-1000002", 80000, 0, None, 80000)
+
+
+def test_the_subject_says_the_reference_in_the_word_with_digits(tmp_path):
+    path = tmp_path / "advice.txt"
+    path.write_text(MAIL.replace("Subject: Payment advice 250102632763",
+                                 "Subject: Payment no. 250102632763 (Accounts Payable)"))
+    assert parse_advice(path).payment_ref == "250102632763"
+
