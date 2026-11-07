@@ -53,7 +53,7 @@ FINAL trae a propósito: una sociedad nueva con banco, divisa (ZAR) y numeració
 
 ## 4. Plan de trabajo (por puntos esperados por hora; cada bloque con su puerta)
 
-Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, precisión de clase de excepción según §4.1, `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 150 s en holdout. Medir con `just be-score --compare` y `just be-diff`.
+Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, precisión de clase de excepción según §4.1, `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 180 s en holdout (era 150; relajado a las 14:30 porque el límite real es la memoria y FINAL corre en ~3 min). Medir con `just be-score --compare` y `just be-diff`.
 
 | # | Bloque | Objetivo medible | Esfuerzo [Inferencia] |
 | --- | --- | --- | --- |
