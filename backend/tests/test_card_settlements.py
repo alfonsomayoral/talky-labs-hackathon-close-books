@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from itertools import permutations
+from types import SimpleNamespace
+
+import polars as pl
 from test_payment_runs import golden_pairs, proposed_pairs
 
 from closebooks.rules import card_settlements
+from closebooks.rules.ar_common import entity_of_account
 
 HEADER = ("settlement_id,acquirer,merchant_id,settlement_date,account_id,currency,order_number,card,auth_code,"
           "operation_date,gross,fee,net\n")
@@ -88,3 +93,32 @@ def test_chargeback_of_an_amount_no_operation_of_that_card_had_is_not_forced(pha
     phase = phase_factory(items=[order(1, "WEB25-0000001", 10000)], files={"card_settlements": HEADER + file},
                           txns=[credit("BT-C", f"CHARGEBACK ****1111 MID {MID}", -9000, date="2025-06-10")])
     assert card_settlements.propose(phase) == {}
+
+
+def accounts(bank_lines, master=()):
+    schema = {"account_id": pl.String, "entity": pl.String}
+    return SimpleNamespace(masters={"bank_accounts": pl.DataFrame(master, schema=schema, orient="row")},
+                           txns=pl.DataFrame(bank_lines, schema=schema, orient="row"))
+
+
+def test_an_account_only_in_the_bank_lines_takes_the_entity_of_its_lines():
+    phase = accounts([("ZA01-UMVC-ZAR", "ZA01")], master=[("ES01-PENA-EUR", "ES01")])
+    assert dict(entity_of_account(phase).iter_rows()) == {"ES01-PENA-EUR": "ES01", "ZA01-UMVC-ZAR": "ZA01"}
+
+
+def test_an_account_in_both_keeps_the_entity_of_the_master_in_one_row():
+    phase = accounts([("ES01-PENA-EUR", "ES02")], master=[("ES01-PENA-EUR", "ES01")])
+    assert entity_of_account(phase).rows() == [("ES01-PENA-EUR", "ES01")]
+
+
+def test_an_account_with_two_entities_in_its_lines_gets_the_same_one_in_any_order():
+    for bank_lines in permutations([("ZA01-UMVC-ZAR", "ZA02"), ("ZA01-UMVC-ZAR", None), ("ZA01-UMVC-ZAR", "ZA01")]):
+        assert entity_of_account(accounts(bank_lines)).rows() == [("ZA01-UMVC-ZAR", "ZA01")]
+
+
+def test_settlement_of_an_account_missing_from_the_master_clears_its_orders(phase_factory):
+    file = settlement(MID, [("WEB25-0000001", "****1111", 100.0, 1.0)], account="ES01-NEWB-EUR")
+    bank_line = credit("BT-1", f"CARD SETTLEMENT MID {MID} 2025-05-27 1 TRX", 9900, account="ES01-NEWB-EUR")
+    phase = phase_factory(items=[order(1, "WEB25-0000001", 10000)], files={"card_settlements": HEADER + file},
+                          accounts=(), txns=[{**bank_line, "entity": "ES01"}])
+    assert card_settlements.propose(phase)["BT-1"].lines == [("ARI-2025-0000001", 10000)]
