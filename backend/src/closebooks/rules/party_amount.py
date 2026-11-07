@@ -237,6 +237,9 @@ class PartyAmount:
         found = self._by_number_alone(txn, cash, currency, balances)
         if found:
             return found
+        group = self._in_the_group(parties, txn, cash, currency, balances) if not results else None
+        if group:
+            return group
         if results:
             self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
         elif self._pending:
@@ -249,6 +252,20 @@ class PartyAmount:
         history = balances.history(item_id)
         return bool(history) and history[-1]["exception"] == "RETURNED" and (
             self.reserved[item_id] <= {move["bankTxnId"] for move in history})
+
+    def _in_the_group(self, parties: list[str], txn: dict, cash: int, currency: str, balances) -> Proposal | None:
+        """POLICIES §5.1: a parent may pay for its subsidiaries, inside one entity. A payer named whole, with nothing of
+        its own that the cash explains, and only one other customer of its group whose open documents are the cash."""
+        if not self.parties.certain:
+            return None
+        members = {m for p in parties for m in self.parties.group_of.get(p, ())} - set(parties)
+        results = [r for m in sorted(members) if (r := self._match(m, txn, cash, currency, balances))]
+        exact = [r for r in results if _net([((i,), balances.open(i)) for i, _ in r.lines]) == cash]
+        if len(exact) != 1:
+            return None
+        chosen = exact[0]
+        chosen.sources = [*chosen.sources, *({"kind": "customer", "ref": p} for p in parties)]
+        return chosen
 
     def _only_homonym_with_the_cash(self, results: list[Proposal], cash: int, currency: str,
                                     balances) -> Proposal | None:

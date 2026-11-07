@@ -46,15 +46,16 @@ class PartyIndex:
         for entity, party, name in printed.select("entity", "party_id", "party_name").iter_rows():
             kind = "supplier" if party and party.startswith("S") else "customer"
             self._add(kind, entity, party, name, None)
-        members: dict[str, list[str]] = defaultdict(list)
-        for row in customers.select("customer_id", "group_id", "parent_customer_id").iter_rows(named=True):
+        members: dict[tuple[str, str], list[str]] = defaultdict(list)
+        columns = ("customer_id", "entity", "group_id", "parent_customer_id")
+        for row in customers.select(columns).iter_rows(named=True):
             key = row["group_id"] or row["parent_customer_id"]
             if key:
-                members[key].append(row["customer_id"])
-        for row in customers.select("customer_id", "group_id", "parent_customer_id").iter_rows(named=True):
+                members[row["entity"], key].append(row["customer_id"])
+        for row in customers.select(columns).iter_rows(named=True):
             key = row["group_id"] or row["parent_customer_id"]
             if key:
-                self.group_of[row["customer_id"]] = members[key]
+                self.group_of[row["customer_id"]] = members[row["entity"], key]
 
     def _add(self, kind: str, entity: str, party: str, name: str | None, iban: str | None) -> None:
         self.entities.add(entity)
