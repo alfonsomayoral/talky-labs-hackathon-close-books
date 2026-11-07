@@ -74,7 +74,7 @@ Lo más probable, porque FINAL trae una divisa, un banco y una sociedad nuevos. 
 | --- | --- |
 | Rojo «toda divisa tiene tipo en FX» | Enviar igual: el CSV va en la divisa de la partida |
 | «banco nuevo», ámbar o rojo, o rojo «todo banco con filas fuera de FALLBACK» solo en ese banco | Enviar igual: como mucho se pierden categorías de ese banco |
-| Rojo o aviso de `FALLBACK` en una sola sociedad, la nueva | Enviar igual: no tiene historial. Si son varias familias de reglas, avisar antes de enviar |
+| Rojo o aviso de `FALLBACK` en una sola sociedad, la nueva | Enviar igual: `FALLBACK-UNIDENTIFIED` alto ahí no es fallo por sí solo, porque tiene clientes nunca vistos y no tiene historial. Mirar que el resto de sociedades estén en su línea. Si son varias familias de reglas, avisar antes de enviar |
 
 ## Decisiones si algo sale mal
 
