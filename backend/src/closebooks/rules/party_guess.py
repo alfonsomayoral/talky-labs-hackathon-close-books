@@ -48,6 +48,15 @@ def _open_of(party: str, date: str, currency: str, due: dict, balances: OpenBala
             and engine.is_free(entry, balances.open(entry[0]), balances)]
 
 
+def _since_last(party: str, date: str, currency: str, due: dict, balances: OpenBalances, engine: PartyAmount,
+                receipts: dict[str, list[str]]) -> tuple[list[tuple], list[tuple]]:
+    """Its invoices open now, and those due since its previous receipt with evidence, oldest first."""
+    days = receipts[party]
+    before = days[bisect_left(days, date) - 1] if bisect_left(days, date) else ""
+    open_now = _open_of(party, date, currency, due, balances, engine)
+    return open_now, sorted(c for c in open_now if c[0] >= before)
+
+
 def _says_who_paid(entry: tuple, cash: int, date: str) -> bool:
     due_date, _, _, cents = entry
     excess = cash - cents
@@ -108,20 +117,23 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
         cash, currency = engine._cash(txn)
         if currency != txn["currency"]:
             continue
+        homonym = False
         payers = {*engine.parties.find(txn, "customer"), *_by_start(engine.parties, txn), *_by_words(words, txn)}
         date = txn["booking_date"]
         if len(payers) > 1:
             fits = [(party, entry) for party in payers
                     for entry in _open_of(party, date, currency, due, balances, engine)
                     if entry[3] < cash and _is_overpayment(cash - entry[3], entry[3])]
-            payers = [fits[0][0]] if len(fits) == 1 and _says_who_paid(fits[0][1], cash, date) else []
+            if len(fits) == 1 and _says_who_paid(fits[0][1], cash, date):
+                payers = [fits[0][0]]
+            else:  # the only homonym whose oldest invoices add up to the cash; two that do tie
+                payers = [party for party in payers if _oldest_exact(
+                    _since_last(party, date, currency, due, balances, engine, receipts)[1][:MAX_SEARCH], cash)]
+                homonym = len(payers) == 1
         if len(payers) != 1:
             continue
         party = payers.pop()
-        days = receipts[party]
-        before = days[bisect_left(days, date) - 1] if bisect_left(days, date) else ""
-        open_now = _open_of(party, date, currency, due, balances, engine)
-        ordered = sorted(c for c in open_now if c[0] >= before)
+        open_now, ordered = _since_last(party, date, currency, due, balances, engine, receipts)
         added_up = _oldest_exact(ordered[:MAX_SEARCH], cash)
         chosen, left = [(item, cents, due_date) for due_date, _, item, cents in added_up], 0
         if not chosen:
@@ -150,8 +162,10 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
             txn_id, item, cents, currency, None, said, RULE, 0.3, party, None, [{"kind": "customer", "ref": party}],
             [{"itemId": item, "amountCents": cents, "currency": currency,
               "why": f"inferred overpayment: the cash clears it with an excess within limits, {party} named; to review"
-              if overpaid else "inferred: the oldest invoices due of the only customer named add up to the cash; "
-              "to review" if added_up else
+              if overpaid else "inferred: the only homonym whose oldest invoices add up to the cash"
+              if homonym and added_up else
+              "inferred: the oldest invoices due of the only customer named add up to the cash; to review"
+              if added_up else
               f"oldest invoice due ({due_date}) of the only customer named; no reference, to review"}])
             for item, cents, due_date in chosen]
         engine.abstentions.pop(txn_id, None)
