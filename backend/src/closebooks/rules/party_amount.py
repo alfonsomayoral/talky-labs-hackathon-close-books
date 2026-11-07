@@ -128,9 +128,16 @@ def _month_of(text: str) -> tuple[int, int | None] | None:
     return None
 
 
+def _as_taught(proposal: Proposal, rule: dict) -> Proposal:
+    proposal.rule, proposal.confidence = "MEMORY-RULE", 1.0
+    proposal.sources = [{"kind": "memoryRule", "ref": rule["ruleId"]}]
+    return proposal
+
+
 class PartyAmount:
     def __init__(self, phase, reserved: set[str]):
         self.reserved = reserved
+        self.memory = None
         self.clauses = _clauses(phase)
         self.cancelled = cancelled_item_ids(phase.items) if "reason" in phase.items.columns else set()
         # bank_txn_id -> why the engine proposed nothing although it had evidence: nobody reads this to decide
@@ -173,9 +180,13 @@ class PartyAmount:
 
     def __call__(self, txn: dict, balances: OpenBalances) -> Proposal | None:
         kind = "customer" if txn["amount_cents"] > 0 else "supplier"
-        parties = self.parties.find(txn, kind)
         cash, currency = self._cash(txn)
         self._pending = []
+        if self.memory is not None:
+            taught = self._taught(txn, kind, cash, currency, balances)
+            if taught:
+                return taught
+        parties = self.parties.find(txn, kind)
         results = [r for party in parties if (r := self._match(party, txn, cash, currency, balances))]
         if len(results) == 1:
             return results[0]
@@ -186,6 +197,28 @@ class PartyAmount:
             self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
         elif self._pending:
             self._abstain(txn, "subsets", self._pending, balances)
+        return None
+
+    def _taught(self, txn: dict, kind: str, cash: int, currency: str, balances) -> Proposal | None:
+        """What a person taught goes first; the amount still has to be explained, or the line goes on as usual."""
+        memory = self.memory
+        alias = memory.alias(txn)
+        if alias:
+            params, rule = alias
+            target = _alnum(params.get("documentNumber") or "")
+            hits = [i for i in self.by_number.get((txn["entity"], target), ()) if i[3] == currency]
+            if len(hits) == 1:
+                return _as_taught(self._proposal("REF-TEXT", None, [hits[0][0]], by_cash=True, confidence=1.0), rule)
+            if params.get("partyId"):
+                found = self._match(params["partyId"], txn, cash, currency, balances)
+                if found:
+                    return _as_taught(found, rule)
+        hit = memory.payer(txn) or memory.paid_for(self.parties.find(txn, kind), txn["entity"])
+        if hit:
+            self.parties.certain = True
+            found = self._match(hit[0], txn, cash, currency, balances)
+            if found:
+                return _as_taught(found, hit[1])
         return None
 
     def _abstain(self, txn: dict, reason: str, options: list[tuple[str, list[str]]], balances: OpenBalances) -> None:

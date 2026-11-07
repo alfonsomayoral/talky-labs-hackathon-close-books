@@ -19,6 +19,7 @@ from .documents.pdfs import clauses_frame, phase_clauses
 from .drafts import render, top_per_template
 from .evaluate import score_file
 from .load import cancelled_item_ids, load_phase
+from .memory import Memory, load_rules
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
 from .paths import ROOT, RUNS
 from .resolve import resolve
@@ -96,7 +97,7 @@ def _drafts(cases, rows, phase, balances, names, countries, created_at: str) -> 
     return drafts
 
 
-def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -> Path:
+def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, memory: Path | None = None) -> Path:
     started = datetime.now().astimezone()
     stages: dict[str, int] = {}
     peak_mb: dict[str, int] = {}
@@ -118,9 +119,11 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     advices = phase_advices(phase)
     phase_clauses(phase)
     lap("documents")
-    proposals = propose(phase)
+    taught = Memory(load_rules(memory))
+    proposals = {**propose(phase), **taught.categories(phase)}
     lap("rules")
     engine = stateful(phase, proposals)
+    engine.memory = taught if taught.rules else None
     rows, balances = resolve(phase, proposals, engine)
     engine.release()
     del proposals
@@ -167,7 +170,8 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
         "byException": dict(Counter(r.exception for r in rows if r.exception)),
         "byCategory": dict(Counter(r.category for r in rows if r.category)),
         "cases": dict(Counter(c["status"] for c in cases)),
-        "advices": residue(advices), "models": {}, "memoryRulesApplied": 0, "score": result,
+        "advices": residue(advices), "models": {}, "memoryRulesApplied": sum(r.rule == "MEMORY-RULE" for r in rows),
+        "memoryRulesIgnored": taught.ignored, "score": result,
     }
     (run / "run.json").write_bytes(orjson.dumps(meta, option=orjson.OPT_INDENT_2))
     return run

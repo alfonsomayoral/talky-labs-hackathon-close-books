@@ -26,6 +26,12 @@ def check_ident(value: str, what: str) -> str:
     return value
 
 
+def with_memory(command: list[str], out: Path) -> list[str]:
+    """A run started with memoryFrom carries its rules in human/: the pipeline must apply them, not only keep them."""
+    human = out / "human"
+    return [*command, "--memory", str(human)] if (human / "memory_rules.jsonl").exists() else command
+
+
 def default_command(phase: str, out: Path) -> list[str]:
     return [sys.executable, "-m", "closebooks.cli", "run", "--phase", phase, "--out", str(out)]
 
@@ -75,7 +81,8 @@ class Jobs:
         while True:
             job, phase = self._queue.get()
             job.status = "running"
-            done = subprocess.run(self.command(phase, self.runs_dir / job.run_id), capture_output=True, text=True,
+            out = self.runs_dir / job.run_id
+            done = subprocess.run(with_memory(self.command(phase, out), out), capture_output=True, text=True,
                                   cwd=paths.ROOT)
             if done.returncode == 0 and (self.runs_dir / job.run_id / "run.json").exists():
                 job.status = "done"
