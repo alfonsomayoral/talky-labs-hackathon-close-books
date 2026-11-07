@@ -214,6 +214,10 @@ class PartyAmount:
         self.countries = dict(customers.select("customer_id", "country").iter_rows()) if (
             "country" in customers.columns) else {}
         known = items.filter(pl.col("party_id").is_not_null())
+        # A credit note names the invoice it credits (POLICIES §5.9): its printed number, as the citations compare it.
+        self.credits = {} if "related_document" not in items.columns else {
+            note: _alnum(number) for note, number in items.filter(pl.col("related_document").is_not_null()).select(
+                "item_id", "related_document").iter_rows()}
         self.parties = PartyIndex(phase.masters, known.select("entity", "party_id", "party_name").unique())
         self.related = {} if "related_document" not in items.columns else {
             i: _alnum(r) for i, r in items.filter(pl.col("related_document").is_not_null())
@@ -407,6 +411,9 @@ class PartyAmount:
         if same:
             picked = self._of_month(same, txn, party) or min(same, key=lambda i: (i[2], i[0]))
             return self._proposal("PARTY-AMOUNT", party, [picked[0]], confidence=0.95 if len(same) == 1 else 0.9)
+        own_note = self._invoice_less_its_note(free, cash)
+        if own_note:
+            return self._proposal("PARTY-NOTE-NET", party, own_note, confidence=0.9)
         tied: list[list[str]] = []
         subset = self._subset(free, cash, ambiguous=tied) if self.parties.certain else None
         if subset:
@@ -472,6 +479,12 @@ class PartyAmount:
         cited = [(i, open_now[i[0]]) for i in strong + weak if open_now[i[0]] > 0]
         if cited and _net(cited) == cash:
             return make("REF-TEXT", party, [i[0] for i, _ in cited], by_cash=True, confidence=1.0)
+        if cited and _net(cited) > cash:  # before a subset, which would drop a cited invoice of the note's amount
+            named = {i[0] for i, _ in cited}
+            notes = [f for f in free if f[0][0] not in named and f[0][0][:3] in CREDIT_NOTES]
+            netted = self._notes_for(notes, _net(cited) - cash, {i[6] for i, _ in cited})
+            if netted:
+                return make("REF-COMPLETED", party, [*named, *netted], by_cash=True, confidence=0.9)
         subset = self._subset(cited, cash) if len(cited) > 1 else None
         if subset:
             return make("REF-SUBSET", party, subset, by_cash=True, confidence=0.95)
@@ -479,7 +492,7 @@ class PartyAmount:
         if for_strong and _net(for_strong) > cash:
             named = {i[0] for i, _ in for_strong}
             notes = [f for f in free if f[0][0] not in named and f[0][0][:3] in CREDIT_NOTES]
-            netted = self._notes_for(notes, _net(for_strong) - cash)
+            netted = self._notes_for(notes, _net(for_strong) - cash, {i[6] for i, _ in for_strong})
             if netted:
                 return make("REF-COMPLETED", party, [*named, *netted], by_cash=True, confidence=0.9)
         if for_strong and _net(for_strong) < cash:
@@ -543,9 +556,12 @@ class PartyAmount:
         run, note = found.pop()
         return sorted(run) + [note] if note else sorted(run)
 
-    @staticmethod
-    def _notes_for(notes: list, gap: int) -> list[str] | None:
-        """Credit notes, not cited, that are exactly what the customer netted from the invoices it cites."""
+    def _notes_for(self, notes: list, gap: int, cited: set[str]) -> list[str] | None:
+        """Credit notes, not cited, that are exactly what the customer netted from the invoices it cites. Those that
+        name a cited invoice go first (POLICIES §5.9)."""
+        own = [n for n in notes if self.credits.get(n[0][0]) in cited]
+        if own and sum(n[1] for n in own) == gap:
+            return [n[0][0] for n in own]
         exact = [n[0][0] for n in notes if n[1] == gap]
         if len(exact) == 1:
             return exact
@@ -553,6 +569,16 @@ class PartyAmount:
             return None
         positive = [((n[0][0], "", "", "", 0, "", "", "", ""), n[1]) for n in notes]
         return _unique_subset([(i[0], o) for i, o in positive], gap, 2) if positive else None
+
+    def _invoice_less_its_note(self, free: list, cash: int) -> list[str] | None:
+        """No citation, and the only invoice that, less the credit note that names it, is the cash (POLICIES §5.9)."""
+        invoices = {i[6]: (i[0], o) for i, o in free if i[0][:3] not in CREDIT_NOTES}
+        found = []
+        for note, note_open in free:
+            credited = invoices.get(self.credits.get(note[0], ""))
+            if note[0][:3] in CREDIT_NOTES and credited and credited[1] - note_open == cash:
+                found.append([credited[0], note[0]])
+        return found[0] if len(found) == 1 else None
 
     def _of_month(self, same: list, txn: dict, party: str) -> tuple | None:
         """Equal amounts: the text names a month. The PDF names the invoice's; else it is issued the month after."""
