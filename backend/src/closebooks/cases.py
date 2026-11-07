@@ -57,7 +57,8 @@ _RULE_TEXT = (
     ("FILE-CHEQUE-RETURN", "por cheque devuelto"), ("FILE-CHEQUE", "por ingreso de cheques"),
     ("ADVICE-", "por aviso de remesa"), ("REF-", "por la referencia del movimiento"),
     ("PARTY-SUBSET", "por tercero y suma de facturas"), ("PARTY-SHORT", "por tercero e importe con deducción"),
-    ("PARTY-", "por tercero e importe"), ("MEMORY-RULE", "por una regla guardada"),
+    ("PARTY-", "por tercero e importe"), ("POLICY-", "por tercero e importe explicado"),
+    ("MEMORY-RULE", "por una regla guardada"),
 )
 _EXCEPTION_TEXT = {
     "SHORT_DISPUTE": ("con disputa", "con disputa"), "PARTIAL": ("pagada en parte", "pagadas en parte"),
@@ -70,7 +71,8 @@ _EXCEPTION_TEXT = {
 def _status(row: Row, kind: str = "") -> str:
     if row.rule.startswith("FALLBACK-"):
         return "fallback"
-    return "needs_review" if row.confidence < 0.9 or kind in REVIEW_KINDS else "auto"
+    # POLICY-*: an exception decided with no document behind it is always for a person to look at
+    return "needs_review" if row.rule.startswith("POLICY-") or row.confidence < 0.9 or kind in REVIEW_KINDS else "auto"
 
 
 def _count(n: int) -> str:

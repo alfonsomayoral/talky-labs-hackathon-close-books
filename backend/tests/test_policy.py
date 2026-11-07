@@ -1,7 +1,21 @@
 """POLICIES §2-§3, clause by clause. Amounts from real lines of sample/TRAIN where the comment says so."""
 from __future__ import annotations
 
-from closebooks.policy import Terms, allocate, cross_border, decide, fee_fits
+from closebooks.policy import (
+    NODES,
+    Evidence,
+    Gap,
+    Hypothesis,
+    Terms,
+    allocate,
+    as_candidates,
+    choose,
+    cross_border,
+    decide,
+    fee_fits,
+    search,
+    weighed,
+)
 
 D2N30 = Terms(discount_pct=2.0, discount_days=10, issue_date="2025-06-01", total_cents=140394, country="ES")
 PLAIN = Terms(discount_pct=None, discount_days=None, issue_date="2025-06-01", total_cents=100000, country="ES")
@@ -215,7 +229,137 @@ def test_a_gap_that_is_the_discount_of_one_of_two_invoices_with_terms_goes_to_th
     assert allocate(149000, items, "2025-06-05", False) == {"ARI-1": (100000, ""), "ARI-2": (50000, "SHORT_DISCOUNT")}
 
 
+def _whole(total, issued="2025-06-01"):
+    return Terms(None, None, issued, total, "ES")
+
+
+def test_the_partial_of_a_receipt_is_the_only_invoice_it_pays_a_round_share_of():
+    # With the others cleared whole, 40 % of the newest is left: the money does not stop at the oldest.
+    items = [("ARI-OLD", 123457, _whole(123457, "2025-01-01")), ("ARI-NEW", 200000, _whole(200000))]
+    assert allocate(123457 + 80000, items, "2025-06-05", False) == {
+        "ARI-OLD": (123457, ""), "ARI-NEW": (80000, "PARTIAL")}
+    # BT-2025-0096935's shape: oldest first would leave the old one partial; the round share is the old one's.
+    items = [("ARI-OLD", 200000, _whole(200000, "2025-01-01")), ("ARI-NEW", 123457, _whole(123457))]
+    assert allocate(123457 + 80000, items, "2025-06-05", False) == {
+        "ARI-OLD": (80000, "PARTIAL"), "ARI-NEW": (123457, "")}
+
+
+def test_two_invoices_with_a_round_share_stay_oldest_first():
+    # 40 % of the old one and 40 % of the new one: nothing says which, and the order of always stands.
+    items = [("ARI-NEW", 200000, _whole(200000)), ("ARI-OLD", 200000, _whole(200000, "2025-01-01"))]
+    assert allocate(280000, items, "2025-06-05", False) == {"ARI-OLD": (200000, ""), "ARI-NEW": (80000, "PARTIAL")}
+
+
+def test_no_round_share_stays_oldest_first():
+    items = [("ARI-NEW", 200000, _whole(200000)), ("ARI-OLD", 123457, _whole(123457, "2025-01-01"))]
+    assert allocate(123457 + 77777, items, "2025-06-05", False) == {
+        "ARI-OLD": (123457, ""), "ARI-NEW": (77777, "PARTIAL")}
+
+
+def test_a_round_share_of_a_tiny_invoice_could_be_chance_and_proves_nothing():
+    items = [("ARI-OLD", 200000, _whole(200000, "2025-01-01")), ("ARI-NEW", 1000, _whole(1000))]
+    assert allocate(200000 + 400, items, "2025-06-05", False) == {"ARI-OLD": (200000, ""), "ARI-NEW": (400, "PARTIAL")}
+    items = [("ARI-OLD", 1000, _whole(1000, "2025-01-01")), ("ARI-NEW", 200033, _whole(200033))]
+    assert allocate(200033 + 400, items, "2025-06-05", False) == {"ARI-OLD": (1000, ""), "ARI-NEW": (199433, "PARTIAL")}
+
+
+def test_an_invoice_already_part_paid_takes_no_round_share():
+    items = [("ARI-OLD", 123457, _whole(123457, "2025-01-01")), ("ARI-NEW", 150000, _whole(200000))]
+    assert allocate(123457 + 60000, items, "2025-06-05", False) == {
+        "ARI-OLD": (123457, ""), "ARI-NEW": (60000, "PARTIAL")}
+    items = [("ARI-OLD", 150000, _whole(200000, "2025-01-01")), ("ARI-NEW", 123457, _whole(123457))]
+    assert allocate(123457 + 60000, items, "2025-06-05", False) == {
+        "ARI-OLD": (150000, ""), "ARI-NEW": (33457, "PARTIAL")}
+
+
+def test_a_document_that_lists_the_items_wins_over_a_round_share():
+    items = [("ARI-NEW", 200000, Terms(None, None, "2025-06-01", 200000, "ES", listed_at=0)),
+             ("ARI-OLD", 123457, Terms(None, None, "2025-01-01", 123457, "ES", listed_at=1))]
+    assert allocate(80000 + 123457, items, "2025-06-05", False) == {
+        "ARI-NEW": (200000, ""), "ARI-OLD": (3457, "PARTIAL")}
+
+
 def test_two_invoices_whose_discount_is_the_gap_are_not_guessed():
     items = [("ARI-1", 50000, _terms(2.0, 50000)), ("ARI-2", 50000, _terms(2.0, 50000))]
     out = allocate(99000, items, "2025-06-05", False)
     assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}
+
+
+def _says(evidence, exception, item="ARI-1"):
+    return Hypothesis(evidence, {item: (100000, exception)}, "")
+
+
+def test_the_strongest_evidence_wins_whatever_the_order():
+    weak, strong = _says(Evidence.DEFAULT, "PARTIAL"), _says(Evidence.PRINTED_REASON, "SHORT_DISPUTE")
+    assert choose([weak, strong]) is strong
+    assert choose([strong, weak]) is strong
+
+
+def test_two_different_hypotheses_on_a_level_abstain_and_the_next_one_down_decides():
+    tied = [_says(Evidence.ONE_DISCOUNT, "SHORT_DISCOUNT"), _says(Evidence.ONE_DISCOUNT, "SHORT_DISCOUNT", "ARI-2")]
+    below = _says(Evidence.DEFAULT, "PARTIAL")
+    assert choose([*tied, below]) is below
+
+
+def test_a_tie_with_nothing_below_chooses_nothing():
+    assert choose([_says(Evidence.BOUNDED, "OVERPAYMENT"), _says(Evidence.BOUNDED, "SHORT_BANK_CHARGES")]) is None
+
+
+def test_the_same_lines_twice_on_a_level_are_not_a_tie():
+    # Two rates can round to the gap of a small invoice: they say the same thing.
+    assert choose([_says(Evidence.RATE_ON_ALL, "SHORT_WITHHOLDING"), _says(Evidence.RATE_ON_ALL, "SHORT_WITHHOLDING")])
+
+
+def test_a_node_only_adds_what_it_can_explain():
+    no_gap = Gap(0, 100000, [("ARI-1", 100000, PLAIN)], [], "2025-06-05", None)
+    assert [h.evidence for node in NODES for h in node(no_gap)] == [Evidence.EXACT]
+
+
+def test_search_keeps_the_explanation_it_rejected_for_the_evidence():
+    out, considered = search(98000, [("ARI-1", 100000, _terms(2.0))], "2025-06-05", False)
+    assert out == {"ARI-1": (100000, "SHORT_DISCOUNT")}
+    assert [(h.evidence, h.lines) for h in considered] == [
+        (Evidence.ALL_DISCOUNTS, {"ARI-1": (100000, "SHORT_DISCOUNT")}),
+        (Evidence.DEFAULT, {"ARI-1": (98000, "PARTIAL")})]
+    discarded, chosen = as_candidates(considered, "EUR")
+    assert (discarded["itemId"], discarded["amountCents"], chosen["itemId"], chosen["amountCents"]) == (
+        "ARI-1", 98000, "ARI-1", 100000)
+    assert discarded["why"].startswith("discarded DEFAULT PARTIAL")
+    assert chosen["why"].startswith("chosen ALL_DISCOUNTS SHORT_DISCOUNT")
+
+
+def test_one_hypothesis_says_nothing_to_the_evidence():
+    assert as_candidates(search(100000, [("ARI-1", 100000, PLAIN)], "2025-06-05", False)[1], "EUR") == []
+
+
+def test_a_gap_nothing_explains_still_says_what_was_chosen():
+    entries = as_candidates(search(60000, [("ARI-1", 100000, PLAIN)], "2025-06-05", False)[1], "EUR")
+    assert [(e["amountCents"], e["why"].split(":")[0]) for e in entries] == [(60000, "chosen DEFAULT PARTIAL")]
+
+
+def test_many_invoices_are_one_entry_per_hypothesis_not_one_per_invoice():
+    # A row of the bank line repeats its candidates: an advice of 886 invoices cannot write 886 entries on each row.
+    items = [(f"ARI-{n}", 100000, _terms(2.0)) for n in range(3)]
+    discarded, chosen = as_candidates(search(294000, items, "2025-06-05", False)[1], "EUR")
+    assert chosen["amountCents"] == 300000 and chosen["why"].startswith("chosen ALL_DISCOUNTS SHORT_DISCOUNT x3:")
+    assert discarded["amountCents"] == 294000 and discarded["why"].startswith("discarded DEFAULT -")
+
+
+def test_the_hypotheses_of_a_foreign_payment_say_what_its_row_says():
+    out, considered = search(98000, [("ARI-1", 100000, _terms(2.0))], "2025-06-05", True)
+    assert out == {"ARI-1": (100000, "FX_DIFFERENCE")}
+    assert as_candidates(considered, "USD")[-1]["why"].startswith("chosen ALL_DISCOUNTS FX_DIFFERENCE")
+
+
+def test_a_printed_deduction_weighs_what_decide_chose_against_what_nothing_explains():
+    considered = weighed("ARI-1", False, 100000, 95000, (-5000, "GOODS DAMAGED"), PLAIN, "2025-06-05")
+    assert [(h.evidence, h.lines["ARI-1"]) for h in considered] == [
+        (Evidence.PRINTED_REASON, (95000, "SHORT_DISPUTE")), (Evidence.DEFAULT, (95000, "PARTIAL"))]
+    assert decide("ARI-1", "EUR", "EUR", 100000, 95000, deduction=(-5000, "GOODS DAMAGED"), terms=PLAIN,
+                  booking_date="2025-06-05") == considered[0].lines["ARI-1"]
+
+
+def test_a_deduction_that_leaves_nothing_to_explain_weighs_nothing():
+    assert weighed("ARI-1", False, 100000, 100000, (-5000, None), PLAIN, "2025-06-05") == []
+    assert weighed("ARI-1", False, 100000, 95000, (0, None), PLAIN, "2025-06-05") == []
+    assert weighed("ARI-1", False, 0, 95000, (-5000, None), PLAIN, "2025-06-05") == []

@@ -1,15 +1,18 @@
 """Walk the bank lines by booking date, apply the best proposal, fix amount and exception, update balances."""
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import replace
 
 from .categories import fallback
 from .load import Phase, cancelled_item_ids
 from .model import Proposal, Row
-from .policy import CREDIT_NOTES, Terms, allocate, cross_border, decide, fee_fits
+from .policy import CREDIT_NOTES, Terms, as_candidates, cross_border, decide, fee_fits, search, weighed
 from .rules.party_amount import document_says
 from .state import OpenBalances
+
+_OF_A_PLAN = re.compile(r"(?<![\d/.\-])(\d{1,2})\s*/\s*(\d{1,2})(?![\d/.\-])")
 
 
 def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tuple[list[Row], OpenBalances]:
@@ -44,24 +47,36 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                             proposal.confidence, proposal.party_id, proposal.reference, proposal.sources,
                             proposal.candidates))
             continue
-        decided = _by_cash(proposal, txn, currency, balances, terms_of, plans) if proposal.by_cash else None
+        decided, candidates = None, proposal.candidates
+        if proposal.by_cash:
+            decided, considered = _by_cash(proposal, txn, currency, balances, terms_of, plans)
+            candidates = [*candidates, *as_candidates(considered, currency[proposal.lines[0][0]])]
         rows_before = len(rows)
         for item_id, applied in proposal.lines:
+            evidence = candidates
             if decided is not None:
                 if item_id not in decided:
                     continue
                 amount, exception = decided[item_id]
             else:
+                open_cents = applied if proposal.settles_rest else balances.open(item_id)
+                deduction = proposal.deductions.get(item_id)
                 amount, exception = decide(
-                    item_id, currency[item_id], txn["currency"],
-                    applied if proposal.settles_rest else balances.open(item_id), applied, proposal.returned,
-                    deduction=proposal.deductions.get(item_id), terms=terms_of(item_id),
-                    booking_date=txn["booking_date"])
+                    item_id, currency[item_id], txn["currency"], open_cents, applied, proposal.returned,
+                    deduction=deduction, terms=terms_of(item_id), booking_date=txn["booking_date"])
+                if deduction is not None and applied is not None and not proposal.returned:
+                    foreign = currency[item_id] != txn["currency"]
+                    evidence = [*candidates, *as_candidates(weighed(
+                        item_id, foreign, open_cents, applied, deduction, terms_of(item_id), txn["booking_date"]),
+                        currency[item_id])]
             if amount < 0:  # FORMAT.md: one negative amount invalidates the whole CSV
                 print(f"warning: negative amount {amount} on {item_id} of {txn_id} by {proposal.rule}: line left out",
                       file=sys.stderr)
                 continue
-            exception = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception)
+            as_planned = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception, txn,
+                                           currency[item_id] != txn["currency"])
+            if as_planned != exception:  # the clause overruled what policy chose: what it weighed says nothing
+                exception, evidence = as_planned, proposal.candidates
             balance_effect = exception
             doubts_first = item_id in settled_uncited and proposal.rule != "PARTY-DUPLICATE"
             if exception == "DUPLICATE_PAYMENT" and doubts_first:
@@ -74,7 +89,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
             balances.apply(item_id, amount, balance_effect, txn_id, txn["booking_date"])
             rows.append(Row(txn_id, item_id, amount, currency[item_id], None, exception or None, proposal.rule,
                             proposal.confidence, party[item_id], proposal.reference, proposal.sources,
-                            proposal.candidates))
+                            evidence))
         if len(rows) == rows_before:
             rows.append(_fallback_row(txn))
     return rows, balances
@@ -85,16 +100,30 @@ def _fallback_row(txn: dict) -> Row:
     return Row(txn["bank_txn_id"], None, None, None, out.category, out.exception or None, out.rule, out.confidence)
 
 
-def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: str) -> str:
-    """POLICIES §3: every instalment but the last is PARTIAL, whatever our balance says (we may have missed one). Only
-    instalments of different amounts say which one is being paid."""
+def _instalment_cited(txn: dict, plan_size: int) -> int | None:
+    """The instalment the bank line names: one k/n whose n is the size of the plan the invoice's PDF prints."""
+    text = f"{txn['text'] or ''} {txn['remittance_info'] or ''}"
+    cited = {int(k) for k, n in _OF_A_PLAN.findall(text) if int(n) == plan_size and 1 <= int(k) <= plan_size}
+    return cited.pop() if len(cited) == 1 else None
+
+
+def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: str, txn: dict, foreign: bool) -> str:
+    """POLICIES §3: every instalment but the last is PARTIAL, whatever our balance says (we may have missed one) and in
+    whatever order they arrive. The bank line may name which one it is; failing that, only instalments of different
+    amounts say it."""
     amounts = (clauses or {}).get("instalments", {}).get("amounts", ())
-    if lines != 1 or exception not in ("", "PARTIAL") or len(set(amounts)) < 2 or amount not in amounts:
+    if lines != 1 or not amounts:
+        return exception
+    cited = _instalment_cited(txn, len(amounts)) if exception in ("", "PARTIAL", "FX_DIFFERENCE") else None
+    if cited is not None:
+        return "PARTIAL" if cited < len(amounts) else "FX_DIFFERENCE" if foreign else ""
+    if exception not in ("", "PARTIAL") or len(set(amounts)) < 2 or amount not in amounts:
         return exception
     return "" if amount == amounts[-1] else "PARTIAL"
 
 
-def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalances, terms_of, plans: dict) -> dict:
+def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalances, terms_of,
+             plans: dict) -> tuple[dict, list]:
     first = proposal.lines[0][0]
     foreign = currency[first] != txn["currency"]
     cash = abs(txn["amount_cents"])
@@ -104,14 +133,14 @@ def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalanc
     if len(proposal.lines) == 1 and cash is not None and balances.open(first) == total:
         said = document_says(plans.get(first), total, cash)
         if said is not None:  # the clause wins over any rate the shortfall happens to match (POLICIES §3)
-            return {first: (cash, said)}
+            return {first: (cash, said)}, []
     items = [(item, balances.open(item), terms_of(item)) for item, _ in proposal.lines]
     from_abroad = not foreign and cross_border(txn["bank_code"], txn["text"]) and fee_fits(
         txn["text"], txn["currency"], sum(-o if i[:3] in CREDIT_NOTES else o for i, o, _ in items) - cash)
     eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if from_abroad else None
     if proposal.in_listed_order:
         items = [(item, open_cents, replace(terms, listed_at=at)) for at, (item, open_cents, terms) in enumerate(items)]
-    return allocate(cash, items, txn["booking_date"], foreign, eur_per_cent)
+    return search(cash, items, txn["booking_date"], foreign, eur_per_cent)
 
 
 def _terms_lookup(phase: Phase):

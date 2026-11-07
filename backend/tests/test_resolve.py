@@ -391,9 +391,9 @@ def test_cancelled_invoice_paid_by_a_file_with_nothing_before_is_not_a_duplicate
     assert (rows[0].amount_cents, rows[0].exception) == (1000, None)
 
 
-def _plan_rows(cash, opening, amounts):
+def _plan_rows(cash, opening, amounts, text="X", item_currency="EUR"):
     items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [opening], "total_cents": [sum(amounts)],
-                          "currency": ["EUR"], "party_id": ["C1"], "payment_terms": ["T30"],
+                          "currency": [item_currency], "party_id": ["C1"], "payment_terms": ["T30"],
                           "issue_date": ["2025-01-01"]})
     masters = {"payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None],
                                               "discount_days": [None]},
@@ -401,7 +401,7 @@ def _plan_rows(cash, opening, amounts):
                                                                "discount_days": pl.String}),
                "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["ES"]})}
     t = pl.DataFrame({"bank_txn_id": ["BT-1"], "booking_date": ["2025-01-02"], "amount_cents": [cash],
-                      "currency": ["EUR"], "bank": ["B"], "bank_code": [""], "bank_subcode": [""], "text": ["X"],
+                      "currency": ["EUR"], "bank": ["B"], "bank_code": [""], "bank_subcode": [""], "text": [text],
                       "orig_cents": [None], "orig_currency": [None], "amount_eur_cents": [cash], "entity": ["E1"],
                       "counterparty_name": [None], "counterparty_account": [None], "remittance_info": [None],
                       "ref1": [None], "ref2": [None], "end_to_end_id": [None]},
@@ -519,3 +519,41 @@ def test_cash_that_reaches_none_of_the_items_of_the_proposal_leaves_the_bank_lin
     assert [(r.bank_txn_id, r.item_id, r.amount_cents) for r in rows] == [("BT-1", None, None)]
     assert rows[0].rule.startswith("FALLBACK-")
     assert balances.open("ARI-1") == 1000
+
+
+def test_the_text_says_which_of_equal_instalments_this_is_whatever_the_date_order():
+    # BT-2025-0062616: "INSTALMENT 2/2" booked before the 1/2: the last one is empty and the first one PARTIAL.
+    assert _plan_rows(20000, 40000, [20000, 20000], "PLAZO 2/2 FV-1").exception is None
+    assert _plan_rows(20000, 20000, [20000, 20000], "RATE 1/2 FV-1").exception == "PARTIAL"
+
+
+def test_the_last_instalment_named_in_another_currency_is_fx_and_an_earlier_one_stays_partial():
+    assert _plan_rows(20000, 40000, [20000, 20000], "INSTALMENT 2/2", "USD").exception == "FX_DIFFERENCE"
+    assert _plan_rows(20000, 20000, [20000, 20000], "INSTALMENT 1/2", "USD").exception == "PARTIAL"
+
+
+def test_a_number_that_does_not_fit_the_plan_of_the_pdf_says_nothing():
+    # A date, an invoice number or another plan: the balance decides as ever.
+    for text in ("FECHA 12/05", "PAGO 2/3", "REF 5/2", "VTO 01/02/25", "FV 2/2-7"):
+        assert _plan_rows(20000, 40000, [20000, 20000], text).exception == "PARTIAL"
+    assert _plan_rows(20000, 40000, [20000, 20000], "PLAZO 1/2 Y 2/2").exception == "PARTIAL"
+
+
+def test_a_gap_explained_by_policy_leaves_its_hypothesis_as_evidence():
+    assert _plan_rows(60000, 100000, [50000, 20000, 30000]).candidates[-1]["why"].startswith("chosen DEFAULT PARTIAL")
+
+
+def test_the_balances_being_the_cash_leave_no_hypothesis():
+    assert _plan_rows(100000, 100000, [50000, 20000, 30000]).candidates == []
+
+
+def test_a_clause_that_rewrites_the_exception_drops_the_hypothesis_it_overruled():
+    # The row says what the plan says: evidence saying PARTIAL was chosen would contradict it.
+    row = _plan_rows(30000, 100000, [50000, 20000, 30000])
+    assert (row.exception, row.candidates) == (None, [])
+
+
+def test_a_policy_rule_is_for_review_whatever_its_confidence():
+    case = _case([_row(rule="POLICY-OVERPAYMENT", exception="OVERPAYMENT", item="ARI-1")])[0]
+    assert case["status"] == "needs_review"
+    assert "por tercero e importe explicado" in case["summary"]
