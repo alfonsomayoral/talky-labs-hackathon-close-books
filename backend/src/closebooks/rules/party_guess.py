@@ -29,8 +29,28 @@ from .party_amount import PartyAmount
 from .split_invoice import _COLUMNS
 
 RULE = "PARTY-GUESS"
+_HOW = {"": "oldest or exact to the cent", "OVERPAYMENT": "excess within the overpayment limits",
+        "PARTIAL": "cash below its open balance, paid in part"}
 _FALLBACK = "FALLBACK-UNIDENTIFIED"
 MAX_ITEMS = 3
+MAX_SEARCH = 40  # open invoices searched for an exact sum: a bound on the work, not a learned threshold
+
+
+def _exact(candidates: list[tuple[str, str, int]], cash: int) -> list[tuple[str, str, int]]:
+    """The fewest open invoices (up to three), earliest due first, whose balances are the cash to the cent."""
+    for one in candidates:
+        if one[2] == cash:
+            return [one]
+    pairs = [(i, j) for i in range(len(candidates)) for j in range(i + 1, len(candidates))]
+    for i, j in pairs:
+        if candidates[i][2] + candidates[j][2] == cash:
+            return [candidates[i], candidates[j]]
+    for i, j in pairs:
+        need = cash - candidates[i][2] - candidates[j][2]
+        for k in range(j + 1, len(candidates)):
+            if candidates[k][2] == need:
+                return [candidates[i], candidates[j], candidates[k]]
+    return []
 
 
 def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAmount) -> None:
@@ -74,17 +94,25 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
                     if cents < cash and _is_overpayment(cash - cents, cents)]
         if left and len(overpays) == 1:
             chosen, left = overpays, cash - overpays[0][1]
+        partial = False
+        if not chosen:
+            every = [(due_date, item, cents) for due_date, _, item, cents in sorted(open_now)]
+            if exact := _exact(every[:MAX_SEARCH], cash):
+                chosen, left = [(item, cents, due_date) for due_date, item, cents in exact], 0
+            elif every and 0 < cash < every[0][2]:
+                chosen, left, partial = [(every[0][1], cash, every[0][0])], 0, True
         if not chosen:
             continue
         txn_id = txn["bank_txn_id"]
         overpaid = len(chosen) == 1 and left > 0 and _is_overpayment(left, chosen[0][1])
-        said = "OVERPAYMENT" if overpaid else None
+        said = "OVERPAYMENT" if overpaid else "PARTIAL" if partial else None
         for item, cents, _ in chosen:
             balances.apply(item, cents, said or "", txn_id, date)
         guesses[at[txn_id]] = [Row(
             txn_id, item, cents, currency, None, said, RULE, 0.3, party, None, [{"kind": "customer", "ref": party}],
             [{"itemId": item, "amountCents": cents, "currency": currency,
-              "why": f"oldest invoice due ({due_date}) of the only customer named; no reference, to review"}])
+              "why": f"inference: invoice due {due_date} of the only customer named, {_HOW[said or '']}; "
+                     "no reference, to review"}])
             for item, cents, due_date in chosen]
         engine.abstentions.pop(txn_id, None)
     rows[:] = [new for index, row in enumerate(rows) for new in guesses.get(index, [row])]

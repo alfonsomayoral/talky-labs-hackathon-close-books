@@ -66,10 +66,20 @@ def test_no_named_customer_stays_unidentified():
     assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
 
 
-def test_cash_below_the_oldest_invoice_stays_unidentified():
+def test_open_invoices_outside_the_oldest_run_that_sum_exactly_to_the_cash_are_the_guess():
+    items = [invoice("ARI-1", 50000, "2024-02-01"), invoice("ARI-2", 12345, "2024-03-01"),
+             invoice("ARI-3", 7655, "2024-04-01")]
+    rows, balances = run(items, [line(cents=20000, text=NAMED)])
+    assert guessed(rows) == [("ARI-2", 12345), ("ARI-3", 7655)]
+    assert balances.open("ARI-1") == 50000
+
+
+def test_cash_below_the_oldest_invoice_with_no_exact_sum_is_a_partial_payment_of_it():
     items = [invoice("ARI-1", 50000, "2024-02-01"), invoice("ARI-2", 1000, "2024-03-01")]
-    rows, _ = run(items, [line(cents=20000, text=NAMED)])
-    assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
+    rows, balances = run(items, [line(cents=20000, text=NAMED)])
+    assert [(r.item_id, r.amount_cents, r.exception, r.rule) for r in rows] == [
+        ("ARI-1", 20000, "PARTIAL", "PARTY-GUESS")]
+    assert balances.open("ARI-1") == 30000
 
 
 def test_an_invoice_already_due_and_left_open_by_an_earlier_receipt_of_the_customer_is_skipped():
