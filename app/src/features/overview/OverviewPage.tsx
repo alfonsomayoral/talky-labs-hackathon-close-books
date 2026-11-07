@@ -73,7 +73,7 @@ export function OverviewPage() {
       />
 
       <div className={styles.metrics}>
-        <Card>
+        <Card data-surface="feature">
           <Metric
             label="Conciliado sin intervención"
             value={formatPercent(autoRate(stats), { decimals: 1 })}
@@ -81,7 +81,7 @@ export function OverviewPage() {
             hint="Movimientos sin ningún caso abierto para una persona."
           />
         </Card>
-        <Card>
+        <Card data-surface="feature">
           <Metric
             label="Importe identificado"
             value={<Amount cents={stats.identifiedEur} compact />}
@@ -95,7 +95,7 @@ export function OverviewPage() {
             hint={`De ${formatMoney(stats.totalEur, 'EUR', { compact: true })} en movimientos. Identificado: los que tienen al menos una partida casada. Categorías: los que no liquidan ninguna${biggestCategories ? `, como ${biggestCategories}` : ''}.`}
           />
         </Card>
-        <Card>
+        <Card data-surface="feature">
           <Metric
             label="Cola de revisión"
             value={formatNumber(stats.reviewQueue)}
@@ -107,7 +107,7 @@ export function OverviewPage() {
             hint="Casos por revisar, con pregunta o sin casación."
           />
         </Card>
-        <Card>
+        <Card data-surface="feature">
           <Metric
             label="Coste de modelo"
             value={models ? formatMoney(Math.round(models.costUsd * 100), 'USD', { decimals: 2 }) : ''}

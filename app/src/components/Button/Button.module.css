@@ -45,11 +45,11 @@
   height: 14px;
 }
 
-/* Primary: a light fill with Talky navy text, flat; the one light block on the dark sheet. Green stays for
-   data, selection and focus (ARCHITECTURE.md §5.4). */
+/* Primary: deep teal on the light theme, a light block on the dark one, a gradient only on hover. Green stays
+   for data, selection and focus (ARCHITECTURE.md §5.4). */
 .primary {
-  background: var(--ink-strong);
-  color: var(--ink-inverse);
+  background: var(--action);
+  color: var(--action-ink);
   padding: 0 var(--space-4);
   font-weight: var(--weight-semibold);
 }
@@ -60,18 +60,18 @@
 
 .primary:hover:not(:disabled),
 .primary:active:not(:disabled) {
-  background: var(--ink);
+  background: var(--gradient-action);
 }
 
 .secondary {
   background: var(--bg);
-  border-color: var(--line);
-  color: var(--ink);
+  border-color: var(--ink-2);
+  color: var(--ink-2);
 }
 
 .secondary:hover:not(:disabled) {
   background: var(--bg-subtle);
-  border-color: var(--line-strong);
+  color: var(--ink);
 }
 
 .secondary:active:not(:disabled) {
