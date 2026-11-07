@@ -20,7 +20,10 @@ STRONG_SUFFIX = 5
 MIN_CUT = 6
 LONG_CUT = 8
 MAX_SUBSET_ITEMS = 24
-MAX_FULL_SEARCH = 16  # beyond this, sums collide so often that a unique subset means nothing
+MAX_FULL_SEARCH = 22  # a bound on the search per line; what a unique subset means is `_chance`
+ALWAYS_SEARCHED = 16  # up to here a unique subset has always been taken, whatever its chance
+MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
+MAX_CHANCE = 0.05  # sets we expect to add up to any cash by chance: above this, one that does proves nothing
 NUMBER_ALONE_TOLERANCE = 0.05
 MONTHS = {name: number for number, names in enumerate((
     "ENERO JANUARY JANVIER JANUAR GENNAIO JANEIRO ENE JAN", "FEBRERO FEBRUARY FEVRIER FEBRUAR FEBBRAIO FEVEREIRO FEB",
@@ -50,6 +53,11 @@ def _discount_pct(phase) -> dict[str, float]:
 
 
 _MANY = object()
+
+
+def _chance(sets: float, values: list[int]) -> float:
+    """How many of the sets searched would add up to a given cash by chance: they spread over the cents of the sum."""
+    return sets / max(sum(abs(v) for v in values), 1)
 
 
 def _sums(pairs: list) -> dict:
@@ -132,6 +140,22 @@ def _as_taught(proposal: Proposal, rule: dict) -> Proposal:
     proposal.rule, proposal.confidence = "MEMORY-RULE", 1.0
     proposal.sources = [{"kind": "memoryRule", "ref": rule["ruleId"]}]
     return proposal
+
+
+def _left_out(values: list[int], start: int, end: int, excess: int, skipped: int, must: list[int]) -> list[tuple]:
+    """Invoices strictly inside the run whose amounts are the excess: the two ends stay, or it is a shorter run."""
+    if excess == 0:
+        return [()]
+    if excess < 0 or not skipped:
+        return []
+    inside = [k for k in range(start + 1, end) if k not in must and values[k] <= excess]
+    hits: list[tuple] = [(k,) for k in inside if values[k] == excess]
+    if skipped > 1:
+        at = defaultdict(list)
+        for k in inside:
+            at[values[k]].append(k)
+        hits += [(k, other) for k in inside for other in at.get(excess - values[k], ()) if other > k]
+    return hits
 
 
 class PartyAmount:
@@ -259,7 +283,11 @@ class PartyAmount:
         if short:
             return self._proposal("PARTY-SHORT", party, [short], by_cash=True, confidence=0.85)
         self._pending += [(party, group) for group in tied]
-        return self._explained_by_state(free, cash, party)
+        planned = self._explained_by_state(free, cash, party)
+        if planned:
+            return planned
+        run = self._consecutive(free, cash, skipped=MAX_SKIPPED) if self.parties.certain else None
+        return self._proposal("PARTY-WINDOW", party, run, confidence=0.85) if run else None
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
@@ -313,6 +341,9 @@ class PartyAmount:
             rest = self._subset([f for f in free if f[0][0] not in named], cash - _net(for_strong), min_size=1)
             if rest:
                 return make("REF-COMPLETED", party, [*named, *rest], by_cash=True, confidence=0.9)
+            run = self._consecutive(free, cash, skipped=MAX_SKIPPED, named=named)
+            if run:
+                return make("REF-COMPLETED", party, run, by_cash=True, confidence=0.9)
         if for_strong:
             return make("REF-TEXT", party, [i[0] for i, _ in for_strong], by_cash=True, confidence=0.9)
         if not strong and len(cited) == 1 and any(len(t) >= LONG_CUT and cited[0][0][6].startswith(t) for t in flats):
@@ -323,28 +354,48 @@ class PartyAmount:
         return None
 
     @staticmethod
-    def _consecutive(free: list, cash: int) -> list[str] | None:
-        """A single run of consecutive open invoices, by date, adding up to the cash, alone or net of one credit note.
+    def _consecutive(free: list, cash: int, skipped: int = 0, named: set[str] | None = None) -> list[str] | None:
+        """A single run of consecutive open invoices, by date, adding up to the cash, alone or net of one credit note,
+        leaving out up to `skipped` invoices inside it (never one in `named`, which must all be in the run).
 
         Too many candidates for a unique subset, but exact cents make a false run very unlikely."""
         invoices = sorted((x for x in free if x[0][0][:3] not in CREDIT_NOTES), key=lambda x: (x[0][2], x[0][0]))
+        if named and any(i[:3] in CREDIT_NOTES for i in named):
+            return None
+        ids, values = [x[0][0] for x in invoices], [x[1] for x in invoices]
         notes = [x for x in free if x[0][0][:3] in CREDIT_NOTES]
         targets = {cash: None, **{cash + o: i[0] for i, o in notes}}
-        ceiling = cash + sum(o for _, o in notes)
-        found = []
-        for start in range(len(invoices)):
+        most = sum(sorted(values)[-skipped:]) if skipped else 0
+        ceiling = cash + sum(o for _, o in notes) + most
+        must = [ids.index(i) for i in named or () if i in ids]
+        if named and len(must) != len(named):
+            return None
+        first, last = (min(must), max(must)) if must else (len(ids), -1)
+        if skipped:
+            windows = (first + 1) * (len(ids) - last) if must else len(ids) ** 2 / 2
+            inside = len(ids) / 2
+            if _chance(windows * (1 + inside + inside ** 2 / 2) * (1 + len(notes)), values) > MAX_CHANCE:
+                return None
+        found: set[tuple[frozenset, str | None]] = set()
+        for start in range(min(first + 1, len(ids))):
             total = 0
-            for end in range(start, len(invoices)):
-                total += invoices[end][1]
-                if total in targets and end > start:
-                    found.append((start, end, targets[total]))
-                if total > ceiling:
+            for end in range(start, len(ids)):
+                total += values[end]
+                if end <= start or end < last:
+                    continue
+                for target, note in targets.items():
+                    if not 0 <= total - target <= most:
+                        continue
+                    for left_out in _left_out(values, start, end, total - target, skipped, must):
+                        found.add((frozenset(ids[k] for k in range(start, end + 1) if k not in left_out), note))
+                if total > ceiling or len(found) > 1:
                     break
+            if len(found) > 1:
+                return None
         if len(found) != 1:
             return None
-        start, end, note = found[0]
-        block = [invoices[k][0][0] for k in range(start, end + 1)]
-        return [*block, note] if note else block
+        run, note = found.pop()
+        return sorted(run) + [note] if note else sorted(run)
 
     @staticmethod
     def _notes_for(notes: list, gap: int) -> list[str] | None:
@@ -423,7 +474,8 @@ class PartyAmount:
         # An invoice above the cash plus every credit note cannot be part of it.
         signed_all = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered
                       if i[0][:3] in CREDIT_NOTES or o <= cash + credit]
-        if len(signed_all) <= MAX_FULL_SEARCH:
+        if len(signed_all) <= ALWAYS_SEARCHED or (len(signed_all) <= MAX_FULL_SEARCH and _chance(
+                2 ** len(signed_all), [v for _, v in signed_all]) <= MAX_CHANCE):
             found = _unique_subset(signed_all, cash, min_size)
             if found is None and ambiguous is not None:
                 ambiguous += _tied_subsets(signed_all, cash)
