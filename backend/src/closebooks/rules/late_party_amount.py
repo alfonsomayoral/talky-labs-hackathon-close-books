@@ -10,11 +10,16 @@ case stays for a person to review.
 
 A later payment already left that invoice partial: by date this receipt is the partial one and the later one closes it.
 
+PARTY-DUPLICATE-LATE: nothing open for that cash, and exactly one invoice of the payer named, of that total, settled by
+a line of this run in the last month: POLICIES §3 calls a second payment a duplicate. It is an inference, not evidence:
+a fixed instalment whose invoice is missing looks the same, so the confidence is low and the case stays for review.
+
 Known limit: it runs after the walk by date, so it frees no later receipt that depended on that balance."""
 from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import replace
+from datetime import date
 
 import polars as pl
 
@@ -28,6 +33,8 @@ from .split_invoice import _COLUMNS
 RULE = "PARTY-AMOUNT-LATE"
 _FALLBACK = "FALLBACK-UNIDENTIFIED"
 MIN_NAME_WORDS = 2  # one word of a name is in too many bank texts to say who paid
+RULE_AGAIN = "PARTY-DUPLICATE-LATE"
+PAID_AGAIN_DAYS = 30  # a month: past it, the same amount is more likely another invoice than the same one again
 
 
 def _longest(best: dict[str, int]) -> set[str]:
@@ -77,12 +84,35 @@ def _open_invoices(balances: OpenBalances, engine: PartyAmount) -> dict[tuple, l
     return found
 
 
+def _settled_lately(entry: tuple, balances: OpenBalances, booking_date: str) -> bool:
+    history = balances.history(entry[0])
+    if balances.open(entry[0]) > 0 or not history:
+        return False
+    days = date.fromisoformat(booking_date) - date.fromisoformat(max(h["bookingDate"] for h in history))
+    return 0 <= days.days <= PAID_AGAIN_DAYS
+
+
+def _paid_again(paid: list[tuple], rows: list[Row], at: dict, balances: OpenBalances, engine: PartyAmount) -> None:
+    uses = Counter(entry[0] for *_, entry in paid)
+    for txn, cash, currency, party, entry in paid:
+        if uses[entry[0]] > 1:
+            continue
+        item, txn_id = entry[0], txn["bank_txn_id"]
+        balances.apply(item, cash, "DUPLICATE_PAYMENT", txn_id, txn["booking_date"])
+        rows[at[txn_id]] = Row(
+            txn_id, item, cash, currency, None, "DUPLICATE_PAYMENT", RULE_AGAIN, 0.3, party, None,
+            [{"kind": "customer", "ref": party}],
+            [{"itemId": item, "amountCents": cash, "currency": currency,
+              "why": "inference: the payer named paid this total of an invoice settled days ago; to review"}])
+        engine.abstentions.pop(txn_id, None)
+
+
 def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAmount) -> None:
     """Rewrites the row of each receipt in place. Call it before `engine.release()`."""
     at = {row.bank_txn_id: index for index, row in enumerate(rows) if row.rule == _FALLBACK}
     invoices = _open_invoices(balances, engine)
     words = _name_words(engine.parties)
-    settled = []
+    settled, paid = [], []
     for txn in phase.txns.filter(pl.col("bank_txn_id").is_in(list(at))).select(_COLUMNS).iter_rows(named=True):
         cash, currency = engine._cash(txn)
         if currency != txn["currency"]:
@@ -93,6 +123,12 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
                  if entry[2] <= txn["booking_date"]]
         if len(found) == 1:
             settled.append((txn, cash, currency, candidates, *found[0]))
+        elif not found:
+            closed = [(party, entry) for party in candidates for entry in engine.items.get(party, ())
+                      if entry[0][:3] == "ARI" and entry[3] == currency and entry[4] == cash
+                      and _settled_lately(entry, balances, txn["booking_date"])]
+            if len(closed) == 1:
+                paid.append((txn, cash, currency, *closed[0]))
     uses = Counter(entry[0] for *_, entry in settled)
     for txn, cash, currency, candidates, party, entry in settled:
         if uses[entry[0]] > 1:
@@ -117,3 +153,4 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
             [{"itemId": item, "amountCents": cash, "currency": currency,
               "why": f"only open invoice with this balance among {', '.join(candidates)}"}])
         engine.abstentions.pop(txn_id, None)
+    _paid_again(paid, rows, at, balances, engine)

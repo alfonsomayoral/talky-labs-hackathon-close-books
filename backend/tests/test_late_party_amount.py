@@ -215,3 +215,47 @@ def test_what_the_engine_abstained_on_is_gone_once_settled(monkeypatch):
 
     monkeypatch.setattr(PartyAmount, "__init__", with_abstention)
     assert run([invoice()], [line()])[2].abstentions == {}
+
+
+def settled_on(date, item_id=INVOICE, cents=67657):
+    return (item_id, cents, "", "BT-FIRST", date)
+
+
+def test_a_named_payer_paying_again_an_invoice_settled_days_ago_is_a_duplicate():
+    """BT-2025-0014482: 676,57 on 2025-01-15, the invoice settled for that amount on 2025-01-13."""
+    invoices = [invoice(cents=67657)]
+    rows, balances, _ = run(invoices, [line(cents=67657, date="2025-01-15")], paid=[settled_on("2025-01-13")])
+    assert [(r.item_id, r.amount_cents, r.exception, r.category, r.rule, r.party_id) for r in rows] == [
+        (INVOICE, 67657, "DUPLICATE_PAYMENT", None, "PARTY-DUPLICATE-LATE", "C1")]
+    assert rows[0].confidence < 0.5 and "inference" in rows[0].candidates[0]["why"]
+    assert balances.open(INVOICE) == 0
+
+
+def test_a_payment_long_after_the_invoice_was_settled_is_no_duplicate():
+    rows, *_ = run([invoice(cents=67657)], [line(cents=67657, date="2025-03-15")], paid=[settled_on("2025-01-13")])
+    assert [r.rule for r in rows] == [FALLBACK]
+
+
+def test_an_open_invoice_of_that_cash_wins_over_the_settled_one_as_in_a_fixed_instalment():
+    invoices = [invoice(cents=67657), invoice("ARI-2", cents=67657)]
+    rows, *_ = run(invoices, [line(cents=67657, date="2025-01-15")], paid=[settled_on("2025-01-13")])
+    assert [(r.item_id, r.exception) for r in rows] == [("ARI-2", None)]
+
+
+def test_two_settled_invoices_of_that_cash_tell_nothing():
+    invoices = [invoice(cents=67657), invoice("ARI-2", cents=67657)]
+    paid = [settled_on("2025-01-13"), settled_on("2025-01-14", "ARI-2")]
+    rows, *_ = run(invoices, [line(cents=67657, date="2025-01-15")], paid=paid)
+    assert [r.rule for r in rows] == [FALLBACK]
+
+
+def test_two_receipts_paying_the_same_settled_invoice_again_tell_nothing():
+    txns = [line("BT-1", cents=67657, date="2025-01-15"), line("BT-2", cents=67657, date="2025-01-16")]
+    rows, *_ = run([invoice(cents=67657)], txns, paid=[settled_on("2025-01-13")])
+    assert [r.rule for r in rows] == [FALLBACK, FALLBACK]
+
+
+def test_an_invoice_settled_before_the_run_may_only_look_like_the_cash():
+    rows, *_ = run([invoice(cents=67657, open_cents=0)], [line(cents=67657, date="2025-01-15")])
+    assert [r.rule for r in rows] == [FALLBACK]
+
