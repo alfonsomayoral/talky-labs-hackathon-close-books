@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import polars as pl
+
 from closebooks.cases import attach_questions, build_cases, overdue_cases
 from closebooks.categories import fallback
-from closebooks.model import Row
+from closebooks.model import Proposal, Row
 from closebooks.policy import decide
+from closebooks.resolve import resolve
 from closebooks.state import OpenBalances
 
 
@@ -274,3 +279,30 @@ def test_overdue_customer_goes_to_review_for_invoices_more_than_15_days_past_due
 def test_customer_who_paid_in_the_last_30_days_is_not_overdue_it_is_probably_our_unmatched_payment():
     assert _overdue(last_movement={"C1": "2025-06-10"}) == []
     assert len(_overdue(last_movement={"C1": "2025-05-20"})) == 1
+
+
+def test_paying_again_what_an_uncited_rule_settled_is_not_a_duplicate_but_the_first_real_payment():
+    items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [1000], "total_cents": [1000], "currency": ["EUR"],
+                          "party_id": ["C1"], "payment_terms": ["T30"], "issue_date": ["2025-01-01"]})
+    masters = {"payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None],
+                                              "discount_days": [None]},
+                                             schema_overrides={"early_payment_discount_pct": pl.String,
+                                                               "discount_days": pl.String}),
+               "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["ES"]})}
+    ids = ["BT-1", "BT-2", "BT-3"]
+    n = len(ids)
+    t = pl.DataFrame({"bank_txn_id": ids, "booking_date": ["2025-01-01", "2025-01-02", "2025-01-03"],
+                      "amount_cents": [1000] * n, "currency": ["EUR"] * n, "bank": ["B"] * n, "bank_code": [""] * n,
+                      "bank_subcode": [""] * n, "text": ["X"] * n, "orig_cents": [None] * n,
+                      "orig_currency": [None] * n, "amount_eur_cents": [1000] * n, "entity": ["E1"] * n,
+                      "counterparty_name": [None] * n, "counterparty_account": [None] * n,
+                      "remittance_info": [None] * n,
+                      "ref1": [None] * n, "ref2": [None] * n, "end_to_end_id": [None] * n},
+                     schema_overrides={c: pl.String for c in ("orig_currency", "counterparty_name",
+                                                              "counterparty_account", "remittance_info", "ref1", "ref2",
+                                                              "end_to_end_id")} | {"orig_cents": pl.Int64})
+    proposals = {"BT-1": Proposal("PARTY-AMOUNT", [("ARI-1", None)], by_cash=True),
+                 "BT-2": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True),
+                 "BT-3": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)}
+    rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), proposals)
+    assert [r.exception for r in rows] == [None, None, "DUPLICATE_PAYMENT"]

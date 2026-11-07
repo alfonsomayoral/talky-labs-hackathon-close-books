@@ -11,7 +11,9 @@ WITHHOLDING_COUNTRIES = ("MX", "BR", "MA")  # POLICIES §3
 # Where a shortfall is an intermediary's fee: outside SEPA (POLICIES §3). The fee is checked apart from the country.
 SEPA_COUNTRIES = frozenset(
     "AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IS IT LI LT LU LV NL NO PT RO SE SI SK AD MC SM VA".split())
-MAX_OVERPAYMENT_RATIO = 0.35  # above this the text cited only part of what the cash pays
+# Excess the golden's overpayments show. Anything else means the text cited only part of what the cash pays.
+SMALL_OVERPAYMENT_RATIO = 0.02
+ROUND_OVERPAYMENT_RATIO = 0.10
 CROSS_BORDER_MARKS = ("EN DIV", "GASTOS SHA", "GASTOS BEN")
 FEE_LIMIT_EUR_CENTS = 6000
 FEE_LIMIT_RATIO = 0.02
@@ -120,20 +122,29 @@ def allocate(cash: int | None, items: list[tuple[str, int, Terms]], booking_date
     return {item: _with_fx(item, foreign, *value) for item, value in out.items()}
 
 
+def _is_overpayment(excess: int, open_cents: int) -> bool:
+    return excess <= open_cents * SMALL_OVERPAYMENT_RATIO or abs(excess - open_cents * ROUND_OVERPAYMENT_RATIO) <= 1
+
+
 def _explain(gap: int, cash: int, invoices: list, notes: list, booking_date: str,
              eur_per_cent: float | None) -> dict[str, tuple[int, str]]:
     clear = {item: (open_cents, "") for item, open_cents, _ in invoices}
     if gap == 0 or not invoices:
         return clear
     if gap < 0:
-        if len(invoices) == 1 and not notes and -gap <= invoices[0][1] * MAX_OVERPAYMENT_RATIO:
+        if len(invoices) == 1 and not notes and _is_overpayment(-gap, invoices[0][1]):
             return {invoices[0][0]: (invoices[0][1], "OVERPAYMENT")}
         return clear
     full = [(i, o, t) for i, o, t in invoices if o == t.total_cents]
-    discounts = {i: _discount_cents(t) for i, _, t in full}
-    if len(full) == len(invoices) and all(discounts.values()) and abs(sum(discounts.values()) - gap) <= len(full):
-        return {i: (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")
-                for i, o, t in invoices}
+    discounts = {i: d for i, _, t in full if (d := _discount_cents(t))}
+    if discounts and abs(sum(discounts.values()) - gap) <= len(discounts):
+        out = {}
+        for i, o, t in invoices:
+            if i not in discounts:
+                out[i] = (o, "")
+            else:
+                out[i] = (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")
+        return out
     if len(full) == len(invoices) and all(t.country in WITHHOLDING_COUNTRIES for _, _, t in invoices):
         for rate in WITHHOLDING_RATES:
             if abs(sum(round(t.total_cents * rate) for _, _, t in invoices) - gap) <= len(invoices):

@@ -210,7 +210,7 @@ class PartyAmount:
             picked = self._of_month(same, txn) or min(same, key=lambda i: (i[2], i[0]))
             return self._proposal("PARTY-AMOUNT", party, [picked[0]], confidence=0.95 if len(same) == 1 else 0.9)
         tied: list[list[str]] = []
-        subset = self._subset(free, cash, ambiguous=tied)
+        subset = self._subset(free, cash, ambiguous=tied) if self.parties.certain else None
         if subset:
             return self._proposal("PARTY-SUBSET", party, subset, confidence=0.9)
         short = self._short_paid(free, cash, party, txn)

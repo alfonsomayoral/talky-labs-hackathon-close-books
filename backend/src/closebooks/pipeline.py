@@ -1,7 +1,9 @@
 """One run: load -> rules -> resolve -> output -> score."""
 from __future__ import annotations
 
+import resource
 import subprocess
+import sys
 import time
 from collections import Counter
 from datetime import datetime
@@ -20,6 +22,12 @@ from .output import write_cases, write_explanations, write_facts, write_jsonl, w
 from .paths import ROOT, RUNS
 from .resolve import resolve
 from .rules import propose, stateful
+
+
+def _peak_rss_mb() -> int:
+    """Peak of this process so far (bytes on macOS, kilobytes on Linux)."""
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return peak // (1 << 20) if sys.platform == "darwin" else peak // (1 << 10)
 
 
 def _git_commit() -> str | None:
@@ -83,12 +91,14 @@ def _drafts(cases, rows, phase, balances, names, countries, created_at: str) -> 
 def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -> Path:
     started = datetime.now().astimezone()
     stages: dict[str, int] = {}
+    peak_mb: dict[str, int] = {}
     clock = time.perf_counter()
 
     def lap(stage: str) -> None:
         nonlocal clock
         now = time.perf_counter()
         stages[stage] = int((now - clock) * 1000)
+        peak_mb[stage] = _peak_rss_mb()
         clock = now
 
     run_id = out.name if out else f"{phase_name}-{started:%Y%m%d-%H%M%S}"
@@ -140,7 +150,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
 
     meta = {
         "runId": run_id, "phase": phase_name, "dataDir": str(phase.dir), "createdAt": started.isoformat(),
-        "gitCommit": _git_commit(), "durationMs": sum(stages.values()), "stages": stages,
+        "gitCommit": _git_commit(), "durationMs": sum(stages.values()), "stages": stages, "peakRssMb": peak_mb,
         "txns": phase.txns.height, "rows": len(rows), "csvBytes": csv_bytes,
         "byRule": dict(Counter(r.rule for r in rows)),
         "byException": dict(Counter(r.exception for r in rows if r.exception)),

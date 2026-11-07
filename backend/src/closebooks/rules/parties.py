@@ -22,6 +22,8 @@ def normalize(text: str | None) -> str:
 
 
 class PartyIndex:
+    certain = False
+
     def __init__(self, masters: dict[str, pl.DataFrame], printed: pl.DataFrame):
         self.by_name: dict[tuple[str, str, str], set[str]] = defaultdict(set)
         self.by_iban: dict[tuple[str, str, str], set[str]] = defaultdict(set)
@@ -58,6 +60,9 @@ class PartyIndex:
             self.by_iban[kind, entity, iban].add(party)
 
     def find(self, txn: dict, kind: str) -> list[str]:
+        """The parties the line names. `self.certain` says whether the evidence was whole: a known ordering party, its
+        account or the full name, not a name the bank cut."""
+        self.certain = True
         entity = txn["entity"]
         name = normalize(txn.get("counterparty_name"))
         if name and (found := self.by_name.get((kind, entity, name))):
@@ -75,15 +80,20 @@ class PartyIndex:
         glued = normalize(raw.replace(" | ", ""))
         spaced = normalize(raw)
         best: dict[str, int] = {}
+        whole: dict[str, int] = {}
         for text in {glued, spaced}:
             for position in _word_starts(text):
                 for norm, party in self.by_prefix.get((kind, entity, text[position:position + PREFIX_CHARS]), ()):
                     length = _common_prefix(norm, text, position)
                     if length == len(norm) or (not whole_only and _identifies(norm, text, position, length)):
                         best[party] = max(best.get(party, 0), length)
+                        if length == len(norm):
+                            whole[party] = max(whole.get(party, 0), length)
         if not best:
             return []
         top = max(best.values())
+        self.certain = all(top == w for p, w in whole.items() if best.get(p) == top) and any(
+            best.get(p) == top for p in whole)
         return sorted(p for p, length in best.items() if length == top)
 
 

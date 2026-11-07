@@ -391,3 +391,15 @@ def test_a_clear_match_or_no_evidence_records_no_abstention():
     assert lines(rule(txn(30000, name="Wellness Garrido S.L."), balances)) == {"ARI-1"}
     assert rule(txn(777, name="Wellness Garrido S.L."), balances) is None
     assert rule.abstentions == {}
+
+
+def test_subset_needs_a_party_known_for_certain_not_a_name_the_bank_cut():
+    items = [item("ARI-1", "C1", "F1", 49385), item("ARI-2", "C1", "F2", 189668), item("ARI-3", "C1", "F3", 7)]
+    rule, balances = engine(items)
+    assert lines(rule(txn(239053, "TRANSFERENCIA DE WELLNESS GARRIDO S.L."), balances)) == {"ARI-1", "ARI-2"}
+    assert rule(txn(239053, "ACH CREDIT WELLNESS GARR"), balances) is None
+
+
+def test_exact_amount_with_a_cut_name_still_settles_a_single_invoice():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 49385)])
+    assert lines(rule(txn(49385, "ACH CREDIT WELLNESS GARR"), balances)) == {"ARI-1"}
