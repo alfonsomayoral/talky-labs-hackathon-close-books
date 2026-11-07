@@ -37,7 +37,7 @@ const COLUMNS: Column<TxnRow>[] = [
   },
   { id: 'evidence', header: 'Evidencia', width: 112, cell: (t) => <span className={styles.evidence}>{evidenceOf(t.rule).source}</span> },
   { id: 'rule', header: 'Regla', width: 168, cell: (t) => <Mono title={ruleDescription(t.rule)}>{t.rule}</Mono>, sortValue: (t) => t.rule },
-  { id: 'confidence', header: 'Confianza', width: 84, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
+  { id: 'confidence', header: 'Confianza', width: 96, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
   {
     id: 'caseStatus',
     header: 'Caso',
