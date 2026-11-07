@@ -2,22 +2,59 @@
 
 Escrito a las 15:05 del 7 nov 2026. Una sola persona ejecuta; la orquestadora acompaña. FINAL se publica a las 18:00, hay **un solo envío**, cuenta el primer fichero válido, y un fichero con errores de formato no lo gasta. Reglas congeladas a las 17:00 (tag `freeze-final`).
 
+Todos los comandos se lanzan **desde `backend/`, en la misma terminal**, salvo el primero (desde la raíz del repo).
+
 ## Antes de las 18:00 (17:00–17:55)
 
-1. `git checkout main && git pull` y `git tag freeze-final` en el commit congelado. Nada más entra en main.
-2. Ensayo de LIVE con el código congelado: `scripts/run_slot.sh just be-run live` con `--out runs/live-freeze` (llena la caché de PDFs de fases anteriores, ~3 min). Validar y, si el tiempo lo permite, enviar a LIVE para confirmar la nota del código congelado.
-3. `python scripts/final_check.py runs/live-freeze --base runs/live-fraction-g` → todo verde (es la base con la que se comparará FINAL).
-4. Parar todo lo demás: ninguna ejecución, pytest ni agente en la máquina desde las 17:55. Comprobar `ls /tmp/closebooks-slots` vacío y ≥ 12 GB libres.
-5. Tener a mano: `HK_TOKEN` exportado en la terminal (`read -rs HK_TOKEN && export HK_TOKEN`), `db/final/` vacío y listo.
+1. En el commit congelado, desde la raíz. Nada más entra en main.
+   ```
+   git checkout main && git pull && git tag freeze-final && cd backend
+   ```
+2. Ensayo de LIVE con el código congelado (llena la caché de PDFs de fases anteriores, ~3 min) y validación:
+   ```
+   ../scripts/run_slot.sh uv run closebooks run --phase live --out ../runs/live-freeze
+   ```
+   ```
+   uv run closebooks validate --phase live ../runs/live-freeze/submission.csv.gz
+   ```
+   Si el tiempo lo permite, enviar a LIVE para confirmar la nota del código congelado (necesita `HK_TOKEN`, paso 5; gasta un envío de LIVE):
+   ```
+   uv run --with requests ../scripts/submit.py LIVE ../runs/live-freeze/submission.csv.gz
+   ```
+3. Todo verde (es la base con la que se comparará FINAL):
+   ```
+   uv run python ../scripts/final_check.py ../runs/live-freeze --ref ../runs/live-fraction-g
+   ```
+4. Parar todo lo demás: ninguna ejecución, pytest ni agente en la máquina desde las 17:55. Comprobar que no hay slots ni turnos (solo se lista `tickets`, y vacío) y que hay ≥ 12 GB libres:
+   ```
+   ls /tmp/closebooks-slots /tmp/closebooks-slots/tickets
+   ```
+   ```
+   vm_stat | awk '/Pages free|Pages inactive|Pages speculative/{s+=$3} END{printf "%d GB libres\n", s*16384/1073741824}'
+   ```
+5. Tener a mano `HK_TOKEN` exportado en esta terminal y `db/final/` vacío:
+   ```
+   read -rs HK_TOKEN && export HK_TOKEN
+   ```
+   ```
+   mkdir -p ../db/final && ls -A ../db/final
+   ```
 
 ## A las 18:00 (descarga y ejecución, ~10 min)
 
-1. Descargar el paquete de FINAL a `db/final/` con la misma estructura que `db/live/` (bank, items, masters o `masters_final/`, documentos). Comprobar `ls db/final` y que `masters_final/` existe si lo trae.
+1. Descargar el paquete de FINAL a `db/final/` con la misma estructura que `db/live/` (bank, items, `masters_final/`, documentos). El de TRAIN venía anidado (`train/train/`), y entonces la fase no se encuentra; este comando lo aplana si hace falta y no hace nada si no:
+   ```
+   if [ -d ../db/final/final ]; then mv ../db/final/final/* ../db/final/ && rmdir ../db/final/final; fi
+   ```
+   Tienen que listarse los dos, sin error (si no trae `masters_final/`, usa los maestros del paquete: avisar a la orquestadora):
+   ```
+   ls ../db/final/bank_transactions.csv.gz ../db/final/masters_final
+   ```
 2. Ejecutar **una sola vez**, en primer plano, con tiempo y memoria medidos:
    ```
-   cd backend && /usr/bin/time -l uv run closebooks run --phase final --out ../runs/final-a
+   /usr/bin/time -l uv run closebooks run --phase final --out ../runs/final-a
    ```
-   Esperado: 3–4 min, pico < 8 GB. Avisos esperables por stderr: `no FX rate for <divisa>` (ver abajo), banco nuevo fuera de la tabla de categorías (esperado).
+   Esperado: 3–4 min, pico < 8 GB. Avisos esperables por stderr: `no FX rate for <divisa>` (ver abajo), banco nuevo fuera de la tabla de categorías (esperado). El aviso `masters_final/<fichero> has N rows` no es esperable: ver §Decisiones.
 3. Validar con los límites oficiales:
    ```
    uv run closebooks validate --phase final ../runs/final-a/submission.csv.gz
@@ -25,7 +62,7 @@ Escrito a las 15:05 del 7 nov 2026. Una sola persona ejecuta; la orquestadora ac
    Tiene que dar `"ok": true`, `txnsCovered == txnsTotal`, y < 60 MB sin comprimir.
 4. Comprobación sin golden:
    ```
-   python scripts/final_check.py runs/final-a --base runs/live-fraction-g
+   uv run python ../scripts/final_check.py ../runs/final-a --ref ../runs/live-fraction-g
    ```
    Leer la tabla: verde = seguir. Ámbar «banco nuevo» = esperado. Rojo: ver §Decisiones.
 
@@ -33,22 +70,46 @@ Escrito a las 15:05 del 7 nov 2026. Una sola persona ejecuta; la orquestadora ac
 
 | Síntoma | Qué significa | Qué hacer |
 | --- | --- | --- |
-| La ejecución cae con error | Un fichero o formato no previsto | Leer la traza: si es un parser de documento (`documents/`), mover la carpeta de ese formato fuera de `db/final/documents` (a `db/final-aside/`) y relanzar: las reglas de partidas no dependen de él (no hay interruptor por variable de entorno). Si es `load`, es grave: avisar a la orquestadora, 15 min de margen |
+| La ejecución cae con error | Un fichero o formato no previsto | Leer la traza: si es un parser de documento (`documents/`), mover la carpeta de ese formato (`pdfs` o `remittance_advices`) con `mkdir -p ../db/final-aside && mv ../db/final/pdfs ../db/final-aside/` y relanzar con `--out ../runs/final-b`: las reglas de partidas no dependen de él (no hay interruptor por variable de entorno). Si es `load`, es grave: avisar a la orquestadora, 15 min de margen |
 | `validate` falla por filas o tamaño | Ningún movimiento sin fila, o CSV > 60 MB | No ocurre con 200 k movimientos; si ocurre, es un bug de duplicación: comparar `rows` con `txns` y avisar |
+| Rojo «ningún masters_final más corto…» (masters parcial) | `masters_final/` trae un fichero con menos filas que el del paquete y lo pisa: faltan clientes, proveedores o tipos | Una persona lo completa y relanza **antes de enviar**: ver §Completar un maestro corto |
 | Rojo «divisa sin tipo» | La divisa nueva no está en FX: importes en euros ×1 | No afecta al CSV (los importes van en la divisa de la partida); afecta solo a límites de comisiones y prioridad de casos. Enviar igual |
 | Rojo «banco nuevo 100 % BANK_FEES» | El arreglo del banco nuevo no actúa | Los cargos sin partida de ese banco salen como comisiones: pérdida acotada (categorías de un banco), enviar igual |
 | Rojo en reparto de reglas (> 3 puntos frente a LIVE) en una sola sociedad | Formato de avisos o extracto nuevo | Mirar `byRule` de esa sociedad; si es FALLBACK masivo, aceptar: FINAL trae sociedad nueva sin historial. Enviar igual |
 | Rojo generalizado (varias familias de reglas desaparecen) | Bug serio | Avisar a la orquestadora antes de enviar; margen hasta las 19:20 para un segundo run con una regla desactivada |
 
-Regla de oro: **se envía el primer fichero que valide**, salvo rojo generalizado. Un fichero válido mediocre puntúa; ninguno no.
+Regla de oro: **se envía el primer fichero que valide**, salvo rojo generalizado o masters parcial. Un fichero válido mediocre puntúa; ninguno no.
+
+### Completar un maestro corto
+
+Un fichero con menos filas no se sobrescribe con el del paquete (se perderían los clientes nuevos): se completa con las filas de `db/bankrec-docs-and-masters/masters/` que no estén, conservando las de `masters_final/`. Un fichero que falte no da rojo: la carga ya lo lee de `masters/`, y copiarlo es opcional.
+
+Poner en `F` el fichero del rojo y en `K` su clave: `customers` `customer_id`, `suppliers` `supplier_id`, `bank_accounts` `account_id`, `entities` `entity`, `categories` `category`, `payment_terms` `code`, `fx_rates` `date,currency`.
+
+```
+export F=customers K=customer_id
+```
+```
+mkdir -p ../db/final-aside && cp ../db/final/masters_final/$F.csv ../db/final-aside/ && uv run python -c '
+import os, polars as pl
+F, K = os.environ["F"], os.environ["K"].split(",")
+path = f"../db/final/masters_final/{F}.csv"
+final = pl.read_csv(path, infer_schema_length=0)
+base = pl.read_csv(f"../db/bankrec-docs-and-masters/masters/{F}.csv", infer_schema_length=0)
+merged = pl.concat([final, base.join(final, on=K, how="anti")], how="diagonal")
+merged.write_csv(path)
+print(F, final.height, "->", merged.height)'
+```
+
+Repetir por cada fichero en rojo, relanzar con `--out ../runs/final-b` y repetir la validación, la comprobación y el envío sobre `final-b`.
 
 ## Envío (una sola vez)
 
 ```
-uv run --with requests scripts/submit.py FINAL runs/final-a/submission.csv.gz
+uv run --with requests ../scripts/submit.py FINAL ../runs/final-a/submission.csv.gz | tee ../runs/final-a/final_result.json
 ```
 
-Guardar la respuesta en `runs/final-a/final_result.json`. Anotar la hora. No volver a pedir URL de subida.
+La respuesta queda en `runs/final-a/final_result.json`. Anotar la hora. No volver a pedir URL de subida.
 
 ## Después (19:00–19:45)
 
