@@ -3,7 +3,16 @@ from __future__ import annotations
 
 from ..load import Phase
 from ..model import Proposal
-from . import advices, card_settlements, categories, cheque_deposits, dd_batches, payment_runs, split_invoice
+from . import (
+    advices,
+    card_settlements,
+    categories,
+    cheque_deposits,
+    dd_batches,
+    dispute_settlement,
+    payment_runs,
+    split_invoice,
+)
 from .dispute_settlement import Settling
 from .party_amount import PartyAmount
 
@@ -14,6 +23,7 @@ PASSES = (
     card_settlements.propose,
     cheque_deposits.propose,
     categories.propose,
+    dispute_settlement.propose,
 )
 
 
@@ -29,6 +39,8 @@ def stateful(phase: Phase, proposals: dict[str, Proposal]) -> PartyAmount:
     """What needs the balance at each date: runs inside resolve on the lines no pass claimed."""
     reserved: dict[str, set[str]] = {}
     for txn_id, proposal in proposals.items():
+        if proposal.settles_rest:
+            continue
         for item, _ in proposal.lines:
             reserved.setdefault(item, set()).add(txn_id)
     return Settling(phase, reserved)
