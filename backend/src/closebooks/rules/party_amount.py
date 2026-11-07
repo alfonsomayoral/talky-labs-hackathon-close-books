@@ -162,9 +162,13 @@ def document_says(clauses: dict | None, total: int, cash: int) -> str | None:
     return "PARTIAL" if cash == clauses.get("advance_deduction", {}).get("netDueCents") else None
 
 
+def _has_pdfs(phase) -> bool:
+    return hasattr(phase, "dir") and (phase.dir / "pdfs" / "index.csv").exists()
+
+
 def _clauses(phase) -> dict[str, dict[str, dict]]:
     """Facts of the invoice PDFs per item. Parsers extract them; only the rules below decide with them."""
-    if not hasattr(phase, "dir") or not (phase.dir / "pdfs" / "index.csv").exists():
+    if not _has_pdfs(phase):
         return {}
     facts = phase_clauses(phase)
     return {item: {**{c.kind: c.value for c in doc.clauses}, "_pdf": {"path": doc.path}}
@@ -224,7 +228,8 @@ class PartyAmount:
         self.credits = {} if "related_document" not in items.columns else {
             note: _alnum(number) for note, number in items.filter(pl.col("related_document").is_not_null()).select(
                 "item_id", "related_document").iter_rows()}
-        self.parties = PartyIndex(phase.masters, known.select("entity", "party_id", "party_name", "item_type").unique())
+        self.parties = PartyIndex(phase.masters, known.select("entity", "party_id", "party_name", "item_type").unique(),
+                                  phase_clauses(phase).notices() if _has_pdfs(phase) else ())
         self.related = {} if "related_document" not in items.columns else {
             i: _alnum(r) for i, r in items.filter(pl.col("related_document").is_not_null())
             .select("item_id", "related_document").iter_rows() if i[:3] in CREDIT_NOTES}
@@ -269,6 +274,9 @@ class PartyAmount:
                 return taught
         parties = self.parties.find(txn, kind)
         results = [r for party in parties if (r := self._or_netted(party, txn, cash, currency, balances))]
+        for found in results:
+            if notice := self.parties.notice_of(txn, found.party_id):
+                found.sources.append({"kind": "pdf", "ref": notice})
         if len(results) == 1:
             return results[0]
         homonym = self._only_homonym_with_the_cash(results, cash, currency, balances)
