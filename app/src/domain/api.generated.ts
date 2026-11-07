@@ -1086,6 +1086,8 @@ export interface components {
             subject: string;
             /** Body */
             body: string;
+            /** To */
+            to?: string | null;
         };
         /** EntityStats */
         EntityStats: {
@@ -1304,6 +1306,20 @@ export interface components {
             outputTokens: number;
             /** Costusd */
             costUsd: number;
+        };
+        /**
+         * OfficialResult
+         * @description What the challenge's leaderboard answered for this run's submission (`live_result.json`, written by a person).
+         */
+        OfficialResult: {
+            /** Score */
+            score: number;
+            /** Createdat */
+            createdAt: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: number;
+            };
         };
         /** OpenItem */
         OpenItem: {
@@ -1722,6 +1738,7 @@ export interface components {
             score: number | null;
             /** Served */
             served: boolean;
+            officialResult: components["schemas"]["OfficialResult"] | null;
         };
         /** Score */
         Score: {

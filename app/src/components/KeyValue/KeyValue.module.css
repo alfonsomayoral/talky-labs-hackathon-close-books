@@ -23,9 +23,11 @@
   font-size: var(--text-12);
 }
 
+/* Same line whatever the value's font, so mono and text rows keep one height. */
 .value {
   margin: 0;
   color: var(--ink);
+  line-height: 20px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
