@@ -335,12 +335,14 @@ class PartyAmount:
 
     def _or_netted(self, party: str, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
         """The match of the party; when it is only what the text cites and the cash does not explain, the cited
-        invoices completed with credit notes (`_netted_cited`). The one place this block is called from.
+        invoices completed with other invoices that fell due, with credit notes or without (`_netted_cited`). The one
+        place this block is called from.
 
         From PR 117 of lorenzo-redolfi, restricted to the cobros that cite an invoice. Why it generalizes: the text
-        cites the invoices and the arithmetic closes the credit note (POLICIES §5.9: a customer pays its invoices net
-        of its credit notes), so the batch is read from the citation and the cash to the cent, with no constant taken
-        from the data; the only bounds are the engine's own, MAX_FULL_SEARCH and MAX_CHANCE."""
+        cites invoices of the batch (the bank cuts it, so not all) and the arithmetic closes the rest to the cent,
+        with the credit notes the customer nets (POLICIES §5.9) or none, so the batch is read from the citation and
+        the cash, with no constant taken from the data; the only bounds are the engine's own, MAX_FULL_SEARCH and
+        MAX_CHANCE."""
         found = self._match(party, txn, cash, currency, balances)
         if found is None or found.rule != "REF-TEXT" or _net(
                 [((i,), balances.open(i)) for i, _ in found.lines]) == cash:
@@ -350,7 +352,8 @@ class PartyAmount:
     def _netted_cited(self, party: str, txn: dict, cash: int, currency: str, cited: Proposal,
                       balances) -> Proposal | None:
         """The only set of the party's open credit notes and invoices that fell due, with the cited invoices, that adds
-        up to the cash. Never credit notes alone: it needs a cited invoice and at least one credit note."""
+        up to the cash. Never credit notes alone: it needs a cited invoice. The bank cuts the text, so the cited
+        invoices are a part of the batch whether or not a credit note nets in it."""
         named = {i for i, _ in cited.lines}
         if not any(i[:3] == "ARI" for i in named) or any(balances.open(i) <= 0 for i in named):
             return None  # a cited item already settled is a second payment (PARTY-DUPLICATE), not a batch
@@ -370,7 +373,7 @@ class PartyAmount:
         if _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE:
             return None
         chosen = _unique_subset(signed, target, 1)
-        if not chosen or not any(i[:3] in CREDIT_NOTES for i in [*chosen, *named]):
+        if not chosen:
             return None
         return self._proposal("PARTY-NETTED", party, [*named, *chosen], by_cash=True, confidence=0.85)
 
