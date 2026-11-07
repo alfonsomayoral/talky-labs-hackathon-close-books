@@ -21,6 +21,7 @@ from ..policy import (
     cross_border,
 )
 from ..state import OpenBalances
+from .agency import paid_by_agency, tail_key
 from .parties import PartyIndex, normalize
 
 _TOKEN = re.compile(r"[A-Z0-9][A-Z0-9/\-]{2,}")
@@ -227,13 +228,14 @@ class PartyAmount:
 
     def release(self) -> None:
         """Before writing the run: the indexes are the biggest thing in memory and nothing needs them after resolve."""
-        self.items, self.by_number, self.clauses, self.related = {}, {}, {}, {}
+        self.items, self.by_number, self.by_tail, self.clauses, self.related = {}, {}, {}, {}, {}
         self.parties = None
         self._known = None
 
     def reindex(self) -> None:
         self.items: dict[str, list[tuple]] = defaultdict(list)
         self.by_number: dict[tuple[str, str], list[tuple]] = defaultdict(list)
+        self.by_tail: dict[tuple[str, str], list[tuple[str, tuple]]] = defaultdict(list)
         known = self._known
         replaced = {i: _alnum(c["replaces"]["replaces"]) for i, c in self.clauses.items() if "replaces" in c}
         columns = ("item_id", "party_id", "document_number", "issue_date", "currency", "total_cents", "customer_po",
@@ -247,6 +249,8 @@ class PartyAmount:
             self.items[party].append(entry)
             if len(compact) >= MIN_CUT:
                 self.by_number[entity, compact].append(entry)
+            if item_id[:3] == "ARI" and (tail := tail_key(entry[7])):
+                self.by_tail[entity, tail].append((party, entry))
 
     def __call__(self, txn: dict, balances: OpenBalances) -> Proposal | None:
         kind = "customer" if txn["amount_cents"] > 0 else "supplier"
@@ -278,6 +282,8 @@ class PartyAmount:
             self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
         elif self._pending:
             self._abstain(txn, "subsets", self._pending, balances)
+        elif kind == "customer" and not parties:
+            return paid_by_agency(self, txn, cash, currency, balances)
         else:
             return self._credit_payout(txn, cash, currency, balances)
         return None
@@ -309,6 +315,11 @@ class PartyAmount:
             sources.append({"kind": "pdf", "ref": pdf["path"]})
         return Proposal("CREDIT-PAYOUT", [(note[0], cash)], confidence=1.0, party_id=party, reference=note[1],
                         sources=sources)
+
+    def is_free(self, item: tuple, open_cents: int, balances: OpenBalances) -> bool:
+        """Open, known to be open in this phase, and not kept for the bank lines of a file."""
+        return open_cents > 0 and item[2] >= self.unknown_before and (
+            item[0] not in self.reserved or self._returned(item[0], balances))
 
     def _returned(self, item_id: str, balances: OpenBalances) -> bool:
         """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the
@@ -399,9 +410,7 @@ class PartyAmount:
         if not mine:
             return None
         open_now = {i[0]: balances.open(i[0]) for i in mine}
-        free = [(i, open_now[i[0]]) for i in mine
-                if open_now[i[0]] > 0 and i[2] >= self.unknown_before and (
-                    i[0] not in self.reserved or self._returned(i[0], balances))]
+        free = [(i, open_now[i[0]]) for i in mine if self.is_free(i, open_now[i[0]], balances)]
         tokens = self._tokens(txn)
         strong, weak = self._cited(mine, tokens)
         by_reference = self._by_reference(strong, weak, free, open_now, cash, party, {_alnum(t) for t in tokens})
