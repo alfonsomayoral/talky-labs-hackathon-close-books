@@ -26,7 +26,7 @@ export const RULE_KINDS: KindSpec[] = [
       {
         name: 'partyId',
         label: 'Cliente',
-        placeholder: 'CES01000001',
+        placeholder: 'Ej.: CES01000001',
         mono: true,
       },
       {
@@ -37,7 +37,7 @@ export const RULE_KINDS: KindSpec[] = [
       {
         name: 'iban',
         label: 'IBAN del pagador',
-        placeholder: 'ES91 2100 0418 4502 0005 1332',
+        placeholder: 'Ej.: ES91 2100 0418 4502 0005 1332',
         mono: true,
       },
     ],
@@ -56,13 +56,13 @@ export const RULE_KINDS: KindSpec[] = [
       {
         name: 'documentNumber',
         label: 'Factura',
-        placeholder: 'FV-2025-0123',
+        placeholder: 'Ej.: FV-2025-0123',
         mono: true,
       },
       {
         name: 'partyId',
         label: 'Tercero',
-        placeholder: 'CES01000001',
+        placeholder: 'Ej.: CES01000001',
         mono: true,
       },
     ],
@@ -75,7 +75,7 @@ export const RULE_KINDS: KindSpec[] = [
       {
         name: 'partyId',
         label: 'Proveedor',
-        placeholder: 'SES01000001',
+        placeholder: 'Ej.: SES01000001',
         mono: true,
       },
     ],
@@ -88,13 +88,13 @@ export const RULE_KINDS: KindSpec[] = [
       {
         name: 'category',
         label: 'Categoría',
-        placeholder: 'BANK_FEES',
+        placeholder: 'Ej.: BANK_FEES',
         mono: true,
       },
       {
         name: 'textPattern',
         label: 'Texto del movimiento',
-        placeholder: 'COMISION MANTENIMIENTO',
+        placeholder: 'Ej.: COMISION MANTENIMIENTO',
         mono: true,
       },
       {
@@ -125,7 +125,7 @@ export const RULE_KINDS: KindSpec[] = [
       {
         name: 'partyId',
         label: 'Tercero',
-        placeholder: 'CES01000001',
+        placeholder: 'Ej.: CES01000001',
         mono: true,
       },
       {
@@ -144,7 +144,7 @@ export const RULE_KINDS: KindSpec[] = [
       {
         name: 'payerPartyId',
         label: 'Paga',
-        placeholder: 'CES01000001',
+        placeholder: 'Ej.: CES01000001',
         mono: true,
       },
       {
