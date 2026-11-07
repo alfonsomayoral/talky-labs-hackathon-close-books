@@ -48,9 +48,10 @@ def by_number(rows: pl.DataFrame, items: pl.DataFrame) -> pl.DataFrame:
     for width in open_rows["key"].str.len_chars().unique().to_list():
         found.append(
             open_rows.filter(pl.col("key").str.len_chars() == width)
-            .join(digits.with_columns(pl.col("_digits").str.slice(-width).alias("_tail")),
-                  left_on=["entity", "key"], right_on=["entity", "_tail"])
-            .filter(pl.col("cents") == pl.col("total_cents")))
+            # The amount goes in the join key: a tail of digits alone multiplies rows by the invoices sharing it.
+            .join(digits.with_columns(pl.col("_digits").str.slice(-width).alias("_tail"),
+                                      pl.col("total_cents").alias("_amount")),
+                  left_on=["entity", "key", "cents"], right_on=["entity", "_tail", "_amount"]))
     return _unique(pl.concat([f.select("rid", "item_id", "item_party", "party_id", "total_cents", "cents")
                               for f in found]))
 
@@ -58,8 +59,9 @@ def by_number(rows: pl.DataFrame, items: pl.DataFrame) -> pl.DataFrame:
 def by_attribute(rows: pl.DataFrame, items: pl.DataFrame, row_column: str, item_column: str) -> pl.DataFrame:
     """Lines with no usable number: the customer (by id or printed name) and the exact amount."""
     joined = rows.drop_nulls(row_column).with_columns(pl.col(row_column).str.to_lowercase().alias("_k")).join(
-        items.drop_nulls(item_column).with_columns(pl.col(item_column).str.to_lowercase().alias("_k")),
-        on=["entity", "_k"]).filter(pl.col("cents") == pl.col("total_cents"))
+        items.drop_nulls(item_column).with_columns(pl.col(item_column).str.to_lowercase().alias("_k"),
+                                                   pl.col("total_cents").alias("_amount")),
+        left_on=["entity", "_k", "cents"], right_on=["entity", "_k", "_amount"])
     return _unique(joined.select("rid", "item_id", "item_party", "party_id", "total_cents", "cents"))
 
 

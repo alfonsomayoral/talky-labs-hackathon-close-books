@@ -1,7 +1,7 @@
 """POLICIES §2-§3, clause by clause. Amounts from real lines of sample/TRAIN where the comment says so."""
 from __future__ import annotations
 
-from closebooks.policy import Terms, allocate, decide
+from closebooks.policy import Terms, allocate, cross_border, decide
 
 D2N30 = Terms(discount_pct=2.0, discount_days=10, issue_date="2025-06-01", total_cents=140394, country="ES")
 PLAIN = Terms(discount_pct=None, discount_days=None, issue_date="2025-06-01", total_cents=100000, country="ES")
@@ -118,3 +118,14 @@ def test_partial_cash_on_several_invoices_goes_to_the_oldest_first():
     newer = Terms(None, None, "2025-03-01", 100000, "ES")
     out = allocate(150000, [facts("ARI-2", 100000, newer), facts("ARI-1", 100000, older)], "2025-06-05", False)
     assert out == {"ARI-1": (100000, ""), "ARI-2": (50000, "PARTIAL")}
+
+
+def test_a_huge_excess_is_not_an_overpayment_of_that_invoice_but_an_incomplete_citation():
+    # Real overpayments stay under 32 % of the invoice (p99 in the holdout); false ones have a median excess of x5.
+    assert allocate(500000, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
+
+
+def test_cross_border_signal_comes_from_the_iso_code_or_the_bank_text():
+    assert cross_border("PMNT/RCDT/XBCT", "WIRE IN /ORG/LAKEVIEW")
+    assert cross_border("13", "TRANSFER. EN DIV. | CDDJCBXX | GASTOS SHA")
+    assert not cross_border("PMNT/RCDT/ESCT", "ACH CREDIT WATER CARE BLUE")

@@ -11,10 +11,18 @@ WITHHOLDING_COUNTRIES = ("MX", "BR", "MA")  # POLICIES §3
 # Where a shortfall is an intermediary's fee: outside SEPA (POLICIES §3). The fee is checked apart from the country.
 SEPA_COUNTRIES = frozenset(
     "AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IS IT LI LT LU LV NL NO PT RO SE SI SK AD MC SM VA".split())
+MAX_OVERPAYMENT_RATIO = 0.35  # above this the text cited only part of what the cash pays
+CROSS_BORDER_MARKS = ("EN DIV", "GASTOS SHA", "GASTOS BEN")
 FEE_LIMIT_EUR_CENTS = 6000
 FEE_LIMIT_RATIO = 0.02
 DISCOUNT_WORDS = ("DISCOUNT", "DESCUENTO", "DTO", "SKONTO", "ESCOMPTE", "SCONTO")
 WITHHOLDING_WORDS = ("RET", "RETENCION", "RETENCIÓN", "WITHHOLDING", "WHT", "ISR", "IRRF")
+
+
+def cross_border(bank_code: str | None, text: str | None) -> bool:
+    """The bank says it came from abroad: only then can a small shortfall be an intermediary's fee."""
+    upper = (text or "").upper()
+    return "XBCT" in (bank_code or "") or any(mark in upper for mark in CROSS_BORDER_MARKS)
 
 
 @dataclass(slots=True)
@@ -116,7 +124,7 @@ def _explain(gap: int, cash: int, invoices: list, notes: list, booking_date: str
     if gap == 0 or not invoices:
         return clear
     if gap < 0:
-        if len(invoices) == 1 and not notes:
+        if len(invoices) == 1 and not notes and -gap <= invoices[0][1] * MAX_OVERPAYMENT_RATIO:
             return {invoices[0][0]: (invoices[0][1], "OVERPAYMENT")}
         return clear
     full = [(i, o, t) for i, o, t in invoices if o == t.total_cents]

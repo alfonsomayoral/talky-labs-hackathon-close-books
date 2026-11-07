@@ -21,3 +21,7 @@ cd backend && uv run python -c "import json; from pathlib import Path; from clos
 ## Tabla de categorías
 
 `src/closebooks/data/category_codes.csv` (banco, código, subcódigo y dirección, solo conteos) se aprende de TRAIN con `tools/learn_categories.py`; ejecútalo con `uv run python -m closebooks.tools.learn_categories`. La versionada usa todo TRAIN, así que el holdout con esa tabla está contaminado: para una medida limpia, apréndela con un corte anterior a 2025 y apunta la ejecución con `CLOSEBOOKS_CATEGORY_CODES=<ruta>`. En FINAL, un banco o código nuevo no está en la tabla: cae en `CAT-TEXT` y, si no, en el respaldo.
+
+## Memoria
+
+Dos pánicos de kernel la noche del 6 al 7 de noviembre coincidieron con memoria agotada por procesos Python (un proceso de 97 GB, compresor saturado). Una ejecución de `holdout` debe quedar por debajo de 8 GB de RSS: mídelo con `/usr/bin/time -l uv run closebooks run --phase holdout --out ../runs/holdout-mem`. FINAL corre con la plataforma y `serve` arriba, así que ese es el límite que importa. Una medición pesada a la vez; los pools no pasan de 6 procesos.

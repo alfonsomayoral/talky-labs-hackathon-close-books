@@ -34,14 +34,16 @@ def _documents(phase: Phase) -> pl.DataFrame:
     items = phase.items.filter(pl.col("item_type").is_in(["API", "APC"])).select(
         "item_id", "item_type", "entity", "party_id", "party_name", "document_number", "total_cents", "open_cents",
         "due_date")
-    by_number = runs.select("_row", "document_number", "item_type", "beneficiary", "doc_cents", "_payer").join(
-        items, on=["document_number", "item_type"])
-    # The same supplier may repeat a number across entities: the entity that pays first, then the same amount.
-    by_name = by_number.filter(pl.col("party_name") == pl.col("beneficiary")).sort(
+    wanted = runs.select("_row", "document_number", "item_type", "beneficiary", "doc_cents", "_payer")
+    # Numbers repeat across suppliers: joining on the number alone is 69 M rows in TRAIN. The name settles nearly all.
+    named = wanted.join(items, left_on=["document_number", "item_type", "beneficiary"],
+                        right_on=["document_number", "item_type", "party_name"])
+    by_name = named.sort(
         "_row", pl.col("entity") != pl.col("_payer"), pl.col("total_cents") != pl.col("doc_cents"), "item_id"
     ).unique("_row", keep="first", maintain_order=True)
-    rest = by_number.join(by_name.select("_row"), on="_row", how="anti").filter(
-        pl.col("total_cents") == pl.col("doc_cents"))
+    by_number = wanted.join(by_name.select("_row"), on="_row", how="anti").join(
+        items, on=["document_number", "item_type"])
+    rest = by_number.filter(pl.col("total_cents") == pl.col("doc_cents"))
     # The beneficiary may be a factor or a renamed supplier: then number and amount must point to a single item.
     by_amount = rest.filter(pl.len().over("_row") == 1)
     # A partial payment to a factor matches no total: the number must be unique in the entity that pays.
@@ -53,7 +55,8 @@ def _documents(phase: Phase) -> pl.DataFrame:
     pays_balance = in_payer.filter(pl.col("open_cents") == pl.col("doc_cents"))
     in_payer = pl.concat([pays_balance, in_payer.join(pays_balance.select("_row"), on="_row", how="anti")]).filter(
         pl.len().over("_row") == 1)
-    found = pl.concat([by_name, by_amount, in_payer]).select("_row", "item_id", "party_id", "due_date")
+    keep = ("_row", "item_id", "party_id", "due_date")
+    found = pl.concat([by_name.select(keep), by_amount.select(keep), in_payer.select(keep)])
     return runs.join(found, on="_row", how="left").sort("_row")
 
 
