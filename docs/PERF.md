@@ -13,6 +13,7 @@ Análisis medido el 7 nov 2026 sobre el commit `64d6245`. No cambia código: tod
 | Arranque de `serve` | 52 s, 3,9 GB | **4,8 s, 2,4 GB** | no le afecta |
 
 - **Medido ya en el código, las tres ramas juntas:** 118,5 s; 5,80 GB de RSS y 5,76 GB de `peak memory footprint` (hoy, 7,12 GB). Los 5,06 GB de la tabla son RSS de un run con el mismo footprint, 5,76 GB: el RSS de macOS varía con la presión de memoria, así que para comparar sirve mejor el footprint.
+- **El pico subió después:** en `main` `02a58d2`, holdout da 6,55 GB de footprint en dos ejecuciones, frente a los 5,76 GB de arriba. Entre medias solo entraron reglas de Exactitud; no se ha investigado cuál lo mueve. Sigue por debajo de los 8 GB.
 - **Hoy:** la fase 1 (§7), unas 2 h con verificación. **No hoy:** Rust ni particionar por sociedad.
 - **Aviso:** no lances TRAIN completo antes de arreglar `write_explanations`. Solo esa lista pediría ~21 GB (extrapolado de 4 KB por fila y 5,4 M de filas; TRAIN nunca ha llegado a esa etapa).
 
