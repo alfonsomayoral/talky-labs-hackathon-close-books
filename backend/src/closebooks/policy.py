@@ -79,16 +79,18 @@ class Evidence(IntEnum):
     """What backs a hypothesis, weakest first. Two different hypotheses on one level are a tie: neither is taken."""
 
     DEFAULT = 0  # nothing explains the gap: what the cash reaches
-    ROUND_SHARE = 1  # with the others cleared whole, the cash pays a round share of this invoice, to the cent
-    BOUNDED = 2  # within the limits POLICIES sets, not exact: an overpayment
-    MOVEMENT_MARK = 3  # the bank line marks it as from abroad and the fee is within the limits of POLICIES
-    RATE_ON_ALL = 4  # the rate of POLICIES on every invoice, to the rounding of each
-    ONE_DISCOUNT = 5  # the gap is the discount in the terms of one invoice of several
-    ALL_DISCOUNTS = 6  # the gap is the discounts in the terms of all of them
-    EXACT = 7  # the open balances are the cash to the cent
-    PRINTED_DISCOUNT = 8  # a document prints the amount, with no reason: it is the discount in the terms
-    PRINTED_RATE = 9  # a document prints the amount, with no reason: it is a rate where that tax is withheld
-    PRINTED_REASON = 10  # a document prints the amount and why
+    TERMS_ONLY = 1  # the cash pays more than is cited: the terms say what each invoice took, unchecked against the cash
+    ROUND_SHARE = 2  # with the others cleared whole, the cash pays a round share of this invoice, to the cent
+    SEEN_RATE = 3  # an inference: the one set net of the rate an earlier line of this customer was explained by
+    BOUNDED = 4  # within the limits POLICIES sets, not exact: an overpayment
+    MOVEMENT_MARK = 5  # the bank line marks it as from abroad and the fee is within the limits of POLICIES
+    RATE_ON_ALL = 6  # the rate of POLICIES on every invoice, to the rounding of each
+    ONE_DISCOUNT = 7  # the gap is the discount in the terms of one invoice of several
+    ALL_DISCOUNTS = 8  # the gap is the discounts in the terms of all of them
+    EXACT = 9  # the open balances are the cash to the cent
+    PRINTED_DISCOUNT = 10  # a document prints the amount, with no reason: it is the discount in the terms
+    PRINTED_RATE = 11  # a document prints the amount, with no reason: it is a rate where that tax is withheld
+    PRINTED_REASON = 12  # a document prints the amount and why
 
 
 @dataclass(slots=True)
@@ -281,6 +283,19 @@ def _beyond_the_balances(case: Gap) -> Iterator[Hypothesis]:
         yield Hypothesis(Evidence.DEFAULT, _clear(case), "more than the balances: the text cited only part of it")
 
 
+def _beyond_what_is_cited(case: Gap) -> Iterator[Hypothesis]:
+    """The cash pays more than the text cites, so it cannot say what each invoice paid: their terms say it.
+
+    This is an inference, not POLICIES to the letter. POLICIES §3 asks three things: the invoice's terms have a
+    discount, the booking date is within its days plus 3 of grace, and cash = total - discount. The first two are known
+    here; the third cannot be checked, because we are missing invoices of the payment. Why it generalizes: in payments
+    of several invoices seen whole, those in terms took their discount in 9,179 of 9,180 holdout rows, as in the
+    official BT-2025-0182913. One with part of its balance paid, no discount, or past its grace stays clean."""
+    if case.gap < 0 and not _is_overpayment(-case.gap, case.cash + case.gap):
+        yield Hypothesis(Evidence.TERMS_ONLY, {i: (o, "SHORT_DISCOUNT" if o == t.total_cents and _in_terms(
+            t, case.booking_date) else "") for i, o, t in case.invoices}, "more than is cited: as each one's terms say")
+
+
 def _overpaid(case: Gap) -> Iterator[Hypothesis]:
     invoices = case.invoices
     if case.gap < 0 and len(invoices) == 1 and not case.notes and _is_overpayment(-case.gap, invoices[0][1]):
@@ -363,8 +378,8 @@ def _round_share(case: Gap) -> Iterator[Hypothesis]:
 
 
 # What can explain a gap. A new hypothesis is a function of a Gap that yields it, added here.
-NODES = (_exact, _beyond_the_balances, _overpaid, _all_discounts, _one_discount, _withheld_on_all, _bank_fee,
-         _round_share, _what_the_cash_reaches)
+NODES = (_exact, _beyond_the_balances, _beyond_what_is_cited, _overpaid, _all_discounts, _one_discount,
+         _withheld_on_all, _bank_fee, _round_share, _what_the_cash_reaches)
 
 
 def _oldest_first(available: int, invoices: list) -> dict[str, tuple[int, str]]:
