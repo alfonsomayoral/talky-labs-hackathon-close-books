@@ -16,8 +16,10 @@ def claim(txn: dict, codes: Codes) -> Proposal | None:
     category, rule = pure_category(codes, txn), "CAT-CODE"
     if category is None:
         category, rule = text_category(txn), "CAT-TEXT"
-    if category is None and text_category({**txn, "text": txn.get("remittance_info")}) == "SUPPLIER_REFUND":
-        category, rule = "SUPPLIER_REFUND", "CAT-TEXT"  # "ABONO PAGO DOBLE" travels in the remittance field
+    remitted = text_category({**txn, "text": txn.get("remittance_info")})
+    if category is None and remitted in ("SUPPLIER_REFUND", "CUSTOMER_ADVANCE"):
+        # "ABONO PAGO DOBLE" travels in the remittance field; camt keeps the proforma only there
+        category, rule = remitted, "CAT-TEXT"
     if category is None:
         return None
     label = f"{txn['bank']} {txn['bank_code'] or ''}/{txn['bank_subcode'] or ''}"
