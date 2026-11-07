@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import polars as pl
 
 from closebooks.rules.parties import PartyIndex, normalize
-from closebooks.rules.party_amount import PartyAmount
+from closebooks.rules.party_amount import PartyAmount, _chance
 from closebooks.state import OpenBalances
 
 
@@ -517,3 +517,21 @@ def test_a_unique_set_among_twenty_open_invoices_settles():
     found = pay(rows, values[1] + values[9] + values[14] + values[3] + values[17])
     assert found.rule == "PARTY-SUBSET"
     assert ids(found) == ["ARI-01", "ARI-03", "ARI-09", "ARI-14", "ARI-17"]
+
+
+def test_a_unique_set_among_many_small_invoices_means_nothing_and_is_not_taken():
+    # 2^17 sets over a sum of about 1 M cents. That only one adds up to this cash is no proof of anything.
+    values = [40000 + (n ** 3 * 7919 + n * 104729) % 40000 for n in range(17)]
+    rows = [item(f"ARI-{n:02d}", "C1", f"N{n}", v, issued=f"2024-02-{n + 1:02d}") for n, v in enumerate(values)]
+    assert pay(rows, sum(values[n] for n in (0, 1, 2, 3, 4, 5, 6, 7, 11))) is None
+
+
+def test_chance_of_a_set_grows_with_the_sets_searched_and_falls_with_the_cents_they_spread_over():
+    assert _chance(10 ** 3, [10 ** 6] * 2) < _chance(10 ** 4, [10 ** 6] * 2)
+    assert _chance(10 ** 4, [10 ** 7] * 2) < _chance(10 ** 4, [10 ** 6] * 2)
+
+
+def test_a_run_among_too_many_open_invoices_is_not_taken():
+    many = [item(f"ARI-{n:03d}", "C1", f"FV24-1{n:06d}", 1000 + n % 37, issued=f"2024-03-{n % 28 + 1:02d}")
+            for n in range(70)]
+    assert pay(many, 5000 + 5 * 3) is None

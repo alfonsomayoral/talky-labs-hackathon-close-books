@@ -20,9 +20,10 @@ STRONG_SUFFIX = 5
 MIN_CUT = 6
 LONG_CUT = 8
 MAX_SUBSET_ITEMS = 24
-MAX_FULL_SEARCH = 22  # beyond this, sums collide so often that a unique subset means nothing
-MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays; more and any cash finds a run
-MAX_RUN_INVOICES = 80  # a bound on the search per line, not on who can pay
+MAX_FULL_SEARCH = 22  # a bound on the search per line; what a unique subset means is `_chance`
+ALWAYS_SEARCHED = 16  # up to here a unique subset has always been taken, whatever its chance
+MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
+MAX_CHANCE = 0.05  # sets we expect to add up to any cash by chance: above this, one that does proves nothing
 NUMBER_ALONE_TOLERANCE = 0.05
 MONTHS = {name: number for number, names in enumerate((
     "ENERO JANUARY JANVIER JANUAR GENNAIO JANEIRO ENE JAN", "FEBRERO FEBRUARY FEVRIER FEBRUAR FEBBRAIO FEVEREIRO FEB",
@@ -52,6 +53,11 @@ def _discount_pct(phase) -> dict[str, float]:
 
 
 _MANY = object()
+
+
+def _chance(sets: float, values: list[int]) -> float:
+    """How many of the sets searched would add up to a given cash by chance: they spread over the cents of the sum."""
+    return sets / max(sum(abs(v) for v in values), 1)
 
 
 def _sums(pairs: list) -> dict:
@@ -354,7 +360,7 @@ class PartyAmount:
 
         Too many candidates for a unique subset, but exact cents make a false run very unlikely."""
         invoices = sorted((x for x in free if x[0][0][:3] not in CREDIT_NOTES), key=lambda x: (x[0][2], x[0][0]))
-        if len(invoices) > MAX_RUN_INVOICES or (named and any(i[:3] in CREDIT_NOTES for i in named)):
+        if named and any(i[:3] in CREDIT_NOTES for i in named):
             return None
         ids, values = [x[0][0] for x in invoices], [x[1] for x in invoices]
         notes = [x for x in free if x[0][0][:3] in CREDIT_NOTES]
@@ -365,6 +371,11 @@ class PartyAmount:
         if named and len(must) != len(named):
             return None
         first, last = (min(must), max(must)) if must else (len(ids), -1)
+        if skipped:
+            windows = (first + 1) * (len(ids) - last) if must else len(ids) ** 2 / 2
+            inside = len(ids) / 2
+            if _chance(windows * (1 + inside + inside ** 2 / 2) * (1 + len(notes)), values) > MAX_CHANCE:
+                return None
         found: set[tuple[frozenset, str | None]] = set()
         for start in range(min(first + 1, len(ids))):
             total = 0
@@ -373,6 +384,8 @@ class PartyAmount:
                 if end <= start or end < last:
                     continue
                 for target, note in targets.items():
+                    if not 0 <= total - target <= most:
+                        continue
                     for left_out in _left_out(values, start, end, total - target, skipped, must):
                         found.add((frozenset(ids[k] for k in range(start, end + 1) if k not in left_out), note))
                 if total > ceiling or len(found) > 1:
@@ -461,7 +474,8 @@ class PartyAmount:
         # An invoice above the cash plus every credit note cannot be part of it.
         signed_all = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered
                       if i[0][:3] in CREDIT_NOTES or o <= cash + credit]
-        if len(signed_all) <= MAX_FULL_SEARCH:
+        if len(signed_all) <= ALWAYS_SEARCHED or (len(signed_all) <= MAX_FULL_SEARCH and _chance(
+                2 ** len(signed_all), [v for _, v in signed_all]) <= MAX_CHANCE):
             found = _unique_subset(signed_all, cash, min_size)
             if found is None and ambiguous is not None:
                 ambiguous += _tied_subsets(signed_all, cash)

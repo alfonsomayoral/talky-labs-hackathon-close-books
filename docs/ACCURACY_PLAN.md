@@ -53,7 +53,7 @@ FINAL trae a propósito: una sociedad nueva con banco, divisa (ZAR) y numeració
 
 ## 4. Plan de trabajo (por puntos esperados por hora; cada bloque con su puerta)
 
-Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, ninguna clase de excepción con precisión < 0,95 (si no llega, se apaga), `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 150 s en holdout. Medir con `just be-score --compare` y `just be-diff`.
+Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento que baje más de 0,002, precisión de pares ≥ 0,995, precisión de clase de excepción según §4.1, `unidentified` y `unidentified_lookalike` en 1,000, CSV determinista, RSS ≤ 7,5 GB, tiempo ≤ 150 s en holdout. Medir con `just be-score --compare` y `just be-diff`.
 
 | # | Bloque | Objetivo medible | Esfuerzo [Inferencia] |
 | --- | --- | --- | --- |
@@ -68,6 +68,29 @@ Puerta de entrada de toda PR: holdout **y** holdout-drift sin ningún segmento q
 | 9 | **Ensayo FINAL** con el holdout-drift y con el mutador de layout de aviso inventado: una ejecución completa cronometrada, `validate`, distribución por regla comparada con LIVE | run + validate < 5 min, RSS ≤ 7,5 GB | 30 min |
 
 Orden recomendado: 1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9. Congelación de reglas a las **17:00**. FINAL se publica a las 18:00 y el envío único cierra a las 19:30.
+
+### 4.1 Puerta de precisión por clase (decidido el 7 nov, 11:20)
+
+- `DUPLICATE_PAYMENT` y `OVERPAYMENT`, las de regla opcional: precisión ≥ 0,95 o se apagan.
+- El resto de clases: la precisión no baja más de 0,002 frente a `main`, en holdout y en drift.
+
+«Ninguna clase < 0,95» no se cumplía ni en la base, y apagar `PARTIAL` perdería mucho más de lo que arregla. Precisión en `runs/perf-holdout-a`:
+
+| Clase | Precisión |
+| --- | --- |
+| `DUPLICATE_PAYMENT` | 0,846 |
+| `PARTIAL` | 0,923 |
+| `SHORT_BANK_CHARGES` | 0,948 |
+
+### 4.2 Dónde está de verdad la pérdida (medido en holdout) y qué no se intenta
+
+De los 12.601 movimientos fallados, 8.654 son `not_matched`: cobros en `FALLBACK-UNIDENTIFIED` que el golden sí casa, y en 6.446 de ellos `find` ya da el tercero correcto. Lo que falta es explicar el importe, no identificar al tercero.
+
+**No intentar con una heurística:**
+
+- **Facturas dispersas sin referencia:** calculo que 2.000–2.500 líneas de un gran cliente seguirán en fallback [Inferencia]. Son 5 o más facturas sueltas entre decenas de abiertas, sin ninguna en el texto: hay más combinaciones que céntimos posibles, así que varias suman el cobro y nada dice cuál es.
+- **Muchas candidatas pequeñas:** `MAX_CHANCE` descarta la búsqueda cuando se esperan demasiadas soluciones por azar.
+- **Una factura abierta y un importe distinto, sin cita:** simulado en holdout con saldos del golden. `PARTIAL` acierta 51 y falla 60 (46 sobre `unidentified`); `OVERPAYMENT` acierta 23 y falla 67 (35 sobre `unidentified`). Siguen en fallback.
 
 ## 5. Reglas del juego
 
