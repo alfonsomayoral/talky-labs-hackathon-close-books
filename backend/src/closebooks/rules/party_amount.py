@@ -237,6 +237,7 @@ class PartyAmount:
             i: _alnum(r) for i, r in items.filter(pl.col("related_document").is_not_null())
             .select("item_id", "related_document").iter_rows() if i[:3] in CREDIT_NOTES}
         self._known = known
+        self._found_parties = 0
         self._due = dict(known.filter(pl.col("due_date").is_not_null()).select("item_id", "due_date").iter_rows())
         self.reindex()
 
@@ -272,6 +273,7 @@ class PartyAmount:
             if taught:
                 return taught
         parties = self.parties.find(txn, kind)
+        self._found_parties = len(parties)
         results = [r for party in parties if (r := self._or_netted(party, txn, cash, currency, balances))]
         if len(results) == 1:
             return results[0]
@@ -331,9 +333,18 @@ class PartyAmount:
         found = self._match(party, txn, cash, currency, balances)
         if os.environ.get("CLOSEBOOKS_NETTED_POOL", "1") == "0":
             return found
-        if found is None or (found.rule == "REF-TEXT" and _net(
-                [((i,), balances.open(i)) for i, _ in found.lines]) != cash):
-            return self._netted_pool(party, txn, cash, currency, found, balances) or found
+        partial = found is not None and found.rule == "REF-TEXT" and _net(
+            [((i,), balances.open(i)) for i, _ in found.lines]) != cash
+        # An invoice less a credit note that is exactly the cash comes before reading the gap as a short payment
+        # (a credit note of 10 % looks like a withholding of 10 %).
+        short = found is not None and found.rule == "PARTY-SHORT"
+        if found is None or partial or short:
+            netted = self._netted_pool(party, txn, cash, currency, found if partial else None, balances)
+            if netted:
+                return netted
+        # A receipt is cash from the customer: credit notes alone are never what it settles (POLICIES §2).
+        if found is not None and txn["amount_cents"] > 0 and all(i[:3] in CREDIT_NOTES for i, _ in found.lines):
+            return None
         return found
 
     def _netted_pool(self, party: str, txn: dict, cash: int, currency: str, cited: Proposal | None,
@@ -341,7 +352,9 @@ class PartyAmount:
         """Customers pay together invoices that have fallen due, less credit notes (POLICIES §2). The whole open list
         is too big for a unique sum to mean anything, the ones overdue are not: widen the window of days overdue until
         exactly one combination, with a credit note and whatever the text cites, adds up to the cash."""
-        if cited is None and not self.parties.certain:
+        # A name the bank cut is accepted only when it names one customer and the batch has three items or more.
+        cut_name = cited is None and not self.parties.certain
+        if cut_name and self._found_parties != 1:
             return None
         mine = self.items.get(party, ())
         if not any(i[0][:3] in CREDIT_NOTES for i in mine):
@@ -365,7 +378,9 @@ class PartyAmount:
             if len(pool) == seen:
                 continue
             seen = len(pool)
-            ordered = sorted(pool, key=lambda x: (x[0][2], x[0][0]))
+            pairs = self._returned_in_full(pool)
+            paired = {i[0] for pair in pairs for i, _ in pair}
+            ordered = sorted((x for x in pool if x[0][0] not in paired), key=lambda x: (x[0][2], x[0][0]))
             signed = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered]
             # A wider window only adds items: once a sum proves nothing, it will not later.
             if len(signed) > MAX_FULL_SEARCH or _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE:
@@ -375,8 +390,20 @@ class PartyAmount:
                 continue
             if not any(i[:3] in CREDIT_NOTES for i in [*chosen, *named]):
                 return None
-            return self._proposal("PARTY-NETTED", party, [*named, *chosen], by_cash=True, confidence=0.85)
+            if cut_name and len(chosen) < 3:
+                return None
+            issued = [x[0][2] for x in pool if x[0][0] in chosen and x[0][0][:3] not in CREDIT_NOTES]
+            inside = [i[0] for pair in pairs for i, _ in pair if issued and min(issued) <= pair[0][0][2] <= max(issued)]
+            return self._proposal("PARTY-NETTED", party, [*named, *chosen, *inside], by_cash=True, confidence=0.85)
         return None
+
+    def _returned_in_full(self, pool: list[tuple]) -> list[tuple]:
+        """A credit note that returns a whole invoice (its related document, the same open amount) nets to nothing, so
+        it makes every sum ambiguous: it leaves the search and is settled with the batch it was issued within."""
+        invoices = {i[6]: (i, o) for i, o in pool if i[0][:3] == "ARI"}
+        return [(invoices[self.related[i[0]]], (i, o)) for i, o in pool
+                if i[0][:3] in CREDIT_NOTES and self.related.get(i[0]) in invoices
+                and invoices[self.related[i[0]]][1] == o]
 
     def _returned(self, item_id: str, balances: OpenBalances) -> bool:
         """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the

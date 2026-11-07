@@ -937,3 +937,44 @@ def test_netted_pool_ignores_old_credit_notes_that_only_make_a_sum_by_chance():
     paid = [due[1], due[3], due[4], due[7], due[9]]
     cash = sum(i["total_cents"] for i in paid) - sum(o["total_cents"] for o in old[:3])
     assert rule(txn(cash, NAME, date="2024-06-01"), balances) is None
+
+
+def test_a_receipt_never_settles_credit_notes_alone():
+    items = [item("ARI-1", "C1", "F1", 50000, due="2024-05-15"), item("ARC-1", "C1", "AB-7", 1234, "2024-05-20")]
+    rule, balances = engine(items)
+    assert rule(txn(777, f"{NAME} AB-7", date="2024-06-01"), balances) is None
+
+
+def test_an_invoice_less_a_credit_note_comes_before_a_withholding_of_the_same_size(monkeypatch):
+    # The old pair (an invoice and the credit note that returns it) makes every sum ambiguous for a search of all.
+    items = [item("ARI-1", "C1", "F1", 100000, "2024-05-01", due="2024-05-31"),
+             item("ARC-1", "C1", "A1", 10000, "2024-05-10"),
+             item("ARI-OLD", "C1", "FOLD", 5000, "2021-01-01", due="2021-01-31"),
+             item("ARC-OLD", "C1", "AOLD", 5000, "2021-02-01", related="FOLD")]
+    rule, balances = engine(items)
+    receipt = txn(90000, NAME, date="2024-06-01")
+    assert lines(rule(receipt, balances)) == {"ARI-1", "ARC-1"}
+    monkeypatch.setenv("CLOSEBOOKS_NETTED_POOL", "0")
+    assert rule(receipt, balances).rule == "PARTY-SHORT"
+
+
+def test_a_credit_note_that_returns_a_whole_invoice_is_settled_with_the_batch_it_falls_in():
+    due = [item(f"ARI-D{i}", "C1", f"FD{i}", 20000 + 913 * i * i + 7 * i, f"2024-05-{i + 1:02d}", due="2024-05-31")
+           for i in range(6)]
+    pair = item("ARC-Z", "C1", "AZ", due[2]["total_cents"], "2024-05-20", related="FD2")
+    credit = item("ARC-1", "C1", "A1", 31337, "2024-05-25")
+    rule, balances = engine(due + [pair, credit])
+    cash = sum(due[i]["total_cents"] for i in (0, 3, 5)) - 31337
+    found = rule(txn(cash, NAME, date="2024-06-01"), balances)
+    assert lines(found) == {"ARI-D0", "ARI-D3", "ARI-D5", "ARC-1", "ARI-D2", "ARC-Z"}
+
+
+def test_a_cut_name_settles_a_batch_of_three_but_not_a_pair():
+    due, later = _due_and_not_due(10, 3)
+    credit = item("ARC-1", "C1", "A1", 31337, "2024-05-20")
+    rule, balances = engine(due + later + [credit])
+    batch = sum(due[i]["total_cents"] for i in (1, 4, 7)) - 31337
+    assert lines(rule(txn(batch, "ACH CREDIT WELLNESS GARR", date="2024-06-01"), balances)) == {
+        "ARI-D01", "ARI-D04", "ARI-D07", "ARC-1"}
+    pair = due[1]["total_cents"] - 31337
+    assert rule(txn(pair, "ACH CREDIT WELLNESS GARR", date="2024-06-01"), balances) is None
