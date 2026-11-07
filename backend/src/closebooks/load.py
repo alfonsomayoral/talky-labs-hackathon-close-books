@@ -9,7 +9,7 @@ from pathlib import Path
 
 import polars as pl
 
-from .paths import masters_dir, phase_dir
+from .paths import base_master_path, master_path, phase_dir
 
 ITEM_COLUMNS = ["item_id", "item_type", "entity", "party_id", "party_name", "document_number", "issue_date",
                 "due_date", "currency", "total_cents", "open_cents", "payment_terms", "customer_po",
@@ -52,9 +52,23 @@ class Phase:
         return path if path.exists() else None
 
 
+def short_masters(phase: Path) -> dict[str, tuple[int, int]]:
+    """Files of masters_final/ with fewer rows than the master they replace, with both counts: maybe only a delta."""
+    found = {}
+    for file in (f"{name}.csv" for name in MASTER_FILES):
+        final, base = phase / "masters_final" / file, base_master_path(phase, file)
+        if final.exists() and base.exists():
+            rows = load_table(final).height, load_table(base).height
+            if rows[0] < rows[1]:
+                found[file] = rows
+    return found
+
+
 def load_masters(phase: Path) -> dict[str, pl.DataFrame]:
-    folder = masters_dir(phase)
-    return {name: load_table(folder / f"{name}.csv") for name in MASTER_FILES}
+    for file, (rows, base) in short_masters(phase).items():
+        print(f"warning: masters_final/{file} has {rows} rows, fewer than the {base} of the master it replaces",
+              file=sys.stderr)
+    return {name: load_table(master_path(phase, f"{name}.csv")) for name in MASTER_FILES}
 
 
 def _with_eur(txns: pl.DataFrame, fx_rates: pl.DataFrame) -> pl.DataFrame:

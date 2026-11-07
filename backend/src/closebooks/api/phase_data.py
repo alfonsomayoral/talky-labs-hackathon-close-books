@@ -7,7 +7,7 @@ import threading
 
 import duckdb
 
-from ..paths import masters_dir, phase_dir
+from ..paths import master_path, phase_dir
 from .sqlutil import create_party, read_csv
 
 DETAIL_FOLDERS = {"direct_debit_batches": "directDebitBatch", "card_settlements": "cardSettlement",
@@ -26,9 +26,8 @@ class PhaseData:
     def __init__(self, name: str):
         self.name = name
         self.dir = phase_dir(name)
-        self.masters = masters_dir(self.dir)
         self.con = duckdb.connect()
-        create_party(self.con, self.masters)
+        create_party(self.con, self.dir)
         self.lock = threading.RLock()
         self._items = self._accounts = self._documents = self._detail_files = None
 
@@ -104,7 +103,7 @@ class PhaseData:
                              f"ORDER BY 1, 3").fetchall():
             periods.setdefault(row[0], []).append(row[1:])
         master = c.execute(f"SELECT account_id, entity, bank, bank_name, currency, iban, purpose, statement_format, "
-                           f"opened FROM {read_csv(self.masters / 'bank_accounts.csv')}").fetchall()
+                           f"opened FROM {read_csv(master_path(self.dir, 'bank_accounts.csv'))}").fetchall()
         out = []
         for acc, entity, bank_code, bank_name, currency, iban, purpose, fmt, opened in master:
             out.append(self._account(acc, entity, bank_code, bank_name, currency, iban, purpose, True,
