@@ -64,6 +64,14 @@ Con `serve` y la app arrancados, las nueve pantallas y sus paneles en los dos te
 PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/capture.mjs http://localhost:5173 docs/screenshots/final
 ```
 
+## Grabar el recorrido del vídeo
+
+`app/mock/record.mjs` recorre los ocho pasos de `docs/DEMO.md` con sus pausas y deja `demo.webm`, solo imagen. **Preparado, pero sin ejecutar todavía.** Necesita `npx playwright install ffmpeg`. Sin `--write` no guarda nada; con `--write` responde y envía de verdad, así que va sobre una copia. Los ids se cambian con `--ids ids.json`.
+
+```bash
+PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/record.mjs http://localhost:5173 --out <dir>
+```
+
 ## Si algo falla
 
 | Qué pasa | Qué hacer |
