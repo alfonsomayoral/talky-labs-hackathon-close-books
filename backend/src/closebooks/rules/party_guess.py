@@ -133,7 +133,9 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
                 left -= cents
         overpays = [(item, cents, due_date) for due_date, _, item, cents in open_now
                     if cents < cash and _is_overpayment(cash - cents, cents)]
-        if left and len(overpays) == 1:
+        # a guessed overpayment needs the invoice due by the receipt date or an excess within 10 % of it
+        if left and len(overpays) == 1 and (overpays[0][2] <= date
+                                            or cash - overpays[0][1] <= overpays[0][1] * ROUND_OVERPAYMENT_RATIO):
             chosen, left = overpays, cash - overpays[0][1]
         if not chosen:
             every = [(due_date, item, cents) for due_date, _, item, cents in sorted(open_now)]
