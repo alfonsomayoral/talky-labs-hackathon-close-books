@@ -68,6 +68,14 @@ Terminal en `backend/`, con el checkout en `freeze-final` y `HK_TOKEN` exportado
    uv run --with requests ../scripts/submit.py FINAL ../runs/final-a/submission.csv.gz | tee ../runs/final-a/final_result.json
    ```
 
+Lo más probable, porque FINAL trae una divisa, un banco y una sociedad nuevos. Cualquier otro síntoma: §Decisiones.
+
+| Síntoma en `final_check` | Acción |
+| --- | --- |
+| Rojo «toda divisa tiene tipo en FX» | Enviar igual: el CSV va en la divisa de la partida |
+| «banco nuevo», ámbar o rojo, o rojo «todo banco con filas fuera de FALLBACK» solo en ese banco | Enviar igual: como mucho se pierden categorías de ese banco |
+| Rojo o aviso de `FALLBACK` en una sola sociedad, la nueva | Enviar igual: no tiene historial. Si son varias familias de reglas, avisar antes de enviar |
+
 ## Decisiones si algo sale mal
 
 | Síntoma | Qué significa | Qué hacer |
