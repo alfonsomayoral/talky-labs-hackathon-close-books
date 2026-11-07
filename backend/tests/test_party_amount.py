@@ -1144,6 +1144,57 @@ def test_a_citation_of_cut_numbers_does_not_keep_out_the_only_due_set(monkeypatc
     assert lines(found) == {f"ARI-{number}" for number in paid}
 
 
+OTERO = (("C1", "E1", "Piscines Otero e Hijos SARL", None, "FR", None, None, None),)
+OTERO_TEXT = "VIR SEPA RECU /DE PISCINES OTERO E HIJOS SARL /MOTIF FACT FA240129304 130191 130104 1302 /REF "
+OTERO_INVOICES = {"FA240129304": (214858, "2024-12-14"), "FA240130191": (128498, "2024-12-27"),
+                  "FA240130104": (28410, "2024-12-27"), "FA240132241": (165323, "2025-01-19"),
+                  "FA240129113": (75100, "2024-12-12"), "FA240130270": (479455, "2024-12-28"),
+                  "FA240125792": (377057, "2024-11-01"), "FA240130963": (70004, "2025-01-02"),
+                  "FA240130250": (371675, "2024-12-28"), "FA240131111": (92108, "2025-01-04")}
+
+
+def _otero(extra=()):
+    invoices = [item(f"ARI-{n}", "C1", n, cents, due=due) for n, (cents, due) in OTERO_INVOICES.items()]
+    rule, balances = engine([*invoices, *extra], customers=OTERO)
+    rule._subset = lambda *a, **k: None
+    rule._consecutive = lambda *a, **k: None
+    return rule, balances
+
+
+def test_a_text_cut_by_the_bank_is_completed_with_the_only_set_of_open_invoices_that_closes_the_cash(monkeypatch):
+    """BT-2025-0004438 of holdout: it cites 3 of 10 invoices and one of the rest is due after the week of tolerance."""
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    rule, balances = _otero()
+    found = rule(txn(2002488, OTERO_TEXT, date="2025-01-07"), balances)
+    assert found.rule == "REF-TEXT-COMPLETED"
+    assert lines(found) == {f"ARI-{n}" for n in OTERO_INVOICES}
+
+
+def test_invoices_due_explain_the_rest_before_those_not_yet_due(monkeypatch):
+    """An invoice not yet due of the very amount of the two due ones does not tie with them."""
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    rule, balances = engine([item("ARI-A", "C1", "FA240129304", 100000, due="2024-12-14"),
+                             item("ARI-B", "C1", "FA240129500", 30000, due="2024-12-14"),
+                             item("ARI-C", "C1", "FA240129600", 20000, due="2024-12-14"),
+                             item("ARI-D", "C1", "FA240129700", 50000, due="2025-03-01")], customers=OTERO)
+    rule._subset = lambda *a, **k: None
+    rule._consecutive = lambda *a, **k: None
+    rule._netted_cited = lambda *a, **k: None
+    found = rule(txn(150000, OTERO_TEXT, date="2025-01-07"), balances)
+    assert found.rule == "REF-TEXT-COMPLETED"
+    assert lines(found) == {"ARI-A", "ARI-B", "ARI-C"}
+
+
+def test_two_sets_that_close_the_cash_leave_only_what_the_text_cites(monkeypatch):
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
+    tied = [item("ARI-X", "C1", "FA240140001", 7654321, due="2024-12-01"),
+            item("ARI-Y", "C1", "FA240140002", 7654321, due="2024-12-01")]
+    rule, balances = _otero(tied)
+    found = rule(txn(214858 + 128498 + 28410 + 7654321, OTERO_TEXT, date="2025-01-07"), balances)
+    assert found.rule == "REF-TEXT"
+    assert lines(found) == {"ARI-FA240129304", "ARI-FA240130191", "ARI-FA240130104"}
+
+
 def test_sixty_items_are_searched_in_under_a_second():
     from time import perf_counter
 
