@@ -9,7 +9,7 @@ import polars as pl
 from ..documents.pdfs import phase_clauses
 from ..load import cancelled_item_ids
 from ..model import Proposal
-from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, MAX_OVERPAYMENT_RATIO, SEPA_COUNTRIES, cross_border
+from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, cross_border
 from ..state import OpenBalances
 from .parties import PartyIndex, normalize
 
@@ -190,7 +190,7 @@ class PartyAmount:
         short = self._short_paid(free, cash, party, txn)
         if short:
             return self._proposal("PARTY-SHORT", party, [short], by_cash=True, confidence=0.85)
-        return self._explained_by_state(mine, free, open_now, cash, party)
+        return self._explained_by_state(free, cash, party)
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
@@ -262,22 +262,13 @@ class PartyAmount:
     def _is_month(clause: dict | None, month: int, year: int | None) -> bool:
         return bool(clause) and clause["month"] == month and (year is None or clause["year"] == year)
 
-    def _explained_by_state(self, mine: list, free: list, open_now: dict, cash: int, party: str) -> Proposal | None:
-        """No exact amount. What the PDF, the balance or the history of the party can still explain."""
+    def _explained_by_state(self, free: list, cash: int, party: str) -> Proposal | None:
+        """No exact amount: only what the invoice's own PDF expects. Anything looser was measured and rejected."""
         invoices = [(i, o) for i, o in free if i[0][:3] not in CREDIT_NOTES]
         planned = [i for i, _ in invoices if self._plan_expects(i[0], cash)]
         if planned:
             return self._proposal("PARTY-PLAN", party, [min(planned, key=lambda i: (i[2], i[0]))[0]], by_cash=True,
                                   confidence=0.9)
-        over = [i for i, o in invoices if 0 < cash - o <= o * MAX_OVERPAYMENT_RATIO]
-        if len(over) == 1 and len(invoices) == 1:
-            return self._proposal("PARTY-OVERPAID", party, [over[0][0]], by_cash=True, confidence=0.8)
-        above = [i for i, o in invoices if o > cash]
-        if len(above) == 1:
-            return self._proposal("PARTY-PARTIAL", party, [above[0][0]], by_cash=True, confidence=0.8)
-        settled = [i for i in mine if open_now[i[0]] <= 0 and i[4] == cash and i[0][:3] not in CREDIT_NOTES]
-        if len(settled) == 1 and not invoices:
-            return self._proposal("PARTY-DUPLICATE", party, [settled[0][0]], by_cash=True, confidence=0.8)
         return None
 
     def _plan_expects(self, item_id: str, cash: int) -> bool:
@@ -292,9 +283,10 @@ class PartyAmount:
     def _by_number_alone(self, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
         """A whole number in the text and an amount that agrees: enough without knowing who paid."""
         hits = {}
+        wanted = ("AR" if txn["amount_cents"] > 0 else "AP")
         for token in self._tokens(txn):
             for item in self.by_number.get((txn["entity"], _alnum(token)), ()):
-                if item[3] == currency and item[2] <= txn["booking_date"]:
+                if item[3] == currency and item[2] <= txn["booking_date"] and item[0][:2] == wanted:
                     hits[item[0]] = item
         if not hits:
             return None

@@ -9,6 +9,7 @@ import polars as pl
 
 MIN_NAME_CHARS = 10
 PREFIX_CHARS = 8
+LEGAL_FORM_CHARS = 4
 _NOT_ALNUM = re.compile(r"[^A-Z0-9]+")
 
 
@@ -100,14 +101,13 @@ def _common_prefix(a: str, b: str, start: int) -> int:
 
 
 def _identifies(norm: str, text: str, position: int, length: int) -> bool:
-    """The whole name, or one the bank cut: the text ends or starts another word where the name stops mid-word.
-
-    "PLASTICOS EXPRES | RECIBO" is "PLASTICOS EXPRESS S L" cut by the field. "HYDRO EVANS HERM" is not
-    "HYDRO EVANS LLC": the text goes on with a different word.
-    """
+    """The whole name; one the bank cut, the text ending or starting another word where the name stops mid-word
+    ("PLASTICOS EXPRES | RECIBO"); or the name without its legal form."""
     if length == len(norm):
         return True
-    if length < MIN_NAME_CHARS or norm[length - 1] == " ":
+    if length < MIN_NAME_CHARS:
         return False
     end = position + length
-    return end == len(text) or text[end] == " "
+    if end == len(text) or len(norm) - length <= LEGAL_FORM_CHARS:
+        return True
+    return norm[length - 1] != " " and text[end] == " "
