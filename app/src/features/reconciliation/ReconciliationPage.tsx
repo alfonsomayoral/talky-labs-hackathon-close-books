@@ -16,7 +16,7 @@ const getRowId = (t: TxnRow) => t.bankTxnId
 
 const COLUMNS: Column<TxnRow>[] = [
   { id: 'bookingDate', header: 'Fecha', width: 92, cell: (t) => <span className={styles.muted}>{formatDate(t.bookingDate)}</span>, sortValue: (t) => t.bookingDate },
-  { id: 'entity', header: 'Sociedad', width: 88, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
+  { id: 'entity', header: 'Sociedad', width: 96, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
   { id: 'text', header: 'Texto del banco', width: 'minmax(160px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
   { id: 'amountEur', header: 'Importe', width: 152, align: 'right', cell: (t) => <Amount cents={t.amountCents} currency={t.currency} signed colorize />, sortValue: (t) => t.amountEur },
   {
@@ -37,7 +37,7 @@ const COLUMNS: Column<TxnRow>[] = [
   },
   { id: 'evidence', header: 'Evidencia', width: 112, cell: (t) => <span className={styles.evidence}>{evidenceOf(t.rule).source}</span> },
   { id: 'rule', header: 'Regla', width: 168, cell: (t) => <Mono title={ruleDescription(t.rule)}>{t.rule}</Mono>, sortValue: (t) => t.rule },
-  { id: 'confidence', header: 'Confianza', width: 96, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
+  { id: 'confidence', header: 'Confianza', width: 104, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
   {
     id: 'caseStatus',
     header: 'Caso',
