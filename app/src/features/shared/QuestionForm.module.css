@@ -66,9 +66,17 @@
   accent-color: var(--brand-line);
 }
 
+/* The proposed rule stays readable while it cannot be chosen: only the box and the title step back. */
 .rule[data-disabled] {
-  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.rule[data-disabled] input {
+  opacity: 0.5;
+}
+
+.rule[data-disabled] .ruleTitle {
+  color: var(--ink-2);
 }
 
 .ruleText {
