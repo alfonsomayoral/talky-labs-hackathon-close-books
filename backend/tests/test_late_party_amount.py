@@ -73,6 +73,31 @@ def test_the_rest_of_an_invoice_is_its_balance_not_its_total():
     assert settled([invoice()], [line(cents=40000)], paid=paid) == [(INVOICE, "C1")]
 
 
+def later_partial():
+    return Row("BT-9", INVOICE, 10000, "EUR", None, "PARTIAL", "PARTY-FRACTION", 0.85, "C1")
+
+
+def test_a_receipt_before_a_payment_left_partial_is_the_partial_and_the_later_one_closes():
+    rows, balances, _ = run([invoice()], [line(cents=40000)], rows=[fallback(), later_partial()],
+                            paid=[(INVOICE, 10000, "PARTIAL", "BT-9", "2024-07-01")])
+    assert [(r.bank_txn_id, r.exception, r.rule) for r in rows] == [
+        ("BT-1", "PARTIAL", "PARTY-AMOUNT-LATE"), ("BT-9", None, "PARTY-FRACTION")]
+    assert [(h["bankTxnId"], h["exception"]) for h in balances.history(INVOICE)] == [("BT-1", "PARTIAL"), ("BT-9", "")]
+    assert balances.open(INVOICE) == 0
+
+
+def test_a_receipt_after_a_payment_left_partial_closes_the_invoice():
+    rows, _, _ = run([invoice()], [line(cents=40000)], rows=[fallback(), later_partial()],
+                     paid=[(INVOICE, 10000, "PARTIAL", "BT-9", "2024-05-01")])
+    assert [(r.bank_txn_id, r.exception) for r in rows] == [("BT-1", None), ("BT-9", "PARTIAL")]
+
+
+def test_a_receipt_before_a_payment_that_was_not_partial_settles_nothing():
+    rows, _, _ = run([invoice()], [line(cents=40000)], rows=[fallback()],
+                     paid=[(INVOICE, 10000, "SHORT_DISCOUNT", "BT-9", "2024-07-01")])
+    assert rows[0].rule == FALLBACK
+
+
 def test_a_later_payment_of_the_invoice_stays_last_in_its_history():
     paid = [(INVOICE, 10000, "PARTIAL", "BT-9", "2024-07-01")]
     _, balances, _ = run([invoice()], [line(cents=40000)], paid=paid)

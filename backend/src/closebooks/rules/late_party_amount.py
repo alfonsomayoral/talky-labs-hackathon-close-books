@@ -8,10 +8,13 @@ start of the name and by its words. POLICIES §3 warns that some unidentified re
 unrelated open invoice. So the payer is required, the invoice has to be the only one among all the candidates, and the
 case stays for a person to review.
 
+A later payment already left that invoice partial: by date this receipt is the partial one and the later one closes it.
+
 Known limit: it runs after the walk by date, so it frees no later receipt that depended on that balance."""
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from dataclasses import replace
 
 import polars as pl
 
@@ -95,10 +98,22 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
         if uses[entry[0]] > 1:
             continue
         item, txn_id = entry[0], txn["bank_txn_id"]
-        balances.apply(item, cash, "", txn_id, txn["booking_date"])
+        history = balances.history(item)
+        last = max(history, key=lambda h: h["bookingDate"], default=None)
+        earlier = last is not None and last["bookingDate"] > txn["booking_date"]
+        if earlier and last["exception"] != "PARTIAL":
+            continue
+        exception = "PARTIAL" if earlier else None
+        balances.apply(item, cash, exception or "", txn_id, txn["booking_date"])
         balances.history(item).sort(key=lambda h: h["bookingDate"])
+        if earlier:  # the walk took the later receipt for the partial: by date this one is, and the later closes it
+            last["exception"] = ""
+            for index, row in enumerate(rows):
+                if row.bank_txn_id == last["bankTxnId"] and row.item_id == item:
+                    rows[index] = replace(row, exception=None)
         rows[at[txn_id]] = Row(
-            txn_id, item, cash, currency, None, None, RULE, 0.85, party, None, [{"kind": "customer", "ref": party}],
+            txn_id, item, cash, currency, None, exception, RULE, 0.85, party, None,
+            [{"kind": "customer", "ref": party}],
             [{"itemId": item, "amountCents": cash, "currency": currency,
               "why": f"only open invoice with this balance among {', '.join(candidates)}"}])
         engine.abstentions.pop(txn_id, None)
