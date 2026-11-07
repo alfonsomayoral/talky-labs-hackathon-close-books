@@ -280,9 +280,29 @@ def test_drafts_edit_send_manual_and_generation_not_implemented(api, env):
     outbox = [json.loads(line) for line in (env[1] / RUN / "human" / "outbox.jsonl").read_text().splitlines()]
     assert [o["status"] for o in outbox] == ["draft", "sent", "manual"]
     assert get(api, "/cases/CASE-overdue-1")["draft"]["draftId"] == "D-1"
-    r = api.post(f"/api/runs/{RUN}/drafts", json={"caseId": "CASE-overdue-1", "kind": "email_customer"})
-    assert r.status_code == 501 and r.headers["content-type"].startswith("application/problem+json")
     assert (env[1] / RUN / "drafts.jsonl").read_text().count("D-") == 2  # the backend's file is never rewritten
+
+
+def test_a_draft_asked_for_is_the_template_of_the_case_written_to_the_outbox_only(api, env):
+    url = f"/api/runs/{RUN}/drafts"
+    made = api.post(url, json={"caseId": "CASE-BT-2", "kind": "email_customer"})
+    assert made.status_code == 422  # an ambiguous match has no template
+    wrong = api.post(url, json={"caseId": "CASE-overdue-1", "kind": "email_supplier"})
+    assert wrong.status_code == 422
+    # the fixture's overdue case already has D-1 and D-2: asking again returns the first, it does not pile up
+    again = api.post(url, json={"caseId": "CASE-overdue-1", "kind": "email_customer"})
+    assert again.status_code == 200 and again.json()["draftId"] == "D-1"
+    run = env[1] / RUN
+    (run / "drafts.jsonl").write_text("")  # nothing yet: the platform generates it
+    made = api.post(url, json={"caseId": "CASE-overdue-1", "kind": "email_customer"}).json()
+    assert made["draftId"] == "D-000001" and made["status"] == "draft" and made["generatedBy"] == "template"
+    assert made["to"] is None and made["language"] == "es" and made["partyId"] == "C1"
+    assert made["toName"] == "Acme Ñandú S.L." and "1.210,00 EUR" in made["body"] and made["body"].endswith("Uno S.A.")
+    assert [d["draftId"] for d in get(api, "/drafts")["items"]] == ["D-000001"]
+    assert get(api, "/cases/CASE-overdue-1")["draft"]["draftId"] == "D-000001"
+    assert (run / "drafts.jsonl").read_text() == ""
+    assert api.post(f"{url}/D-000001/send").json()["status"] == "sent"
+    assert api.post(url, json={"caseId": "CASE-overdue-1", "kind": "email_customer"}).json()["status"] == "sent"
 
 
 def test_open_items_filters_and_aging_buckets(api):
@@ -472,6 +492,15 @@ def test_only_the_served_run_is_marked_and_opened(env):
     assert not any(r["served"] for r in TestClient(create_app(store=Store(runs))).get("/api/runs").json())
     store = client.app.state.store
     assert store._runs.keys() <= {RUN}  # nothing else was opened by listing
+
+
+def test_run_id_is_the_folder_name_so_a_copy_is_not_a_duplicate(env):
+    import shutil
+    client, runs, _ = env
+    shutil.copytree(runs / RUN, runs / "copy-of-run")  # run.json inside still says RUN
+    listed = [r["runId"] for r in client.get("/api/runs").json()]
+    assert sorted(listed) == sorted([RUN, "copy-of-run", "p-20250101-000000"])
+    assert client.get("/api/runs/copy-of-run").json()["runId"] == "copy-of-run"
 
 
 def test_cases_sum_amount_eur_covers_the_whole_filter_not_the_page(api):

@@ -1039,6 +1039,7 @@
       },
       "post": {
         "summary": "Create Draft",
+        "description": "The template of the case, written to human/outbox.jsonl as a draft (it carries the whole draft: the\nbackend file is not rewritten). Asking again for the same case and kind returns the draft that exists.",
         "operationId": "create_draft_api_runs__runId__drafts_post",
         "parameters": [
           {
@@ -4179,7 +4180,14 @@
             "title": "Kind"
           },
           "to": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "To"
           },
           "toName": {

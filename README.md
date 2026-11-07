@@ -27,9 +27,15 @@ Una aplicación operativa sobre el resultado de cada ejecución, a escala real: 
 
 Los correos no se envían: «enviar» queda registrado en `runs/<id>/human/outbox.jsonl`.
 
-![Resumen con la ejecución real de LIVE, tema oscuro](docs/screenshots/resumen-oscuro.png)
+Con la ejecución `live-kpi6-cases` de LIVE (provisional: cambia con cada mejora de las reglas): 203.083 movimientos, 689.401 filas, 85,4 % cerrado sin intervención, 29.720 casos en cola y 0 llamadas a modelo. Con la API de `closebooks serve`, las pantallas abren en menos de 1,4 s una vez arrancada, que tarda cerca de un minuto (ver [docs/HANDOFF.md](docs/HANDOFF.md)).
 
-![Conciliación con el panel de evidencia, tema oscuro](docs/screenshots/conciliacion-panel-oscuro.png)
+![Resumen con la ejecución real de LIVE, tema oscuro](docs/screenshots/final/resumen-oscuro.png)
+
+![Te necesitan: una pregunta del sistema, tema oscuro](docs/screenshots/final/bandeja-pregunta-oscuro.png)
+
+![Conciliación con el aviso de remesa en línea, tema oscuro](docs/screenshots/final/conciliacion-aviso-oscuro.png)
+
+![Cobros con el correo al cliente, tema oscuro](docs/screenshots/final/cobros-cliente-oscuro.png)
 
 El guion del vídeo está en [docs/DEMO.md](docs/DEMO.md).
 

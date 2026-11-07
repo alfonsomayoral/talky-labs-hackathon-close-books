@@ -362,3 +362,32 @@ def test_rows_of_a_completed_reference_come_in_a_stable_order():
     remit = "FACTURA FV22-0100003 FV22-0100001 FV22-0100002"
     proposal = rule(txn(1001 + 1002 + 1003 + 1000, NAME, remit=remit), balances)
     assert [i for i, _ in proposal.lines] == sorted(i for i, _ in proposal.lines)
+
+
+def test_two_combinations_with_the_same_total_leave_no_proposal_but_a_recorded_abstention():
+    items = [item("ARI-1", "C1", "FV1", 10000), item("ARI-2", "C1", "FV2", 20000), item("ARI-3", "C1", "FV3", 15000),
+             item("ARI-4", "C1", "FV4", 15000)]
+    rule, balances = engine(items)
+    assert rule(txn(30000, name="Wellness Garrido S.L."), balances) is None
+    found = rule.abstentions["BT-1"]
+    assert found["reason"] == "subsets"
+    tied = sorted(sorted(i for i, _ in o["items"]) for o in found["options"])
+    assert tied == [["ARI-1", "ARI-2"], ["ARI-3", "ARI-4"]]
+    assert {o["partyId"] for o in found["options"]} == {"C1"}
+
+
+def test_two_customers_with_the_same_evidence_leave_no_proposal_but_list_both_as_options():
+    customers = (("C1", "E1", "Wellness Garrido S.L.", None, "ES11", None, None, None),
+                 ("C2", "E1", "Wellness Garrido S.L.", None, "ES22", None, None, None))
+    rule, balances = engine([item("ARI-1", "C1", "FV1", 30000), item("ARI-2", "C2", "FV2", 30000)], customers)
+    assert rule(txn(30000, name="Wellness Garrido S.L."), balances) is None
+    found = rule.abstentions["BT-1"]
+    assert found["reason"] == "parties"
+    assert {o["partyId"]: o["items"] for o in found["options"]} == {"C1": [("ARI-1", 30000)], "C2": [("ARI-2", 30000)]}
+
+
+def test_a_clear_match_or_no_evidence_records_no_abstention():
+    rule, balances = engine([item("ARI-1", "C1", "FV1", 30000), item("ARI-2", "C1", "FV2", 5000)])
+    assert lines(rule(txn(30000, name="Wellness Garrido S.L."), balances)) == {"ARI-1"}
+    assert rule(txn(777, name="Wellness Garrido S.L."), balances) is None
+    assert rule.abstentions == {}

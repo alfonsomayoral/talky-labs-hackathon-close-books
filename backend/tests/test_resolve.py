@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from closebooks.cases import build_cases
+from closebooks.cases import attach_questions, build_cases, overdue_cases
 from closebooks.categories import fallback
 from closebooks.model import Row
 from closebooks.policy import decide
@@ -107,7 +107,7 @@ def test_fx_difference_is_shown_but_needs_nobody():
 
 
 def test_low_confidence_needs_review_and_the_case_lists_every_item_of_the_line():
-    case = _case([_row(item="ARI-1", exception="PARTIAL", confidence=0.8), _row(item="ARI-2")])[0]
+    case = _case([_row(item="ARI-1", exception="OVERPAYMENT", confidence=0.8), _row(item="ARI-2")])[0]
     assert case["status"] == "needs_review"
     assert case["itemIds"] == ["ARI-1", "ARI-2"]
 
@@ -144,10 +144,133 @@ def _customer_rows(rule, confidence, n, exception=None):
     return [Row("BT-1", f"ARI-{i}", 100, "EUR", None, exception, rule, confidence, party_id="C1") for i in range(n)]
 
 
-def test_case_summary_describes_what_was_settled_and_only_fallbacks_say_no_match():
+def test_case_summary_describes_what_was_settled_without_rule_codes_and_only_fallbacks_say_no_match():
     settled = _case(_customer_rows("ADVICE-CSV", 0.8, 27))[0]["summary"]
-    assert "sin casación" not in settled and "ADVICE-CSV, 27 partidas" in settled
-    assert "1 partida)" in _case(_customer_rows("ADVICE-CSV", 0.8, 1))[0]["summary"]
-    assert "PARTIAL" in _case(_customer_rows("REF-EXACT", 1.0, 2, "PARTIAL"))[0]["summary"]
+    assert settled.endswith("27 facturas liquidadas por aviso de remesa") and "ADVICE" not in settled
+    one = _case(_customer_rows("ADVICE-CSV", 0.8, 1))[0]["summary"]
+    assert one.endswith("una factura liquidada por aviso de remesa")
+    rows = _customer_rows("ADVICE-CSV", 1.0, 886)
+    rows[0].exception = "SHORT_DISPUTE"
+    rows[1].exception = rows[2].exception = "PARTIAL"
+    cases = _case(rows)
+    assert len(cases) == 3
+    assert cases[0]["summary"].startswith("Factura con una parte disputada")
+    assert cases[1]["summary"].startswith("Factura pagada en parte")
     fallback_row = Row("BT-1", None, None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED", 0.0)
     assert "sin casación" in _case([fallback_row])[0]["summary"]
+
+
+def test_dispute_and_short_payment_wait_for_a_person_even_at_full_confidence_but_a_return_does_not():
+    for exception, status in (("SHORT_DISPUTE", "needs_review"), ("PARTIAL", "needs_review"), ("RETURNED", "auto"),
+                              ("OVERPAYMENT", "auto")):
+        case = _case([_row(item="ARI-1", exception=exception, rule="ADVICE-CSV")])[0]
+        assert case["status"] == status, exception
+
+
+def _invoice(item, party, due, cents, currency="EUR", entity="E1"):
+    return {"item_id": item, "entity": entity, "party_id": party, "due_date": due, "currency": currency,
+            "open_cents": cents}
+
+
+def test_overdue_customer_adds_up_what_is_past_due_at_the_cutoff_per_customer_in_eur():
+    items = [_invoice("ARI-1", "C1", "2025-01-10", 1000), _invoice("ARI-2", "C1", "2025-01-05", 500),
+             _invoice("ARI-3", "C1", "2025-02-01", 9999),  # not due yet at the cutoff
+             _invoice("ARI-4", "C1", "2024-12-01", 0),  # settled
+             _invoice("ARI-5", "C2", "2025-01-01", 1100, "USD"), _invoice("ARI-6", "C2", None, 5000)]
+    cases = overdue_cases(items, "2025-01-31", {"USD": 1.1}, {"C1": "Acme", "C2": "Beta"}, "now", {})
+    assert [(c["caseId"], c["partyId"], c["itemIds"], c["amountEur"]) for c in cases] == [
+        ("CASE-overdue_customer-1", "C1", ["ARI-2", "ARI-1"], 1500),
+        ("CASE-overdue_customer-2", "C2", ["ARI-5"], 1000)]
+    first = cases[0]
+    assert (first["kind"], first["suggestedAction"], first["bankTxnId"], first["currency"], first["amountCents"],
+            first["bookingDate"]) == ("overdue_customer", "email_customer", None, "EUR", 1500, "2025-01-31")
+    assert "Acme" in first["summary"] and "2 facturas vencidas" in first["summary"]
+
+
+def test_overdue_customer_keeps_the_biggest_per_entity(monkeypatch):
+    monkeypatch.setattr("closebooks.cases.MAX_OVERDUE_PER_ENTITY", 2)
+    items = [_invoice(f"ARI-{n}", f"C{n}", "2025-01-01", n * 100, entity="E1" if n < 5 else "E2") for n in range(1, 7)]
+    kept = [c["partyId"] for c in overdue_cases(items, "2025-02-01", {}, {}, "now", {})]
+    assert kept == ["C6", "C5", "C4", "C3"]  # E1: C4, C3 of C1..C4; E2: C6, C5
+
+
+def _abstention(reason="subsets"):
+    return {"BT-1": {"reason": reason, "options": [
+        {"partyId": "C1", "items": [("ARI-1", 100), ("ARI-2", 200)]}, {"partyId": "C1", "items": [("ARI-3", 300)]}]}}
+
+
+INFO = {f"ARI-{n}": {"number": f"FV{n}", "party_name": "Acme", "due_date": "2025-01-01", "currency": "EUR"}
+        for n in (1, 2, 3)}
+TXN = {**TXNS["BT-1"], "amount_cents": 300, "amount_eur_cents": 300, "counterparty_name": "ACME SL"}
+
+
+def _fallback_case():
+    row = Row("BT-1", None, None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED", 0.0)
+    return build_cases([row], {"BT-1": TXN}, "now")
+
+
+def test_an_abstention_becomes_a_question_with_its_options_and_turns_its_case_into_a_question_case():
+    cases = _fallback_case()
+    questions = attach_questions(cases, _abstention(), {"BT-1": TXN}, lambda ids: INFO, {"C1": "Acme"}, "now")
+    q = questions[0]
+    assert (q["questionId"], q["caseId"], q["defaultOption"], q["status"]) == ("Q-000001", "CASE-BT-1", "none", "open")
+    assert [o["id"] for o in q["options"]] == ["ARI-1+ARI-2", "ARI-3", "none"]
+    assert q["options"][0]["label"] == "FV1 + FV2 · 3,00 EUR · Acme"
+    assert q["rulePreview"]["kind"] == "payer_is_customer" and q["rulePreview"]["payerName"] == "ACME SL"
+    assert (cases[0]["kind"], cases[0]["status"], cases[0]["questionId"]) == ("ambiguous_match", "question", "Q-000001")
+
+
+def test_a_party_question_offers_the_parties_and_a_debit_gets_no_customer_rule():
+    options = {"BT-1": {"reason": "parties", "options": [{"partyId": "C1", "items": [("ARI-1", 100)]},
+                                                         {"partyId": "C2", "items": [("ARI-2", 100)]}]}}
+    names = {"C1": "Acme", "C2": "Beta"}
+    q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda ids: INFO, names, "now")[0]
+    assert [o["id"] for o in q["options"]] == ["C1", "C2", "none"] and q["question"].startswith("¿De qué cliente")
+    debit = {**TXN, "amount_cents": -300, "amount_eur_cents": -300}
+    q = attach_questions(_fallback_case(), options, {"BT-1": debit}, lambda ids: INFO, {}, "now")[0]
+    assert q["rulePreview"] is None
+
+
+def test_a_party_option_names_only_the_first_invoices():
+    ids = [f"ARI-{n}" for n in range(1, 6)]
+    info = {i: {**INFO["ARI-1"], "number": f"FV{i[-1]}"} for i in ids}
+    options = {"BT-1": {"reason": "parties", "options": [{"partyId": "C1", "items": [(i, 100) for i in ids]}]}}
+    q = attach_questions(_fallback_case(), options, {"BT-1": TXN}, lambda _: info, {"C1": "Acme"}, "now")[0]
+    assert q["options"][0]["label"] == "Acme · FV1, FV2, FV3 y 2 más · 5,00 EUR"
+
+
+def test_questions_are_capped_by_amount(monkeypatch):
+    monkeypatch.setattr("closebooks.cases.MAX_QUESTIONS", 1)
+    rows = [Row(t, None, None, None, "UNIDENTIFIED", "UNIDENTIFIED", "FALLBACK-UNIDENTIFIED", 0.0)
+            for t in ("BT-1", "BT-2")]
+    txns = {"BT-1": TXN, "BT-2": {**TXN, "bank_txn_id": "BT-2", "amount_eur_cents": 900}}
+    found = {**_abstention(), "BT-2": _abstention()["BT-1"]}
+    questions = attach_questions(build_cases(rows, txns, "now"), found, txns, lambda ids: INFO, {}, "now")
+    assert [q["bankTxnId"] for q in questions] == ["BT-2"]
+
+
+def test_customer_dispute_and_short_payment_open_one_case_per_invoice_to_review():
+    rows = [_row(item="ARI-1", exception="SHORT_DISPUTE"), _row(item="ARI-2"), _row(item="ARI-3", exception="PARTIAL")]
+    cases = _case(rows)
+    assert [(c["kind"], c["itemIds"], c["status"], c["amountCents"]) for c in cases] == [
+        ("dispute", ["ARI-1"], "needs_review", 1000), ("short_payment", ["ARI-3"], "needs_review", 1000)]
+    assert len({c["caseId"] for c in cases}) == 2
+
+
+def _overdue(**kw):
+    item_ = {"item_id": "ARI-1", "entity": "E1", "party_id": "C1", "due_date": "2025-06-01", "currency": "EUR",
+             "open_cents": 1000}
+    return overdue_cases([item_], "2025-06-30", {"EUR": 1.0}, {"C1": "Cliente"}, "now", **kw)
+
+
+def test_overdue_customer_goes_to_review_for_invoices_more_than_15_days_past_due():
+    case = _overdue(last_movement={})[0]
+    assert (case["status"], case["amountEur"]) == ("needs_review", 1000)
+    late = {"item_id": "ARI-2", "entity": "E1", "party_id": "C2", "due_date": "2025-06-20", "currency": "EUR",
+            "open_cents": 1000}
+    assert overdue_cases([late], "2025-06-30", {"EUR": 1.0}, {}, "now", last_movement={}) == []
+
+
+def test_customer_who_paid_in_the_last_30_days_is_not_overdue_it_is_probably_our_unmatched_payment():
+    assert _overdue(last_movement={"C1": "2025-06-10"}) == []
+    assert len(_overdue(last_movement={"C1": "2025-05-20"})) == 1
