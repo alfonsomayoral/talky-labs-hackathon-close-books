@@ -7,7 +7,7 @@ from dataclasses import replace
 from .categories import fallback
 from .load import Phase, cancelled_item_ids
 from .model import Proposal, Row
-from .policy import CREDIT_NOTES, Terms, allocate, cross_border, decide, fee_fits
+from .policy import CREDIT_NOTES, Terms, as_candidates, cross_border, decide, fee_fits, search
 from .rules.party_amount import document_says
 from .state import OpenBalances
 
@@ -44,7 +44,10 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                             proposal.confidence, proposal.party_id, proposal.reference, proposal.sources,
                             proposal.candidates))
             continue
-        decided = _by_cash(proposal, txn, currency, balances, terms_of, plans) if proposal.by_cash else None
+        decided, candidates = None, proposal.candidates
+        if proposal.by_cash:
+            decided, considered = _by_cash(proposal, txn, currency, balances, terms_of, plans)
+            candidates = [*candidates, *as_candidates(considered, currency[proposal.lines[0][0]])]
         rows_before = len(rows)
         for item_id, applied in proposal.lines:
             if decided is not None:
@@ -74,7 +77,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
             balances.apply(item_id, amount, balance_effect, txn_id, txn["booking_date"])
             rows.append(Row(txn_id, item_id, amount, currency[item_id], None, exception or None, proposal.rule,
                             proposal.confidence, party[item_id], proposal.reference, proposal.sources,
-                            proposal.candidates))
+                            candidates))
         if len(rows) == rows_before:
             rows.append(_fallback_row(txn))
     return rows, balances
@@ -94,7 +97,8 @@ def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: 
     return "" if amount == amounts[-1] else "PARTIAL"
 
 
-def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalances, terms_of, plans: dict) -> dict:
+def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalances, terms_of,
+             plans: dict) -> tuple[dict, list]:
     first = proposal.lines[0][0]
     foreign = currency[first] != txn["currency"]
     cash = abs(txn["amount_cents"])
@@ -104,14 +108,14 @@ def _by_cash(proposal: Proposal, txn: dict, currency: dict, balances: OpenBalanc
     if len(proposal.lines) == 1 and cash is not None and balances.open(first) == total:
         said = document_says(plans.get(first), total, cash)
         if said is not None:  # the clause wins over any rate the shortfall happens to match (POLICIES §3)
-            return {first: (cash, said)}
+            return {first: (cash, said)}, []
     items = [(item, balances.open(item), terms_of(item)) for item, _ in proposal.lines]
     from_abroad = not foreign and cross_border(txn["bank_code"], txn["text"]) and fee_fits(
         txn["text"], txn["currency"], sum(-o if i[:3] in CREDIT_NOTES else o for i, o, _ in items) - cash)
     eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if from_abroad else None
     if proposal.in_listed_order:
         items = [(item, open_cents, replace(terms, listed_at=at)) for at, (item, open_cents, terms) in enumerate(items)]
-    return allocate(cash, items, txn["booking_date"], foreign, eur_per_cent)
+    return search(cash, items, txn["booking_date"], foreign, eur_per_cent)
 
 
 def _terms_lookup(phase: Phase):

@@ -1,7 +1,20 @@
 """POLICIES §2-§3, clause by clause. Amounts from real lines of sample/TRAIN where the comment says so."""
 from __future__ import annotations
 
-from closebooks.policy import Terms, allocate, cross_border, decide, fee_fits
+from closebooks.policy import (
+    NODES,
+    Evidence,
+    Gap,
+    Hypothesis,
+    Terms,
+    allocate,
+    as_candidates,
+    choose,
+    cross_border,
+    decide,
+    fee_fits,
+    search,
+)
 
 D2N30 = Terms(discount_pct=2.0, discount_days=10, issue_date="2025-06-01", total_cents=140394, country="ES")
 PLAIN = Terms(discount_pct=None, discount_days=None, issue_date="2025-06-01", total_cents=100000, country="ES")
@@ -219,3 +232,48 @@ def test_two_invoices_whose_discount_is_the_gap_are_not_guessed():
     items = [("ARI-1", 50000, _terms(2.0, 50000)), ("ARI-2", 50000, _terms(2.0, 50000))]
     out = allocate(99000, items, "2025-06-05", False)
     assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}
+
+
+def _says(evidence, exception, item="ARI-1"):
+    return Hypothesis(evidence, {item: (100000, exception)}, "")
+
+
+def test_the_strongest_evidence_wins_whatever_the_order():
+    weak, strong = _says(Evidence.DEFAULT, "PARTIAL"), _says(Evidence.PRINTED_REASON, "SHORT_DISPUTE")
+    assert choose([weak, strong]) is strong
+    assert choose([strong, weak]) is strong
+
+
+def test_two_different_hypotheses_on_a_level_abstain_and_the_next_one_down_decides():
+    tied = [_says(Evidence.ONE_DISCOUNT, "SHORT_DISCOUNT"), _says(Evidence.ONE_DISCOUNT, "SHORT_DISCOUNT", "ARI-2")]
+    below = _says(Evidence.DEFAULT, "PARTIAL")
+    assert choose([*tied, below]) is below
+
+
+def test_a_tie_with_nothing_below_chooses_nothing():
+    assert choose([_says(Evidence.BOUNDED, "OVERPAYMENT"), _says(Evidence.BOUNDED, "SHORT_BANK_CHARGES")]) is None
+
+
+def test_the_same_lines_twice_on_a_level_are_not_a_tie():
+    # Two rates can round to the gap of a small invoice: they say the same thing.
+    assert choose([_says(Evidence.RATE_ON_ALL, "SHORT_WITHHOLDING"), _says(Evidence.RATE_ON_ALL, "SHORT_WITHHOLDING")])
+
+
+def test_a_node_only_adds_what_it_can_explain():
+    no_gap = Gap(0, 100000, [("ARI-1", 100000, PLAIN)], [], "2025-06-05", None)
+    assert [h.evidence for node in NODES for h in node(no_gap)] == [Evidence.EXACT]
+
+
+def test_search_keeps_the_explanation_it_rejected_for_the_evidence():
+    out, considered = search(98000, [("ARI-1", 100000, _terms(2.0))], "2025-06-05", False)
+    assert out == {"ARI-1": (100000, "SHORT_DISCOUNT")}
+    assert [(h.evidence, h.lines) for h in considered] == [
+        (Evidence.ALL_DISCOUNTS, {"ARI-1": (100000, "SHORT_DISCOUNT")}),
+        (Evidence.DEFAULT, {"ARI-1": (98000, "PARTIAL")})]
+    entry = as_candidates(considered, "EUR")[0]
+    assert (entry["itemId"], entry["amountCents"]) == ("ARI-1", 100000)
+    assert entry["why"].startswith("chosen ALL_DISCOUNTS SHORT_DISCOUNT") and "DEFAULT PARTIAL 98000" in entry["why"]
+
+
+def test_one_hypothesis_says_nothing_to_the_evidence():
+    assert as_candidates(search(100000, [("ARI-1", 100000, PLAIN)], "2025-06-05", False)[1], "EUR") == []
