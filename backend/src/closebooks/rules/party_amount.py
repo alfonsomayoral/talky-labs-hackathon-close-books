@@ -513,6 +513,11 @@ class PartyAmount:
         subset = self._subset(free, cash, ambiguous=tied) if self.parties.certain else None
         if subset:
             return self._proposal("PARTY-SUBSET", party, subset, confidence=0.9)
+        from .note_unit import note_units  # here: note_unit imports this module's helpers
+
+        units = note_units(free, cash, self.credits) if self.parties.certain else None
+        if units:
+            return self._proposal("PARTY-NOTE-UNIT", party, [i for i, _ in units], confidence=0.85)
         block = self._consecutive(free, cash) if self.parties.certain else None
         if block:
             return self._proposal("PARTY-BLOCK", party, block, confidence=0.85)
