@@ -10,6 +10,7 @@ from pathlib import Path
 import orjson
 
 from .cases import build_cases
+from .documents.advices import documents_frame, phase_advices, residue
 from .evaluate import score_file
 from .load import load_phase
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
@@ -40,6 +41,8 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
 
     phase = load_phase(phase_name)
     lap("load")
+    advices = phase_advices(phase)
+    lap("documents")
     proposals = propose(phase)
     lap("rules")
     rows, balances = resolve(phase, proposals)
@@ -52,7 +55,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
         "counterparty_name").iter_rows(named=True)}
     cases = build_cases(rows, txns, started.isoformat(timespec="seconds"))
     write_cases(run, cases)
-    write_facts(run, None, None)
+    write_facts(run, documents_frame(advices), None)
     write_open_items(run, phase, balances)
     write_jsonl(run / "questions.jsonl", [])
     write_jsonl(run / "drafts.jsonl", [])
@@ -72,7 +75,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
         "byException": dict(Counter(r.exception for r in rows if r.exception)),
         "byCategory": dict(Counter(r.category for r in rows if r.category)),
         "cases": dict(Counter(c["status"] for c in cases)),
-        "models": {}, "memoryRulesApplied": 0, "score": result,
+        "advices": residue(advices), "models": {}, "memoryRulesApplied": 0, "score": result,
     }
     (run / "run.json").write_bytes(orjson.dumps(meta, option=orjson.OPT_INDENT_2))
     return run

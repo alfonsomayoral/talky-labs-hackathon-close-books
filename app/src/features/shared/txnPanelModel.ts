@@ -21,3 +21,9 @@ export function decisionOf(rows: Pick<DetailRow, 'rule' | 'confidence'>[]): { ru
 
 /** Parties settled by the movement's rows. More than one in a payment run or a batch. */
 export const distinctParties = (rows: Pick<DetailRow, 'item'>[]) => new Set(rows.flatMap((r) => r.item?.partyId ?? [])).size
+
+/** The party of the items when there is exactly one: the movement may have no resolved payer and still settle one party. */
+export function soleParty(rows: Pick<DetailRow, 'item'>[]): { partyId: string; partyName: string | null } | null {
+  const item = rows.find((r) => r.item)?.item
+  return item && distinctParties(rows) === 1 ? { partyId: item.partyId, partyName: item.partyName ?? null } : null
+}

@@ -148,6 +148,7 @@ export function InboxPage() {
         onSortChange={onSortChange}
         onEndReached={cases.loadMore}
         selectedId={open}
+        onSelectedChange={(id) => open && id && setOpen(id)}
         onOpen={(c) => setOpen(c.caseId)}
         globalKeys
         empty={<EmptyState size="sm" icon={<CircleAlert />} title="Ningún caso coincide con los filtros" />}
