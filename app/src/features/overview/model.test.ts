@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DayStats } from '@/domain'
-import { dayChart, headline, amountSplit, modelTotals, monthTicks, nearestIndex, periodMonths, scoreMetrics, segmentsWorstFirst } from './model'
+import { closedExceptions, dayChart, evidenceBreakdown, headline, amountSplit, modelTotals, monthTicks, nearestIndex, periodMonths, scoreMetrics, segmentsWorstFirst } from './model'
 
 const day = (date: string, txns: number, txnsAuto: number): DayStats => ({ date, txns, txnsAuto, reviewQueue: txns - txnsAuto, identifiedEur: 0 })
 
@@ -97,5 +97,45 @@ describe('amountSplit', () => {
   })
   it('gives nothing with no amount', () => {
     expect(amountSplit({ identifiedEur: 0, reviewQueueEur: 0, totalEur: 0 })).toBeNull()
+  })
+})
+
+describe('evidenceBreakdown', () => {
+  const byRule = [
+    { rule: 'ADVICE-CSV', rows: 9, txns: 30 },
+    { rule: 'ADVICE-PDF', rows: 9, txns: 10 },
+    { rule: 'PARTY-AMOUNT', rows: 9, txns: 40 },
+    { rule: 'FALLBACK-UNIDENTIFIED', rows: 9, txns: 20 },
+  ]
+
+  it('adds movements by source, the largest first, as shares of the movements', () => {
+    expect(evidenceBreakdown(byRule, 100).sources).toEqual([
+      { source: 'Aviso de remesa', txns: 30, share: 0.3 },
+      { source: 'Maestro', txns: 40, share: 0.4 },
+      { source: 'Sin evidencia', txns: 20, share: 0.2 },
+      { source: 'PDF', txns: 10, share: 0.1 },
+    ].sort((a, b) => b.txns - a.txns))
+  })
+
+  it('splits documentary evidence, party and amount, and fallback', () => {
+    const groups = evidenceBreakdown(byRule, 100).groups
+    expect(groups.map((g) => [g.group, g.share])).toEqual([['document', 0.4], ['party', 0.4], ['fallback', 0.2]])
+  })
+
+  it('does not divide by zero', () => {
+    expect(evidenceBreakdown([], 0)).toEqual({ groups: [], sources: [] })
+  })
+})
+
+describe('closedExceptions', () => {
+  it('lists the whole closed list, with those that did not occur at zero and last', () => {
+    const list = closedExceptions([{ exception: 'PARTIAL', rows: 5, amountEur: 100 }])
+    expect(list).toHaveLength(10)
+    expect(list[0]).toEqual({ exception: 'PARTIAL', rows: 5, amountEur: 100 })
+    expect(list[9].rows).toBe(0)
+  })
+
+  it('keeps a code the list does not know', () => {
+    expect(closedExceptions([{ exception: 'NEW', rows: 1, amountEur: 1 }]).map((e) => e.exception)).toContain('NEW')
   })
 })

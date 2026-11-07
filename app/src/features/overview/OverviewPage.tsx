@@ -1,16 +1,18 @@
 import { ArrowRight } from 'lucide-react'
 import { Amount, ButtonLink, Card, EmptyState, Metric, Mono, Page, PageHeader, Section, Skeleton } from '@/components'
 import { useActiveRun, useQueueTotals, useRun, useRunStats } from '@/data'
-import { autoRate, categoryLabel, exceptionLabel, queueOfKind, ruleDescription } from '@/domain'
+import { autoRate, categoryLabel, queueOfKind, ruleDescription } from '@/domain'
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { DayChart } from './DayChart'
 import { EntityCard } from './EntityCard'
 import { KindCard } from './KindCard'
 import { QueueCard } from './QueueCard'
+import { EvidenceCard } from './EvidenceCard'
 import { RankList } from './RankList'
 import { ScoreSection } from './ScoreSection'
-import { amountSplit, headline, modelTotals, periodMonths } from './model'
+import { CategoryTerm, ExceptionTerm } from '@/features/shared'
+import { amountSplit, closedExceptions, headline, modelTotals, periodMonths } from './model'
 import styles from './OverviewPage.module.css'
 
 const TOP = 8
@@ -121,6 +123,10 @@ export function OverviewPage() {
         </Card>
       </div>
 
+      <Section title="Cómo se resolvió" description="Qué respalda cada movimiento: el sistema dice por qué casa algo y marca lo que no sabe.">
+        <EvidenceCard byRule={stats.byRule} total={stats.txns} />
+      </Section>
+
       <Section title="Evolución por día" description="Movimientos por fecha de contabilización, según se cerraron solos o pasaron a la cola.">
         <Card>{stats.byDay.length ? <DayChart byDay={stats.byDay} /> : <EmptyState size="sm" title="Sin movimientos en el periodo" />}</Card>
       </Section>
@@ -138,21 +144,15 @@ export function OverviewPage() {
       </Section>
 
       <div className={styles.breakdowns}>
-        <Section title="Excepciones" description="Partidas por tipo de diferencia.">
+        <Section title="Excepciones" description="La lista cerrada de la política, por filas. Pasa el ratón para ver cada definición.">
           <Card padding="none">
-            {stats.byException.length ? (
-              <RankList
-                rows={stats.byException.slice(0, TOP).map((e) => ({ key: e.exception, label: exceptionLabel(e.exception), value: e.rows, detail: <Amount cents={e.amountEur} compact /> }))}
-              />
-            ) : (
-              <EmptyState size="sm" title="Sin excepciones" />
-            )}
+            <RankList rows={closedExceptions(stats.byException).map((e) => ({ key: e.exception, label: <ExceptionTerm exception={e.exception} />, value: e.rows, detail: <Amount cents={e.amountEur} compact /> }))} />
           </Card>
         </Section>
         <Section title="Categorías" description="Movimientos sin factura, por categoría.">
           <Card padding="none">
             {stats.byCategory.length ? (
-              <RankList rows={stats.byCategory.slice(0, TOP).map((c) => ({ key: c.category, label: categoryLabel(c.category), value: c.txns, detail: <Amount cents={c.amountEur} compact /> }))} />
+              <RankList rows={stats.byCategory.map((c) => ({ key: c.category, label: <CategoryTerm category={c.category} />, value: c.txns, detail: <Amount cents={c.amountEur} compact /> }))} />
             ) : (
               <EmptyState size="sm" title="Sin categorías" />
             )}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { SearchX, CloudOff } from 'lucide-react'
 import type { TxnRow } from '@/domain'
-import { CASE_STATUS_LABEL, CASE_STATUS_TONE, ruleDescription } from '@/domain'
+import { CASE_STATUS_LABEL, CASE_STATUS_TONE, evidenceOf, ruleDescription } from '@/domain'
 import { Amount, Badge, ConfidenceBand, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, type Column } from '@/components'
 import { useActiveRun, useAccounts, useRunStats, useTransactions } from '@/data'
 import { formatDate, formatNumber } from '@/lib/format'
@@ -16,8 +16,8 @@ const getRowId = (t: TxnRow) => t.bankTxnId
 
 const COLUMNS: Column<TxnRow>[] = [
   { id: 'bookingDate', header: 'Fecha', width: 92, cell: (t) => <span className={styles.muted}>{formatDate(t.bookingDate)}</span>, sortValue: (t) => t.bookingDate },
-  { id: 'entity', header: 'Sociedad', width: 104, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
-  { id: 'text', header: 'Texto del banco', width: 'minmax(180px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
+  { id: 'entity', header: 'Sociedad', width: 80, cell: (t) => <Mono>{t.entity}</Mono>, sortValue: (t) => t.entity },
+  { id: 'text', header: 'Texto del banco', width: 'minmax(160px, 2fr)', cell: (t) => <span className={styles.text} title={t.text}>{t.text}</span>, sortValue: (t) => t.text },
   { id: 'amountEur', header: 'Importe', width: 152, align: 'right', cell: (t) => <Amount cents={t.amountCents} currency={t.currency} signed colorize />, sortValue: (t) => t.amountEur },
   {
     id: 'rowCount',
@@ -35,12 +35,13 @@ const COLUMNS: Column<TxnRow>[] = [
     },
     sortValue: (t) => t.rowCount,
   },
-  { id: 'rule', header: 'Regla', width: 176, cell: (t) => <Mono title={ruleDescription(t.rule)}>{t.rule}</Mono>, sortValue: (t) => t.rule },
-  { id: 'confidence', header: 'Confianza', width: 96, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
+  { id: 'evidence', header: 'Evidencia', width: 112, cell: (t) => <span className={styles.evidence}>{evidenceOf(t.rule).source}</span> },
+  { id: 'rule', header: 'Regla', width: 168, cell: (t) => <Mono title={ruleDescription(t.rule)}>{t.rule}</Mono>, sortValue: (t) => t.rule },
+  { id: 'confidence', header: 'Confianza', width: 84, cell: (t) => <ConfidenceBand value={t.confidence} />, sortValue: (t) => t.confidence },
   {
     id: 'caseStatus',
     header: 'Caso',
-    width: 136,
+    width: 116,
     cell: (t) => (t.caseStatus ? <Badge tone={CASE_STATUS_TONE[t.caseStatus]}>{CASE_STATUS_LABEL[t.caseStatus]}</Badge> : <span className={styles.muted}>—</span>),
     sortValue: (t) => t.caseStatus,
   },

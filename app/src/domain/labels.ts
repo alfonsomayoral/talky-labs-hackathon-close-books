@@ -61,6 +61,20 @@ export const EXCEPTION_LABEL: Record<string, string> = {
   UNIDENTIFIED: 'Sin identificar',
 }
 
+/** The closed list of POLICIES.md §3, for a tooltip next to the label. */
+export const EXCEPTION_DEFINITION: Record<string, string> = {
+  PARTIAL: 'Tras este pago la partida sigue con saldo abierto y no aplica ninguna otra razón: pago a cuenta, plazo que no es el último, retención de garantía o anticipo por deducir.',
+  SHORT_DISCOUNT: 'Descuento por pronto pago dentro de plazo: la factura se liquida completa.',
+  SHORT_BANK_CHARGES: 'Un banco intermediario descontó su comisión en una transferencia de fuera de SEPA: hasta 60 EUR y 2 % de la partida. La factura se liquida completa.',
+  SHORT_WITHHOLDING: 'El cliente retuvo impuestos en origen: el certificado cubre la diferencia y la factura se liquida completa.',
+  SHORT_DISPUTE: 'El cliente descontó un importe con un motivo declarado: el importe es lo pagado y la parte disputada sigue abierta.',
+  OVERPAYMENT: 'El cliente pagó más que el saldo de una factura: se liquida completa y el exceso queda en su cuenta.',
+  DUPLICATE_PAYMENT: 'La partida ya estaba liquidada y se paga otra vez: la excepción va en el pago posterior.',
+  RETURNED: 'Un cobro o un pago vuelve y reabre la partida: recibo devuelto, cheque devuelto, contracargo o transferencia rechazada.',
+  UNIDENTIFIED: 'Cobro para el que no existe partida abierta: no se fuerza ninguna casación, aunque el importe coincida con otra factura.',
+  FX_DIFFERENCE: 'El movimiento va en otra divisa que la factura: el banco convierte a su tipo y la diferencia con el de referencia no es un pago parcial.',
+}
+
 /** Short names of the categories in masters/categories.csv; the master's description is the long form. */
 export const CATEGORY_LABEL: Record<string, string> = {
   BANK_FEES: 'Comisiones bancarias',
@@ -84,6 +98,31 @@ export const CATEGORY_LABEL: Record<string, string> = {
   INSURANCE: 'Seguros',
   BANK_REVERSAL: 'Apunte erróneo del banco',
   UNIDENTIFIED: 'Sin identificar',
+}
+
+/** The descriptions of masters/categories.csv. */
+export const CATEGORY_DESCRIPTION: Record<string, string> = {
+  BANK_FEES: 'Comisiones y gastos bancarios',
+  INTEREST_INCOME: 'Intereses a favor',
+  INTEREST_EXPENSE: 'Intereses de deudas o descubiertos',
+  PAYROLL: 'Nóminas (remesa de transferencias)',
+  SOCIAL_SECURITY: 'Seguridad social y cargas sociales',
+  TAX_PAYMENT: 'Impuestos (IVA, retenciones, sociedades)',
+  TAX_REFUND: 'Devolución de impuestos',
+  LOAN_DRAWDOWN: 'Disposición de préstamo o póliza',
+  LOAN_REPAYMENT: 'Cuota de préstamo (capital e intereses)',
+  LEASING: 'Cuota de leasing o renting financiero',
+  FX_DEAL: 'Compraventa de divisa o liquidación de forward',
+  CASH_POOL: 'Barrido de cash pooling (cabecera y filial)',
+  INTERCOMPANY: 'Transferencia intragrupo (no comercial)',
+  INTERNAL_TRANSFER: 'Traspaso entre cuentas propias de la misma sociedad',
+  CUSTOMER_ADVANCE: 'Anticipo de cliente sin factura (por ejemplo, pago de proforma)',
+  CUSTOMER_REFUND: 'Devolución de dinero a cliente (saldo a favor)',
+  SUPPLIER_REFUND: 'Reembolso de proveedor sin abono asociado (por ejemplo, pago duplicado nuestro)',
+  CARD_EXPENSES: 'Liquidación de tarjetas de empresa',
+  INSURANCE: 'Primas de seguros',
+  BANK_REVERSAL: 'Apunte erróneo del banco y su anulación',
+  UNIDENTIFIED: 'Cobro no identificado (no existe partida)',
 }
 
 /** Unknown values stay readable: the vocabulary may grow with the contract. */

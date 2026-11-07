@@ -1,6 +1,6 @@
 // Pure calculations of the Resumen screen.
-import type { DayStats, ModelUsage, QueueId, RunStats, Score } from '@/domain'
-import { autoRate } from '@/domain'
+import type { DayStats, EvidenceGroup, ModelUsage, QueueId, RunStats, Score } from '@/domain'
+import { EXCEPTION_DEFINITION, autoRate, evidenceOf } from '@/domain'
 import { formatNumber, formatPercent } from '@/lib/format'
 
 type Totals = Record<QueueId, { cases: number }>
@@ -78,3 +78,26 @@ export const segmentsWorstFirst = (score: Score) =>
 
 export const modelTotals = (models: Record<string, ModelUsage>) =>
   Object.values(models).reduce((t, m) => ({ calls: t.calls + m.calls, costUsd: t.costUsd + m.costUsd }), { calls: 0, costUsd: 0 })
+
+/** Movements by the kind of source that backs them, largest first. Every movement has one rule, so shares add up to 1. */
+export function evidenceBreakdown(byRule: RunStats['byRule'], total: number) {
+  const add = <K,>(map: Map<K, number>, key: K, txns: number) => map.set(key, (map.get(key) ?? 0) + txns)
+  const sources = new Map<string, number>()
+  const groups = new Map<EvidenceGroup, number>()
+  for (const r of byRule) {
+    const { source, group } = evidenceOf(r.rule)
+    add(sources, source, r.txns)
+    add(groups, group, r.txns)
+  }
+  const share = (txns: number) => (total > 0 ? txns / total : 0)
+  return {
+    groups: [...groups].map(([group, txns]) => ({ group, txns, share: share(txns) })).sort((a, b) => b.txns - a.txns),
+    sources: [...sources].map(([source, txns]) => ({ source, txns, share: share(txns) })).sort((a, b) => b.txns - a.txns),
+  }
+}
+
+/** The closed list of exceptions: what occurred, largest first, and then what did not. */
+export function closedExceptions(byException: RunStats['byException']): RunStats['byException'] {
+  const seen = new Set(byException.map((e) => e.exception))
+  return [...byException, ...Object.keys(EXCEPTION_DEFINITION).filter((e) => !seen.has(e)).map((exception) => ({ exception, rows: 0, amountEur: 0 }))]
+}
