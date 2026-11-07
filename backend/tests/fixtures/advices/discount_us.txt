@@ -1,0 +1,13 @@
+From: cuentas.pagar@aquatiqueote.example
+To: cobros@valtermia.example
+Date: Fri, 13 Jan 2023 09:30:00 +0100
+Subject: Payment advice 2379002796
+
+Hello,
+
+Please be advised that we have sent a payment of 6,143.02 EUR on 01/10/2023 covering:
+
+  FV23-0300567       05/01/23        6,205.07  -62.05 DISCOUNT
+
+Kind regards,
+Aquatique Otero SARL
