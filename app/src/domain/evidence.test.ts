@@ -23,6 +23,11 @@ describe('evidenceOf', () => {
     expect(group('FALLBACK-UNIDENTIFIED')).toBe('fallback')
   })
 
+  it('backs a payout of a credit note with its reference or PDF, and paired receipts with the other movement', () => {
+    expect(evidenceOf('CREDIT-PAYOUT')).toEqual({ source: 'Referencia o PDF', group: 'document' })
+    expect(evidenceOf('PAIRED-PARTIAL')).toEqual({ source: 'Otro movimiento', group: 'movement' })
+  })
+
   it('does not call an unknown rule documentary', () => {
     expect(evidenceOf('NEW-THING')).toEqual({ source: 'Otra', group: 'fallback' })
   })
