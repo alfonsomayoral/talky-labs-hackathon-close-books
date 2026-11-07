@@ -129,3 +129,83 @@ Holdout con el código de `main`. Cada columna cambia una sola cosa. Pico de 6,9
 - **Corregido después (lectura de avisos por contenido):** con layout inventado, 83,04 → 91,77, igual que holdout. Solo 4 de los 2.489 csv siguen rechazados por no ser inequívocos.
 - **ZA01 en drift es pesimista.** Los avisos y PDF conservan la numeración FA/AV y sus importes sin doblar, y las partidas previas de TRAIN siguen como MA01. Parte de la diferencia viene del mutador, sin separar cuánta.
 - **El 90,06 anterior era del mutador viejo.** El drift reconstruido da 91,08, y esa es la base de la puerta desde ahora.
+
+## 7. Cierre del bloque de reglas (medido el 7 nov a las 14:10, main 3fb2073)
+
+### 7.1 Antes y después
+
+| Medida | Inicio del día | Ahora |
+| --- | --- | --- |
+| **LIVE oficial** | **90,69** | **92,32** |
+| Holdout | 91,37 | 92,99 |
+| Drift (el mutador cambió: el inicial es de antes de arreglarlo) | 91,08 | 92,75 |
+| Precisión de pares en holdout | 0,9969 | 0,9972 |
+| Recall de pares en holdout | 0,8845 | 0,8998 |
+| Exactitud por movimiento en holdout | 0,9370 | 0,9493 |
+| Macro-F1 de excepciones en holdout | 0,820 | 0,860 |
+
+LIVE por PR fusionada: 90,69 → 91,86 (ventana y duplicados) → 92,01 → 92,32 (cuatro reglas y N a M). Subió lo mismo que holdout en el primer tramo (+1,17 y +1,18): no hay signo de sobreajuste.
+
+### 7.2 Por segmento (holdout; los que más movimientos ganan)
+
+| Segmento | n | Antes | Ahora |
+| --- | --- | --- | --- |
+| `ar_ref_noise` | 42.462 | 0,902 | 0,921 |
+| `ar_duplicate_payment` | 641 | 0,452 | 0,928 |
+| `ar_dd_represented_transfer` | 956 | 0,741 | 0,967 |
+| `ar_short_discount` | 6.317 | 0,910 | 0,944 |
+| `ar_1toN_credit_note` | 3.184 | 0,621 | 0,669 |
+| `ar_instalment` | 4.275 | 0,931 | 0,960 |
+| `ar_1toN_text` | 6.124 | 0,888 | 0,907 |
+| `ap_supplier_refund` | 2.515 | 0,951 | 0,997 |
+| `ar_n_to_m` | 1.857 | 0,349 | 0,405 |
+| `ap_confirming` | 788 | 0,815 | 0,935 |
+| `ar_discount_late` | 788 | 0,671 | 0,759 |
+| `ar_credit_note_paid_out` | 43 | 0,000 | 0,930 |
+| `ar_third_party_parent` | 175 | 0,766 | 0,897 |
+| `ap_returned_transfer` | 171 | 0,924 | 1,000 |
+
+Ningún segmento baja, y `unidentified` y `unidentified_lookalike` siguen en 1,000.
+
+### 7.3 Por clase de excepción (holdout)
+
+| Clase | Precisión antes | Precisión ahora | F1 antes | F1 ahora |
+| --- | --- | --- | --- | --- |
+| `DUPLICATE_PAYMENT` | 0,846 | 0,953 | 0,621 | 0,938 |
+| `FX_DIFFERENCE` | 0,999 | 0,999 | 0,936 | 0,939 |
+| `OVERPAYMENT` | 0,976 | 0,976 | 0,572 | 0,572 |
+| `PARTIAL` | 0,924 | 0,956 | 0,876 | 0,897 |
+| `RETURNED` | 0,991 | 0,991 | 0,986 | 0,991 |
+| `SHORT_BANK_CHARGES` | 0,948 | 0,948 | 0,902 | 0,902 |
+| `SHORT_DISCOUNT` | 1,000 | 1,000 | 0,968 | 0,975 |
+| `SHORT_DISPUTE` | 1,000 | 1,000 | 0,900 | 0,900 |
+| `SHORT_WITHHOLDING` | 0,996 | 0,996 | 0,915 | 0,915 |
+| `UNIDENTIFIED` | 0,354 | 0,403 | 0,522 | 0,575 |
+
+### 7.4 Pruebas de robustez repetidas sobre main
+
+| Prueba | Antes (§6) | Ahora | Qué cambia frente a holdout (92,99) |
+| --- | --- | --- | --- |
+| Tabla de códigos sin fuga | 91,37 | 92,99 | Nada |
+| Sin bancos MONC y MEZQ en la tabla | 91,37 | 92,99 | `customer_refund` 1,000 → 0,958 |
+| Layout de aviso inventado | **83,04** | **92,99** | Nada que se vea en el score: 4 avisos csv de 2.489 no se leen |
+| ZA01 en drift | 0,918 | 0,938 | Frente a MA01 0,967 en holdout; el mutador lo hace pesimista (§6) |
+
+### 7.5 Lo que queda fuera y por qué
+
+| Qué | Líneas en holdout | Por qué no |
+| --- | --- | --- |
+| Sin cita, conjunto disperso (`ar_ref_noise`) | ~2.300 | Sin señal en el texto; hay más combinaciones que céntimos |
+| Varios números, faltan los demás | ~650 | Las partidas que faltan no dejan rastro en el texto |
+| Una factura abierta y cobro distinto, sin cita (`PARTIAL`, `OVERPAYMENT`) | ~840 | Simulado: `PARTIAL` 51 aciertos y 60 falsos; `OVERPAYMENT` 23 y 67. Fuerza casaciones |
+| Qué factura queda `PARTIAL` en un reparto | ~200 | Ninguna hipótesis supera el 55 % (más reciente 49 %, antigua 18 %) |
+| Nombre tocado en el texto | ~1.330 | Por IDF: 18 exactas |
+| Agencia o confirming sin nombre del cliente | ~115 | El texto no lo nombra |
+| Conjuntos netos de retención | ~24 | Bajaban `SHORT_WITHHOLDING` en drift de 0,996 a 0,993 |
+| Disputa posterior sin disputa visible | 92 | Falta la línea anterior; no se arregla en la política |
+| Modelo (Jev) | | Ver docs/JEV_PLAN.md §10 |
+
+**Avisos:** `DUPLICATE_PAYMENT` tiene poco margen sobre su puerta (0,953 con 0,95). `MAX_CHANCE` es una aproximación: infravalora el azar unas 3 veces [Inferencia]. No es una probabilidad exacta.
+
+Los recuentos de la tabla son del análisis con saldos reconstruidos del golden, así que son aproximados y optimistas.
+
