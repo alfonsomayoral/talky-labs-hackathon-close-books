@@ -20,7 +20,15 @@ from .drafts import render, top_per_template
 from .evaluate import score_file
 from .load import cancelled_item_ids, load_phase
 from .memory import Memory, load_rules
-from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
+from .output import (
+    parties_frame,
+    write_cases,
+    write_explanations,
+    write_facts,
+    write_jsonl,
+    write_open_items,
+    write_submission,
+)
 from .paths import ROOT, RUNS
 from .resolve import resolve
 from .rules import propose, stateful
@@ -150,7 +158,8 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
                                  created_at)
     drafts = _drafts(cases, rows, phase, balances, names, countries, created_at)
     write_cases(run, cases)
-    write_facts(run, pl.concat([documents_frame(advices), clauses_frame(phase_clauses(phase))]), None)
+    documents = pl.concat([documents_frame(advices), clauses_frame(phase_clauses(phase))])
+    write_facts(run, documents, parties_frame(rows, txns))
     write_open_items(run, phase, balances)
     write_jsonl(run / "questions.jsonl", questions)
     write_jsonl(run / "drafts.jsonl", drafts)

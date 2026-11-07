@@ -27,6 +27,30 @@ PARTY_SCHEMA = {
 }
 
 
+_HOW_BY_FAMILY = {"FILE": "file", "ADVICE": "advice", "MEMORY": "memoryRule"}
+
+
+def parties_frame(rows: list[Row], txns: dict[str, dict]) -> pl.DataFrame:
+    """facts/parties.parquet (CONTRACT §2.4): the party of each line that pays exactly one."""
+    by_txn: dict[str, list[Row]] = {}
+    for row in rows:
+        if row.party_id:
+            by_txn.setdefault(row.bank_txn_id, []).append(row)
+    records = []
+    for txn_id, lines in by_txn.items():
+        if len({r.party_id for r in lines}) != 1:
+            continue
+        first = lines[0]
+        records.append({
+            "bankTxnId": txn_id, "partyId": first.party_id,
+            "partyKind": "supplier" if first.item_id[:2] == "AP" else "customer",
+            "payerName": txns.get(txn_id, {}).get("counterparty_name"),
+            "how": _HOW_BY_FAMILY.get(first.rule.split("-")[0], "name"), "confidence": first.confidence,
+            "alternatives": "[]",
+        })
+    return pl.DataFrame(records, schema=PARTY_SCHEMA)
+
+
 def _gzip_bytes(path: Path, data: bytes) -> None:
     """mtime=0 and no file name in the header: same content, same bytes."""
     with path.open("wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=6) as gz:
