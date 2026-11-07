@@ -93,6 +93,10 @@ def test_line_closed_with_no_exception_opens_no_case():
     assert _case([_row()]) == []
 
 
+def test_a_credit_note_paid_out_with_its_evidence_opens_no_case():
+    assert _case([Row("BT-1", "ARC-1", 10000, "EUR", None, None, "CREDIT-PAYOUT", 1.0, "C1")]) == []
+
+
 def test_supplier_invoice_paid_short_returned_or_twice_is_a_supplier_mismatch_to_write_about():
     for exception in ("PARTIAL", "RETURNED", "DUPLICATE_PAYMENT"):
         case = _case([_row(exception=exception)])[0]
