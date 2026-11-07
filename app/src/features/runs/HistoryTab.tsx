@@ -5,7 +5,7 @@ import { useCurrentRun, useRun, useRuns } from '@/data'
 import { INBOX_STATUSES, type RunSummary } from '@/domain'
 import { formatDateTime, formatDuration, formatNumber } from '@/lib/format'
 import { useOpenObject } from '@/lib/urlState'
-import { officialResultOf } from './model'
+import { officialResultOf, runScore } from './model'
 import { RunPanel } from './RunPanel'
 import { ScoreExplainer } from './ScoreExplainer'
 import styles from './RunsPage.module.css'
@@ -28,7 +28,18 @@ const COLUMNS: Column<RunSummary>[] = [
   { id: 'queue', header: 'En cola', width: 90, align: 'right', cell: (r) => formatNumber(queue(r)), sortValue: queue },
   { id: 'calls', header: 'Llamadas', width: 100, align: 'right', cell: (r) => formatNumber(r.modelCalls), sortValue: (r) => r.modelCalls },
   { id: 'cost', header: 'Coste', width: 90, align: 'right', cell: (r) => <Amount cents={Math.round(r.modelCostUsd * 100)} currency="USD" />, sortValue: (r) => r.modelCostUsd },
-  { id: 'score', header: 'Puntuación', width: 110, align: 'right', cell: (r) => formatNumber(r.score, { decimals: 2 }), sortValue: (r) => r.score },
+  { id: 'score', header: 'Puntuación', width: 110, align: 'right', cell: (r) => {
+      const { value, official } = runScore(r)
+      return official ? (
+        <span className={styles.officialScore}>
+          {formatNumber(value, { decimals: 2 })}
+          <span className={styles.officialLabel}>Oficial</span>
+        </span>
+      ) : (
+        formatNumber(value, { decimals: 2 })
+      )
+    },
+    sortValue: (r) => runScore(r).value },
 ]
 
 export function HistoryTab({ onGoToConsole }: { onGoToConsole: () => void }) {

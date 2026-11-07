@@ -143,4 +143,8 @@ export function eventClock(now: Date): string {
 export const scoreReference = (runs: RunSummary[]): RunSummary | null => runs.find((r) => r.served && r.score != null) ?? null
 
 /** The official result of a run, if the API sends one. */
+/** The score to show for a run: the local one, else what the leaderboard answered. */
+export const runScore = (r: RunSummary): { value: number | null; official: boolean } =>
+  r.score != null ? { value: r.score, official: false } : { value: r.officialResult?.score ?? null, official: r.officialResult != null }
+
 export const officialResultOf = (runs: RunSummary[], runId: string | null | undefined): OfficialResult | null => runs.find((r) => r.runId === runId)?.officialResult ?? null

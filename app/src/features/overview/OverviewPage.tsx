@@ -2,7 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { Amount, ButtonLink, Card, EmptyState, Metric, Mono, Page, PageHeader, Section, Skeleton } from '@/components'
 import { useActiveRun, useQueueTotals, useRun, useRunStats } from '@/data'
 import { autoRate, categoryLabel, queueOfKind, ruleDescription } from '@/domain'
-import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format'
+import { formatDateTime, formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { DayChart } from './DayChart'
 import { EntityCard } from './EntityCard'
@@ -18,7 +18,7 @@ import styles from './OverviewPage.module.css'
 const TOP = 8
 
 export function OverviewPage() {
-  const { runId } = useActiveRun()
+  const { runId, run } = useActiveRun()
   const [entity, setEntity] = useEntityScope()
   const scoped = useScopedTo()
   const statsQuery = useRunStats(runId, entity)
@@ -90,6 +90,16 @@ export function OverviewPage() {
       </div>
 
       <div className={styles.metrics}>
+        {run.officialResult && !entity && (
+          <Card>
+            <Metric
+              label="Resultado oficial"
+              value={formatNumber(run.officialResult.score, { decimals: 2 })}
+              comparison={`sobre 100 · ${formatDateTime(run.officialResult.createdAt)}`}
+              hint="Lo que respondió la clasificación del reto a esta ejecución."
+            />
+          </Card>
+        )}
         <Card>
           <Metric
             label="Conciliado sin intervención"
