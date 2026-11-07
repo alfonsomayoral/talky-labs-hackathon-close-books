@@ -16,6 +16,8 @@ def claim(txn: dict, codes: Codes) -> Proposal | None:
     category, rule = pure_category(codes, txn), "CAT-CODE"
     if category is None:
         category, rule = text_category(txn), "CAT-TEXT"
+    if category is None and text_category({**txn, "text": txn.get("remittance_info")}) == "SUPPLIER_REFUND":
+        category, rule = "SUPPLIER_REFUND", "CAT-TEXT"  # "ABONO PAGO DOBLE" travels in the remittance field
     if category is None:
         return None
     label = f"{txn['bank']} {txn['bank_code'] or ''}/{txn['bank_subcode'] or ''}"
@@ -67,7 +69,8 @@ def propose_supplier_refunds(phase: Phase) -> dict[str, Proposal]:
 def propose(phase: Phase) -> dict[str, Proposal]:
     proposals = propose_supplier_refunds(phase)
     codes = load_codes()
-    for txn in phase.txns.select("bank_txn_id", "bank", "bank_code", "bank_subcode", "amount_cents", "text").iter_rows(
+    for txn in phase.txns.select("bank_txn_id", "bank", "bank_code", "bank_subcode", "amount_cents", "text",
+                                  "remittance_info").iter_rows(
             named=True):
         proposal = claim(txn, codes)
         if proposal:
