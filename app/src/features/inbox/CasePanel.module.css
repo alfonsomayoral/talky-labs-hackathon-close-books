@@ -11,3 +11,10 @@
   line-height: var(--leading);
   color: var(--ink);
 }
+
+/* The case's facts, as a card like the evidence. */
+.facts {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}

@@ -25,7 +25,7 @@ export function CaseActions({ caseDetail, runId, onResolved }: CaseActionsProps)
   if (lead === 'closed') {
     return (
       <p className={styles.closed}>
-        <Badge tone="neutral" icon={<Check />}>
+        <Badge emphasis="quiet" icon={<Check />}>
           Gestionado
         </Badge>
       </p>

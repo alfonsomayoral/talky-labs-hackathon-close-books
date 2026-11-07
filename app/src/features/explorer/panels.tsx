@@ -106,7 +106,7 @@ export function PartyPanel({ id, runId }: PanelProps) {
               { label: 'País', value: d.party.country },
               { label: 'Condiciones', value: d.party.paymentTerms },
               { label: 'Divisa', value: d.party.currency, mono: true },
-              { label: 'Bloqueado desde', value: d.party.blockedSince ? <Badge tone="danger">{formatDate(d.party.blockedSince)}</Badge> : null },
+              { label: 'Bloqueado desde', value: d.party.blockedSince ? <Badge emphasis="strong">{formatDate(d.party.blockedSince)}</Badge> : null },
             ] satisfies KeyValueItem[]}
           />
 

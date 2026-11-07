@@ -57,6 +57,7 @@ export function CasePanel({ runId, caseId, onClose }: CasePanelProps) {
         <div className={styles.body}>
           <p className={styles.summary}>{c.summary}</p>
           <KeyValue
+            className={styles.facts}
             labelWidth={110}
             items={[
               { label: 'Estado', value: <Badge emphasis={CASE_STATUS_EMPHASIS[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge> },

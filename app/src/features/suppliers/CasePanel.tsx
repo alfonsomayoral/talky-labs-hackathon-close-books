@@ -58,6 +58,7 @@ export function CasePanel({ runId, caseId, onClose }: CasePanelProps) {
         <div className={styles.body}>
           <p className={styles.summary}>{c.summary}</p>
           <KeyValue
+            className={styles.facts}
             labelWidth={110}
             items={[
               { label: 'Estado', value: <Badge emphasis={CASE_STATUS_EMPHASIS[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge> },
@@ -110,7 +111,7 @@ function Items({ runId, partyId, entity, caseItemIds }: { runId: string; partyId
               <span className={styles.kindCell}>{ITEM_KIND[item.itemType] ?? item.itemType}</span>
               <span className={styles.due}>{item.dueDate ? formatDate(item.dueDate) : '—'}</span>
               <Amount cents={item.totalCents} currency={item.currency} />
-              <span className={styles.flag}>{inCase && <Badge tone="brand">Del caso</Badge>}</span>
+              <span className={styles.flag}>{inCase && <Badge emphasis="medium">Del caso</Badge>}</span>
             </li>
           ))}
         </ul>

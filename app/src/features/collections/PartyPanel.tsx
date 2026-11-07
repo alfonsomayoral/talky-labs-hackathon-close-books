@@ -95,6 +95,7 @@ export function PartyPanel({ runId, partyId, aging, onClose }: PartyPanelProps) 
           )}
 
           <KeyValue
+            className={styles.facts}
             labelWidth={120}
             items={[
               { label: 'Id', value: party.partyId, mono: true },

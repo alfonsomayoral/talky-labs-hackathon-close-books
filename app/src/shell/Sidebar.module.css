@@ -210,8 +210,8 @@
   height: 18px;
   padding: 0 var(--space-1-5);
   border-radius: var(--radius-pill);
-  background: var(--danger-bg);
-  color: var(--danger-ink);
+  background: var(--brand-soft);
+  color: var(--brand-ink);
   font-size: var(--text-12);
   font-weight: var(--weight-semibold);
   line-height: 18px;

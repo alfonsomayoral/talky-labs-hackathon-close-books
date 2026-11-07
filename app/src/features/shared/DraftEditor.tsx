@@ -84,7 +84,7 @@ function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
     <div className={styles.editor}>
       {closed && (
         <div>
-          <Badge tone={draft.status === 'sent' ? 'ok' : 'neutral'}>{SENT_LABEL[draft.status as keyof typeof SENT_LABEL]}</Badge>
+          <Badge emphasis={draft.status === 'sent' ? 'medium' : 'quiet'}>{SENT_LABEL[draft.status as keyof typeof SENT_LABEL]}</Badge>
         </div>
       )}
       <TextField label="Para" value={recipientLine(draft)} onChange={() => {}} readOnly />
