@@ -1,6 +1,8 @@
 """Tercero + partidas abiertas en ese momento + números citados. Textos reales de TRAIN."""
 from __future__ import annotations
 
+import shutil
+from pathlib import Path
 from types import SimpleNamespace
 
 import polars as pl
@@ -1005,3 +1007,46 @@ def test_netted_cited_does_not_read_a_payment_of_an_invoice_already_settled_as_a
     rule, balances = engine(due + later + [credit])
     found = rule(txn(batch, f"{NAME} FAC001", date="2024-06-01"), balances)
     assert found is None or found.rule != "PARTY-NETTED"
+
+
+# --- POLICIES §5.11: the account a customer notifies by PDF ---------------------------------------------------------
+
+NEW_IBAN = "PT08944053240930376394569"  # notice_en.pdf, dated 2023-03-12, says from 2023-03-22
+NOTICED = (("C1", "E1", "Wellness Garrido S.L.", None, "ES11", None, None, None),
+           ("C2", "E2", "Otra Empresa S.L.", None, "ES22", None, None, None))
+
+
+def noticed_engine(tmp_path, customers=NOTICED):
+    (tmp_path / "pdfs").mkdir()
+    shutil.copy(Path(__file__).parent / "fixtures" / "pdfs" / "notice_en.pdf", tmp_path / "pdfs" / "N.pdf")
+    (tmp_path / "pdfs" / "index.csv").write_text("file,document_type,document_number,entity,party_id,document_date\n"
+                                                 "N.pdf,bank_account_notice,,E1,C1,2023-03-12\n")
+    rows = [item("ARI-1", "C1", "FAC001", 5000, "2023-01-01"),
+            item("ARI-2", "C2", "FAC002", 5000, "2023-01-01", entity="E2")]
+    table = pl.DataFrame(rows, schema_overrides={"customer_po": pl.String, "related_document": pl.String,
+                                                 "due_date": pl.String})
+    phase = SimpleNamespace(items=table, masters=masters(customers), start="2021-01-01", dir=tmp_path)
+    return PartyAmount(phase, reserved={}), OpenBalances(dict(zip(table["item_id"], table["open_cents"], strict=True)))
+
+
+def test_a_collection_from_an_account_only_the_notice_knows_settles_that_customer_and_cites_the_notice(tmp_path):
+    rule, balances = noticed_engine(tmp_path)
+    found = rule(txn(5000, "TRANSF", iban=NEW_IBAN, date="2023-03-22"), balances)
+    assert lines(found) == {"ARI-1"} and found.party_id == "C1"
+    assert {"kind": "pdf", "ref": "pdfs/N.pdf"} in found.sources
+
+
+def test_the_noticed_account_does_not_name_the_customer_before_the_date_the_notice_gives(tmp_path):
+    rule, _ = noticed_engine(tmp_path)
+    assert rule.parties.find(txn(5000, "TRANSF", iban=NEW_IBAN, date="2023-03-21"), "customer") == []
+
+
+def test_the_noticed_account_does_not_name_the_customer_in_another_entity(tmp_path):
+    rule, _ = noticed_engine(tmp_path)
+    assert rule.parties.find(txn(5000, "TRANSF", iban=NEW_IBAN, date="2023-04-01", entity="E2"), "customer") == []
+
+
+def test_a_noticed_account_the_master_gives_to_someone_else_is_as_ambiguous_as_any_shared_account(tmp_path):
+    customers = (*NOTICED, ("C3", "E1", "Tercero Dos S.L.", None, NEW_IBAN, None, None, None))
+    rule, _ = noticed_engine(tmp_path, customers)
+    assert rule.parties.find(txn(5000, "TRANSF", iban=NEW_IBAN, date="2023-04-01"), "customer") == ["C1", "C3"]

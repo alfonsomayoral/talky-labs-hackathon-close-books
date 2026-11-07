@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import defaultdict
+from collections.abc import Iterable
 
 import polars as pl
 
@@ -30,9 +31,15 @@ def normalize(text: str | None) -> str:
 class PartyIndex:
     certain = False
 
-    def __init__(self, masters: dict[str, pl.DataFrame], printed: pl.DataFrame):
+    def __init__(self, masters: dict[str, pl.DataFrame], printed: pl.DataFrame, notices: Iterable[tuple] = ()):
         self.by_name: dict[tuple[str, str, str], set[str]] = defaultdict(set)
         self.by_iban: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+        # POLICIES §5.11: the account a customer notifies by PDF, in its entity and from the date the notice gives.
+        self.noticed: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+        for doc, clause in notices:
+            start = clause.value["from"] or doc.doc_date
+            if doc.party_id and start:
+                self.noticed[doc.entity, clause.value["iban"]].append((start, doc.party_id, doc.path))
         self.by_prefix: dict[tuple[str, str, str], list[tuple[str, str]]] = defaultdict(list)
         self.names_of: dict[str, set[str]] = defaultdict(set)
         self.group_of: dict[str, list[str]] = {}
@@ -100,8 +107,8 @@ class PartyIndex:
         if name and (found := self.by_name.get((kind, entity, name))):
             return sorted(found)
         iban = txn.get("counterparty_account")
-        if iban and (found := self.by_iban.get((kind, entity, iban))):
-            return sorted(found)
+        if iban and (found := self._holders(txn, kind, iban)):
+            return found
         found = self._in_text(txn, kind, entity, name, whole_only=bool(name))
         if found or kind != "supplier":
             return found
@@ -110,6 +117,21 @@ class PartyIndex:
             found += self._in_text(txn, kind, other, name, whole_only=bool(name))
         self.certain = False
         return sorted(set(found))
+
+    def notice_of(self, txn: dict, party: str) -> str | None:
+        """The PDF of the notice that ties the line's account to the party, if one does."""
+        return next((path for holder, path in self._notices_in_force(txn) if holder == party), None)
+
+    def _holders(self, txn: dict, kind: str, iban: str) -> list[str]:
+        """Who holds the account: the master says, and so does a customer's notice. Two different holders stay two."""
+        found = set(self.by_iban.get((kind, txn["entity"], iban), ()))
+        if kind == "customer":
+            found |= {holder for holder, _ in self._notices_in_force(txn)}
+        return sorted(found)
+
+    def _notices_in_force(self, txn: dict) -> list[tuple[str, str]]:
+        notified = self.noticed.get((txn["entity"], txn.get("counterparty_account")), ())
+        return [(party, path) for start, party, path in notified if start <= txn["booking_date"]]
 
     def _in_text(self, txn: dict, kind: str, entity: str, name: str, whole_only: bool) -> list[str]:
         """The party named in the text. With an unknown ordering party it may be paying for someone else (confirming),
