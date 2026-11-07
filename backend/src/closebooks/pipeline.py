@@ -23,7 +23,7 @@ from .memory import Memory, load_rules
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
 from .paths import ROOT, RUNS
 from .resolve import resolve
-from .rules import propose, stateful
+from .rules import late_party_amount, propose, stateful
 
 
 def _peak_rss_mb() -> int:
@@ -125,6 +125,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
     engine = stateful(phase, proposals)
     engine.memory = taught if taught.rules else None
     rows, balances = resolve(phase, proposals, engine)
+    late_party_amount.apply(phase, rows, balances, engine)
     engine.release()
     del proposals
     gc.collect()
