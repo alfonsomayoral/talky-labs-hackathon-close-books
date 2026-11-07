@@ -316,7 +316,7 @@ def _wanted(phase) -> pl.DataFrame:
 
 
 def _parse_all(jobs: list[tuple[str, str | None]], workers: int | None = None) -> list:
-    workers = workers or os.cpu_count() or 1
+    workers = workers or min(6, os.cpu_count() or 1)
     if workers == 1 or len(jobs) < 2 * workers:
         return _parse_chunk(jobs)
     size = max(1, len(jobs) // (workers * 8))

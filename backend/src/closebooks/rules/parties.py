@@ -10,7 +10,6 @@ import polars as pl
 MIN_NAME_CHARS = 10
 PREFIX_CHARS = 8
 _NOT_ALNUM = re.compile(r"[^A-Z0-9]+")
-LEGAL_SUFFIX_CUT = 4  # a name printed whole except its last few characters still identifies it
 
 
 def normalize(text: str | None) -> str:
@@ -101,9 +100,14 @@ def _common_prefix(a: str, b: str, start: int) -> int:
 
 
 def _identifies(norm: str, text: str, position: int, length: int) -> bool:
+    """The whole name, or one the bank cut: the text ends or starts another word where the name stops mid-word.
+
+    "PLASTICOS EXPRES | RECIBO" is "PLASTICOS EXPRESS S L" cut by the field. "HYDRO EVANS HERM" is not
+    "HYDRO EVANS LLC": the text goes on with a different word.
+    """
     if length == len(norm):
         return True
-    reached_end = position + length == len(text)
-    if length >= MIN_NAME_CHARS and reached_end:
-        return True
-    return length >= MIN_NAME_CHARS and len(norm) - length <= LEGAL_SUFFIX_CUT
+    if length < MIN_NAME_CHARS or norm[length - 1] == " ":
+        return False
+    end = position + length
+    return end == len(text) or text[end] == " "
