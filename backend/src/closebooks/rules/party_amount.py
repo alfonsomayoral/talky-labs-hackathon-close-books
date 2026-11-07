@@ -156,6 +156,8 @@ def _discount_days(phase) -> dict[str, int]:
 def _sets_up_to_two(values: list[int], target: int) -> list[list[int]]:
     """Up to two sets of positions adding up to the target. reach[k] has bit s set if the items from k on can sum s,
     so the walk only follows branches with a solution and stops at the second one."""
+    if target < 0:
+        return []
     mask = (1 << (target + 1)) - 1
     reach = [1] * (len(values) + 1)
     for k in range(len(values) - 1, -1, -1):
@@ -577,6 +579,8 @@ class PartyAmount:
                 continue
             taken = {due[number][0]: due[number][1] for number in named}
             target = cash + sum(o for _, o in combo) - sum(taken.values())
+            if target <= 0:
+                continue
             others = [f for f in free if f[0][0] not in taken]
             found += [[*taken, *(n for n, _ in combo), *rest] for rest in self._invoice_sets(others, target, limit)[0]]
             if len(found) > 1:
