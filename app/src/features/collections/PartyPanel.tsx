@@ -28,7 +28,7 @@ const OWN_CASE_KINDS = ['dispute', 'duplicate_payment']
 const itemColumns: Column<OpenItem>[] = [
   { id: 'documentNumber', header: 'Factura', width: 'minmax(110px, 1.2fr)', cell: (i) => <Mono>{i.documentNumber}</Mono> },
   { id: 'dueDate', header: 'Vence', width: 96, cell: (i) => <span className="tabular">{formatDate(i.dueDate)}</span> },
-  { id: 'daysOverdue', header: 'Días', width: 56, align: 'right', cell: (i) => <span className="tabular">{formatNumber(i.daysOverdue)}</span> },
+  { id: 'daysOverdue', header: 'Días', width: 72, align: 'right', cell: (i) => <span className="tabular">{formatNumber(i.daysOverdue)}</span> },
   { id: 'open', header: 'Abierto', width: 120, align: 'right', cell: (i) => <Amount cents={i.openAtEndCents} currency={i.currency} /> },
 ]
 
