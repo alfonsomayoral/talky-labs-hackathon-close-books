@@ -11,7 +11,7 @@ Para cada movimiento bancario de un grupo de 17 sociedades y 12 divisas, decimos
 - **Cada fila se explica.** La entrega lleva su regla y sus fuentes: aviso, fichero, PDF o maestro.
 - **Caso, decisión, memoria.** La plataforma enseña lo que el sistema cerró solo (87 % de los movimientos de LIVE) y lo que necesita a alguien: preguntas, correos a clientes y proveedores que una persona revisa, y reglas que la siguiente ejecución aplica. Los correos se registran; no sale ninguno.
 
-Resultado: `<S>` puntos en LIVE y `<F>` en FINAL. En LIVE, 203.083 movimientos en poco más de 2 minutos, 33.558 casos para una persona, con 0 llamadas a modelo y 0 dólares: todo determinista, con el modelo como residuo opcional, hoy sin usar.
+Resultado: `<S>` puntos en LIVE y `<F>` en FINAL. En LIVE, 203.083 movimientos en poco más de 2 minutos, 235 decisiones, 18.018 casos por revisar y 15.305 de cobros, con 0 llamadas a modelo y 0 dólares: todo determinista, con el modelo como residuo opcional, hoy sin usar.
 
 ## Stack y modelos
 

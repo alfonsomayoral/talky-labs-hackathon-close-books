@@ -24,7 +24,7 @@ Con `live-final-a`, la ejecución definitiva de LIVE. **Si se graba con otra, lo
 
 | Paso | Qué | Enlace (añade `?…` a la dirección de Vite) |
 | --- | --- | --- |
-| 1 | 87,0 % de los movimientos cerrados sin intervención; 33.558 **casos** en cola; 0 llamadas a modelo | `/` |
+| 1 | 87,0 % de los movimientos cerrados sin intervención; 235 **decisiones**, 18.018 por revisar y 15.305 de cobros; 0 llamadas a modelo | `/` |
 | 2 | Aviso de remesa de Villar Mantenimientos S.A., 826,93 EUR, 2 facturas, una con pago parcial | `/conciliacion?ver=BT-2025-0200180` |
 | 3 | Pregunta `Q-000128`: cobro de 1.035,17 EUR de Wellness Navarro S.L. con dos opciones y regla propuesta | `/bandeja?ver=CASE-BT-2025-0378685` |
 | 4 | Montalbar Hidrotecnia S.L., 138 facturas vencidas por 418.279,57 EUR, borrador en español `D-000050` con 2 adjuntos | `/cobros?ver=CES01000094` |

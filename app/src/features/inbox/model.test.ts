@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ageDays, ageLabel, queueStatuses, sortFromParam, sortToParam } from './model'
+import { ageDays, ageLabel, sortFromParam, sortToParam } from './model'
 
 describe('sort in the URL', () => {
   it('reads an allowed field, ascending or descending', () => {
@@ -16,20 +16,6 @@ describe('sort in the URL', () => {
     expect(sortToParam({ columnId: 'bookingDate', direction: 'desc' })).toBe('-bookingDate')
     expect(sortToParam({ columnId: 'bookingDate', direction: 'asc' })).toBe('bookingDate')
     expect(sortToParam(null)).toBeNull()
-  })
-})
-
-describe('queueStatuses', () => {
-  it('is the whole queue when no state is chosen', () => {
-    expect(queueStatuses([])).toBe('needs_review,question,fallback')
-  })
-
-  it('keeps only states that belong to the queue', () => {
-    expect(queueStatuses(['question', 'done', 'auto'])).toBe('question')
-  })
-
-  it('falls back to the whole queue when every chosen state is foreign', () => {
-    expect(queueStatuses(['done'])).toBe('needs_review,question,fallback')
   })
 })
 

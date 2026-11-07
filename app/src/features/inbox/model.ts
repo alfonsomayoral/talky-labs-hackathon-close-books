@@ -1,5 +1,4 @@
-// Pure logic of the inbox: sort in the URL, queue states, age and which action leads each case.
-import { INBOX_STATUSES } from '@/domain'
+// Pure logic of the inbox: sort in the URL and age.
 import type { SortState } from '@/components'
 
 /** Most urgent first and, within a priority, the largest amount (CONTRACT.md §5.1). */
@@ -14,12 +13,6 @@ export function sortFromParam(param: string | null): SortState | null {
 }
 
 export const sortToParam = (sort: SortState | null) => (sort ? `${sort.direction === 'desc' ? '-' : ''}${sort.columnId}` : null)
-
-/** `?status=` of the list: the chosen states that belong to the queue, or the whole queue. */
-export function queueStatuses(chosen: string[]): string {
-  const valid = INBOX_STATUSES.filter((s) => chosen.includes(s))
-  return (valid.length ? valid : INBOX_STATUSES).join(',')
-}
 
 const DAY_MS = 86_400_000
 const utc = (date: string) => Date.parse(`${date.slice(0, 10)}T00:00:00Z`)
