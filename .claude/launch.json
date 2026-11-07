@@ -26,6 +26,15 @@
         "mock"
       ],
       "port": 8000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "just",
+      "runtimeArgs": [
+        "be-serve",
+        "runs/live-final-a"
+      ],
+      "port": 8000
     }
   ]
 }
