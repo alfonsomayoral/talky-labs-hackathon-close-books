@@ -103,7 +103,9 @@ def _link_indexed(source: Path, target: Path, date_column: str) -> None:
 
 
 def _text_amount(cents: pl.Expr) -> pl.Expr:
-    return (cents // 100).cast(pl.String) + "." + (cents % 100).cast(pl.String).str.zfill(2)
+    size = cents.abs()
+    sign = pl.when(cents < 0).then(pl.lit("-")).otherwise(pl.lit(""))
+    return sign + (size // 100).cast(pl.String) + "." + (size % 100).cast(pl.String).str.zfill(2)
 
 
 def build_holdout(dest: Path | None = None) -> Path:
