@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RunSummary, Score } from '@/domain'
-import { consoleStep, defaultPair, eventClock, failureCause, officialResultOf, isRise, diffCounts, diffMetrics, diffSegments, isDrop, scoreReference, stageList } from './model'
+import { consoleStep, defaultPair, eventClock, failureCause, officialResultOf, runScore, isRise, diffCounts, diffMetrics, diffSegments, isDrop, scoreReference, stageList } from './model'
 
 const score = (metrics: Record<string, number>, segments: Score['segments'] = {}): Score => ({ score: 0, metrics, segments })
 const run = (runId: string, phase: string, createdAt: string, s: number | null) => ({ runId, phase, createdAt, score: s }) as RunSummary
@@ -170,5 +170,18 @@ describe('officialResultOf', () => {
   it('is null for another run, and for an API that does not send the field yet', () => {
     expect(officialResultOf([{ ...run('a', 'live', '', null), officialResult: official }], 'b')).toBeNull()
     expect(officialResultOf([run('a', 'live', '', null)], 'a')).toBeNull()
+  })
+})
+
+describe('runScore', () => {
+  const official = { score: 92.01, createdAt: '2026-11-07T12:20:22Z', metrics: {} }
+  it('takes the official result where the phase has no local score', () => {
+    expect(runScore({ ...run('l1', 'live', '2026-11-07T04:00:00Z', null), officialResult: official })).toEqual({ value: 92.01, official: true })
+  })
+  it('keeps the local score when the run has both', () => {
+    expect(runScore({ ...run('h1', 'holdout', '2026-11-07T04:00:00Z', 90), officialResult: official })).toEqual({ value: 90, official: false })
+  })
+  it('gives no score when the run has neither', () => {
+    expect(runScore(run('l1', 'live', '2026-11-07T04:00:00Z', null))).toEqual({ value: null, official: false })
   })
 })
