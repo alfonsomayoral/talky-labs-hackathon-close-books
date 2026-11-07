@@ -4972,6 +4972,33 @@
         ],
         "title": "ModelUsage"
       },
+      "OfficialResult": {
+        "properties": {
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Metrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "score",
+          "createdAt",
+          "metrics"
+        ],
+        "title": "OfficialResult",
+        "description": "What the challenge's leaderboard answered for this run's submission (`live_result.json`, written by a person)."
+      },
       "OpenItem": {
         "properties": {
           "itemId": {
@@ -6241,6 +6268,16 @@
           "served": {
             "type": "boolean",
             "title": "Served"
+          },
+          "officialResult": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OfficialResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6257,7 +6294,8 @@
           "modelCalls",
           "modelCostUsd",
           "score",
-          "served"
+          "served",
+          "officialResult"
         ],
         "title": "RunSummary"
       },

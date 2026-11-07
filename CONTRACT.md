@@ -125,6 +125,10 @@ Una fila por partida **emitida en la fase**, abierta al inicio o con movimiento 
 
 `score` es la salida de `score_submission` del evaluador oficial (`score`, `metrics`, `segments`) cuando la fase tiene golden; si no, `null`. `stages` en milisegundos. `csvBytes` es el tamaño de `submission.csv.gz` **sin comprimir** (límite oficial: 60 MB).
 
+### 2.9 `live_result.json`
+
+La respuesta de la clasificación al envío de esta ejecución, tal como la devuelve `scripts/submit.py`, guardada a mano por quien envió (`sub_id`, `phase`, `created_at`, `status`, `score`, `metrics`). Solo existe en las ejecuciones enviadas. `GET /api/runs` la expone como `officialResult` con `score`, `createdAt` y las métricas numéricas; nunca la escribe el backend.
+
 ## 3. Invariantes
 
 - Todos los `bank_txn_id` de la fase aparecen en `submission.csv.gz`, que pasa la validación de `bankrec_score.py` y pesa < 60 MB sin comprimir.
@@ -215,6 +219,8 @@ export type RunSummary = Pick<Run, 'runId' | 'phase' | 'createdAt' | 'gitCommit'
   modelCostUsd: number
   /** Total score (0..100) when the phase has a golden. */
   score: number | null
+  /** What the leaderboard answered, when a person saved `live_result.json` next to the submission (§2.9). */
+  officialResult: { score: number; createdAt: string; metrics: Record<string, number> } | null
 }
 
 export interface EntityStats {
