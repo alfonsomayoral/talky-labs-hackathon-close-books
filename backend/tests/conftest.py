@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from closebooks import paths
 from closebooks.load import load_phase
 from closebooks.paths import phase_dir
 
@@ -12,6 +13,12 @@ def require_phase(name: str) -> None:
         phase_dir(name)
     except FileNotFoundError:
         pytest.skip(f"phase {name} not available")
+
+
+@pytest.fixture(autouse=True)
+def own_pdf_cache(tmp_path, monkeypatch):
+    """No test reads or fills the cache of the real runs."""
+    monkeypatch.setattr(paths, "RUNS", tmp_path / "runs")
 
 
 @pytest.fixture(scope="session")
