@@ -68,7 +68,9 @@ def _deducted(open_cents: int, applied: int, deduction: tuple[int, str | None], 
         return applied, "SHORT_DISPUTE"
     discount = _discount_cents(terms)
     if not reason:
-        is_withholding = any(_is_rate(shortfall, total, rate) for rate in WITHHOLDING_RATES)
+        where = terms.country if terms else None
+        is_withholding = where in (None, *WITHHOLDING_COUNTRIES) and any(
+            _is_rate(shortfall, total, rate) for rate in WITHHOLDING_RATES)
         is_discount = discount is not None and abs(shortfall - discount) <= 1
     if is_withholding:
         return open_cents, "SHORT_WITHHOLDING"

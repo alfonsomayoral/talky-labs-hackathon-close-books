@@ -556,3 +556,11 @@ def test_a_run_among_too_many_open_invoices_is_not_taken():
     many = [item(f"ARI-{n:03d}", "C1", f"FV24-1{n:06d}", 1000 + n % 37, issued=f"2024-03-{n % 28 + 1:02d}")
             for n in range(70)]
     assert pay(many, 5000 + 5 * 3) is None
+
+
+def test_a_rate_short_of_the_invoice_is_withholding_only_for_a_customer_of_those_countries():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 100000)])
+    rule.countries = {"C1": "ES"}
+    assert rule(txn(90000, NAME), balances) is None
+    rule.countries = {"C1": "MX"}
+    assert lines(rule(txn(90000, NAME), balances)) == {"ARI-1"}

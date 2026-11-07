@@ -37,9 +37,10 @@ def test_any_other_stated_reason_is_a_dispute_for_what_was_paid():
 
 
 def test_shortfall_with_no_reason_is_read_from_its_ratio():
-    assert line(100000, 98750, (-1250, None))[1] == "SHORT_WITHHOLDING"
-    assert line(100000, 98500, (-1500, None))[1] == "SHORT_WITHHOLDING"
-    assert line(100000, 90000, (-10000, None))[1] == "SHORT_WITHHOLDING"
+    mexico = Terms(None, None, "2025-06-01", 100000, "MX")
+    assert line(100000, 98750, (-1250, None), terms=mexico)[1] == "SHORT_WITHHOLDING"
+    assert line(100000, 98500, (-1500, None), terms=mexico)[1] == "SHORT_WITHHOLDING"
+    assert line(100000, 90000, (-10000, None), terms=mexico)[1] == "SHORT_WITHHOLDING"
     assert line(140394, 137586, (-2808, None), terms=D2N30)[1] == "SHORT_DISCOUNT"
     assert line(100000, 80000, (-20000, None)) == (80000, "PARTIAL")
 
@@ -154,3 +155,12 @@ def test_discount_on_the_invoices_that_have_it_and_full_on_the_rest():
     no_terms = Terms(None, None, "2025-06-01", 50000, "ES")
     out = allocate(148000, [facts("ARI-1", 100000, with_terms), facts("ARI-2", 50000, no_terms)], "2025-06-05", False)
     assert out == {"ARI-1": (100000, "SHORT_DISCOUNT"), "ARI-2": (50000, "")}
+
+
+def test_an_advice_without_reason_is_not_withholding_outside_those_countries():
+    terms = Terms(None, None, "2025-01-01", 100000, "ES")
+    assert decide("ARI-1", "EUR", "EUR", 100000, 90000, deduction=(-10000, None), terms=terms,
+                  booking_date="2025-02-01") == (90000, "PARTIAL")
+    terms = Terms(None, None, "2025-01-01", 100000, "BR")
+    assert decide("ARI-1", "EUR", "EUR", 100000, 90000, deduction=(-10000, None), terms=terms,
+                  booking_date="2025-02-01") == (100000, "SHORT_WITHHOLDING")

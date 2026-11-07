@@ -10,7 +10,7 @@ import polars as pl
 from ..documents.pdfs import phase_clauses
 from ..load import cancelled_item_ids
 from ..model import Proposal
-from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, cross_border
+from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, WITHHOLDING_COUNTRIES, cross_border
 from ..state import OpenBalances
 from .parties import PartyIndex, normalize
 
@@ -504,13 +504,14 @@ class PartyAmount:
         from_abroad = cross_border(txn.get("bank_code"), txn["text"])
         foreign_payer = from_abroad and party in self.countries and self.countries[party] not in SEPA_COUNTRIES
         eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if txn.get("amount_eur_cents") else 1.0
+        withholds = self.countries.get(party, WITHHOLDING_COUNTRIES[0]) in WITHHOLDING_COUNTRIES
         for item, open_cents in free:
             if item[0][:3] in CREDIT_NOTES or open_cents != item[4]:
                 continue
             pct = self.terms_pct.get(item[0])
             if pct and abs(item[4] - round(item[4] * pct / 100) - cash) <= 1:
                 hits.append(item[0])
-            elif any(abs(item[4] - round(item[4] * r) - cash) <= 1 for r in _WITHHOLDING):
+            elif withholds and any(abs(item[4] - round(item[4] * r) - cash) <= 1 for r in _WITHHOLDING):
                 hits.append(item[0])
             elif foreign_payer and 0 < item[4] - cash <= item[4] * FEE_LIMIT_RATIO and (
                     (item[4] - cash) * eur_per_cent <= FEE_LIMIT_EUR_CENTS):
