@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from .model import Row
 
-CLOSED_RULE_FAMILIES = ("FILE-", "REF-", "ADVICE-", "CAT-", "MEMORY-")
+CLOSED_RULE_FAMILIES = ("FILE-", "REF-", "ADVICE-", "CAT-", "MEMORY-", "CREDIT-")
 _SUPPLIER_ISSUE_TEXT = {"PARTIAL": "pagada en parte", "RETURNED": "devuelta por el banco",
                         "DUPLICATE_PAYMENT": "pagada dos veces"}
 SUPPLIER_ISSUES = tuple(_SUPPLIER_ISSUE_TEXT)

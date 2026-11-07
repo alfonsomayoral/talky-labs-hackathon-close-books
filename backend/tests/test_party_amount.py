@@ -4,7 +4,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import polars as pl
+import pytest
 
+from closebooks.resolve import resolve
 from closebooks.rules.parties import PartyIndex, normalize
 from closebooks.rules.party_amount import PartyAmount, _chance
 from closebooks.state import OpenBalances
@@ -197,6 +199,56 @@ def test_full_number_cited_explains_a_partial_payment():
     proposal = rule(txn(400, NAME, remit="A CUENTA FV23-0111433"), balances)
     assert lines(proposal) == {"ARI-1"}
     assert proposal.by_cash
+
+
+def test_outgoing_transfer_settles_the_cited_customer_credit_note():
+    rule, balances = engine([item("ARC-1", "C1", "AV24-000001", 10000)])
+    found = rule(txn(-10000, name="Wellness Garrido S.L.", remit="AV24-000001"), balances)
+    assert lines(found) == {"ARC-1"}
+    assert found.rule == "CREDIT-PAYOUT"
+    assert found.lines == [("ARC-1", 10000)]
+
+
+def test_customer_credit_note_payout_can_be_supported_by_its_pdf():
+    rule, balances = engine([item("ARC-1", "C1", "AV24-000001", 10000)])
+    rule.clauses = {"ARC-1": {"rappel_payout": {}}}
+    assert lines(rule(txn(-10000, name="Wellness Garrido S.L."), balances)) == {"ARC-1"}
+
+
+@pytest.mark.parametrize("variation", ["no_evidence", "short", "closed", "future", "foreign", "offset", "reserved",
+                                          "uncertain", "ambiguous"])
+def test_credit_note_payout_rejects_missing_or_ambiguous_evidence(variation):
+    note = item("ARC-1", "C1", "AV24-000001", 10000,
+                open_cents=0 if variation == "closed" else 10000,
+                issued="2024-07-01" if variation == "future" else "2024-01-01",
+                currency="USD" if variation == "foreign" else "EUR")
+    notes = [note] + ([item("ARC-2", "C1", "AV24-000002", 10000)] if variation == "ambiguous" else [])
+    rule, balances = engine(notes)
+    if variation in ("offset", "ambiguous"):
+        clause = "rappel_offset" if variation == "offset" else "rappel_payout"
+        rule.clauses = {n["item_id"]: {clause: {}} for n in notes}
+    if variation == "reserved":
+        rule.reserved = {"ARC-1": {"BT-0"}}
+    remit = None if variation in ("no_evidence", "ambiguous") else "AV24-000001"
+    wire = txn(-9900 if variation == "short" else -10000, "WELLNESS GARR" if variation == "uncertain" else "",
+               name=None if variation == "uncertain" else "Wellness Garrido S.L.", remit=remit)
+    assert rule(wire, balances) is None
+
+
+def test_credit_note_payout_resolves_to_its_whole_balance_with_no_exception():
+    rule, _ = engine([item("ARC-1", "C1", "AV24-000001", 10000)])
+    wire = txn(-10000, name="Wellness Garrido S.L.", remit="AV24-000001")
+    book = masters(customers=(("C1", "E1", "Wellness Garrido S.L.", None, None, None, None, None),))
+    book["customers"] = book["customers"].with_columns(pl.lit("ES").alias("country"))
+    book["payment_terms"] = pl.DataFrame(schema=dict.fromkeys(
+        ["code", "early_payment_discount_pct", "discount_days"], pl.String))
+    phase = SimpleNamespace(items=rule._known.with_columns(pl.lit(None, pl.String).alias("payment_terms")),
+                            masters=book, txns=pl.DataFrame([dict(wire, bank="B", bank_code="", bank_subcode="",
+                                                                amount_eur_cents=wire["amount_cents"])],
+                                                           schema_overrides={"orig_cents": pl.Int64}))
+    rows, balances = resolve(phase, {}, rule)
+    assert [(r.item_id, r.amount_cents, r.exception) for r in rows] == [("ARC-1", 10000, None)]
+    assert balances.open("ARC-1") == 0
 
 
 def test_big_pool_still_finds_up_to_four_items_if_they_are_the_only_ones():

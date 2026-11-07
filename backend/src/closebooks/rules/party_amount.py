@@ -142,7 +142,8 @@ def _clauses(phase) -> dict[str, dict[str, dict]]:
     if not hasattr(phase, "dir") or not (phase.dir / "pdfs" / "index.csv").exists():
         return {}
     facts = phase_clauses(phase)
-    return {item: {c.kind: c.value for c in doc.clauses} for item, doc in facts._by_item.items() if doc.clauses}
+    return {item: {**{c.kind: c.value for c in doc.clauses}, "_pdf": {"path": doc.path}}
+            for item, doc in facts._by_item.items() if doc.clauses}
 
 
 def _month_of(text: str) -> tuple[int, int | None] | None:
@@ -244,7 +245,37 @@ class PartyAmount:
             self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
         elif self._pending:
             self._abstain(txn, "subsets", self._pending, balances)
+        else:
+            return self._credit_payout(txn, cash, currency, balances)
         return None
+
+    def _credit_payout(self, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
+        """POLICIES §5.9: a transfer back to a customer settles its credit note, not a supplier invoice."""
+        if txn["amount_cents"] >= 0 or cash <= 0:
+            return None
+        parties = self.parties.find(txn, "customer")
+        if not self.parties.certain:
+            return None
+        tokens = {_alnum(t) for t in self._tokens(txn)}
+        matches = []
+        for party in parties:
+            for note in self.items.get(party, ()):
+                if (note[0][:3] != "ARC" or note[3] != currency or note[2] > txn["booking_date"]
+                        or note[0] in self.reserved or balances.open(note[0]) != cash):
+                    continue
+                clauses = self.clauses.get(note[0], {})
+                if "rappel_offset" in clauses or clauses.get("credit_refund", {}).get("mode") == "offset":
+                    continue
+                if note[6] in tokens or "rappel_payout" in clauses:
+                    matches.append((party, note))
+        if len(matches) != 1:
+            return None
+        party, note = matches[0]
+        sources = [{"kind": "customer", "ref": party}, {"kind": "bankLine", "ref": txn["bank_txn_id"]}]
+        if pdf := self.clauses.get(note[0], {}).get("_pdf"):
+            sources.append({"kind": "pdf", "ref": pdf["path"]})
+        return Proposal("CREDIT-PAYOUT", [(note[0], cash)], confidence=1.0, party_id=party, reference=note[1],
+                        sources=sources)
 
     def _returned(self, item_id: str, balances: OpenBalances) -> bool:
         """A file reserves its items for its bank lines. Once the last of them has come back, the customer can pay the
