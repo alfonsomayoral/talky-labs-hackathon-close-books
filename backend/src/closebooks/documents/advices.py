@@ -56,6 +56,9 @@ class Advice:
     payer: str | None = None
     entity: str | None = None
     received_date: str | None = None
+    method: str = "parser"
+    model: str | None = None
+    cache_key: str | None = None
 
     @property
     def closes(self) -> bool:
@@ -391,8 +394,8 @@ def documents_frame(batch: AdviceBatch) -> pl.DataFrame:
         "grossCents": [x.gross_cents for _, x in rows], "deductionCents": [x.deduction_cents for _, x in rows],
         "reason": [x.reason for _, x in rows], "paidCents": [x.paid_cents for _, x in rows],
         "customerPo": [x.po for _, x in rows], "voucher": [x.voucher for _, x in rows],
-        "clause": [None] * len(rows), "clauseValue": [None] * len(rows), "method": ["parser"] * len(rows),
-        "model": [None] * len(rows), "cacheKey": [None] * len(rows),
+        "clause": [None] * len(rows), "clauseValue": [None] * len(rows), "method": [a.method for a, _ in rows],
+        "model": [a.model for a, _ in rows], "cacheKey": [a.cache_key for a, _ in rows],
     }, schema=DOCUMENT_SCHEMA)
 
 

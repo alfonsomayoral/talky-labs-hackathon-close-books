@@ -15,12 +15,21 @@ import polars as pl
 
 from .cases import attach_questions, build_cases, overdue_cases
 from .documents.advices import documents_frame, phase_advices, residue
+from .documents.extract import ModelUse, default_provider, rescue_advices
 from .documents.pdfs import clauses_frame, phase_clauses
 from .drafts import render, top_per_template
 from .evaluate import score_file
-from .load import cancelled_item_ids, load_phase
+from .load import cancelled_item_ids, load_phase, load_table
 from .memory import Memory, load_rules
-from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
+from .output import (
+    parties_frame,
+    write_cases,
+    write_explanations,
+    write_facts,
+    write_jsonl,
+    write_open_items,
+    write_submission,
+)
 from .paths import ROOT, RUNS
 from .resolve import resolve
 from .rules import propose, stateful
@@ -30,6 +39,13 @@ def _peak_rss_mb() -> int:
     """Peak of this process so far (bytes on macOS, kilobytes on Linux)."""
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return peak // (1 << 20) if sys.platform == "darwin" else peak // (1 << 10)
+
+
+def advice_meta(phase) -> dict[str, dict]:
+    index = phase.dir / "remittance_advices" / "index.csv"
+    if not index.exists():
+        return {}
+    return {f"remittance_advices/{r['file']}": r for r in load_table(index).iter_rows(named=True)}
 
 
 def _git_commit() -> str | None:
@@ -97,7 +113,8 @@ def _drafts(cases, rows, phase, balances, names, countries, created_at: str) -> 
     return drafts
 
 
-def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, memory: Path | None = None) -> Path:
+def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, memory: Path | None = None,
+                 max_model_calls: int = 0) -> Path:
     started = datetime.now().astimezone()
     stages: dict[str, int] = {}
     peak_mb: dict[str, int] = {}
@@ -117,6 +134,9 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
     phase = load_phase(phase_name)
     lap("load")
     advices = phase_advices(phase)
+    use = ModelUse(limit=max_model_calls)
+    provider = default_provider()
+    rescue_advices(advices, phase.dir, advice_meta(phase), provider, ROOT / "backend" / "cache" / phase_name, use)
     phase_clauses(phase)
     lap("documents")
     taught = Memory(load_rules(memory))
@@ -150,7 +170,8 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
                                  created_at)
     drafts = _drafts(cases, rows, phase, balances, names, countries, created_at)
     write_cases(run, cases)
-    write_facts(run, pl.concat([documents_frame(advices), clauses_frame(phase_clauses(phase))]), None)
+    documents = pl.concat([documents_frame(advices), clauses_frame(phase_clauses(phase))])
+    write_facts(run, documents, parties_frame(rows, txns))
     write_open_items(run, phase, balances)
     write_jsonl(run / "questions.jsonl", questions)
     write_jsonl(run / "drafts.jsonl", drafts)
@@ -170,7 +191,9 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
         "byException": dict(Counter(r.exception for r in rows if r.exception)),
         "byCategory": dict(Counter(r.category for r in rows if r.category)),
         "cases": dict(Counter(c["status"] for c in cases)),
-        "advices": residue(advices), "models": {}, "memoryRulesApplied": sum(r.rule == "MEMORY-RULE" for r in rows),
+        "advices": residue(advices), "modelUse": vars(use),
+        "models": {provider.model: {"calls": use.calls}} if use.calls else {},
+        "memoryRulesApplied": sum(r.rule == "MEMORY-RULE" for r in rows),
         "memoryRulesIgnored": taught.ignored, "score": result,
     }
     (run / "run.json").write_bytes(orjson.dumps(meta, option=orjson.OPT_INDENT_2))

@@ -20,7 +20,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     from .pipeline import run_pipeline
 
     run = run_pipeline(args.phase, out=Path(args.out) if args.out else None,
-                       memory=Path(args.memory) if args.memory else None)
+                       memory=Path(args.memory) if args.memory else None, max_model_calls=args.max_model_calls)
     meta = json.loads((run / "run.json").read_text())
     size = meta["csvBytes"] / 1e6
     print(f"{run}\n{meta['txns']} txns, {meta['rows']} rows, {size:.1f} MB, {meta['durationMs'] / 1000:.0f} s")
@@ -95,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
     run = sub.add_parser("run")
     run.add_argument("--phase", required=True)
     run.add_argument("--out")
+    run.add_argument("--max-model-calls", type=int, default=0,
+                     help="advices no parser closes that a model may read; 0 (default) uses only what is cached")
     run.add_argument("--memory", help="human/ folder of an earlier run: its memory rules apply first")
     run.set_defaults(func=_cmd_run)
 
