@@ -40,21 +40,19 @@ Todos los comandos se lanzan **desde `backend/`, en la misma terminal**, salvo e
    mkdir -p ../db/final && ls -A ../db/final
    ```
 
-## A las 18:00 (descarga y ejecución, ~10 min)
+## A las 18:00 (descarga, ejecución y envío, ~10 min)
 
-1. Descargar el paquete de FINAL a `db/final/` con la misma estructura que `db/live/` (bank, items, `masters_final/`, documentos). El de TRAIN venía anidado (`train/train/`), y entonces la fase no se encuentra; este comando lo aplana si hace falta y no hace nada si no:
+Terminal en `backend/`, con el checkout en `freeze-final` y `HK_TOKEN` exportado (§Antes). Con el paquete de FINAL descargado en `db/final/` (misma estructura que `db/live/`: bank, items, `masters_final/`, documentos), son cinco comandos, en orden, copiables uno a uno.
+
+1. Aplanar y comprobar. El paquete de TRAIN venía anidado (`train/train/`), y entonces la fase no se encuentra; esto lo aplana si hace falta y no hace nada si no. Tienen que listarse los dos, sin error (si no trae `masters_final/`, usa los maestros del paquete: avisar a la orquestadora):
    ```
-   if [ -d ../db/final/final ]; then mv ../db/final/final/* ../db/final/ && rmdir ../db/final/final; fi
-   ```
-   Tienen que listarse los dos, sin error (si no trae `masters_final/`, usa los maestros del paquete: avisar a la orquestadora):
-   ```
-   ls ../db/final/bank_transactions.csv.gz ../db/final/masters_final
+   if [ -d ../db/final/final ]; then mv ../db/final/final/* ../db/final/ && rmdir ../db/final/final; fi; ls ../db/final/bank_transactions.csv.gz ../db/final/masters_final
    ```
 2. Ejecutar **una sola vez**, en primer plano, con tiempo y memoria medidos:
    ```
-   /usr/bin/time -l uv run closebooks run --phase final --out ../runs/final-a
+   ../scripts/run_slot.sh /usr/bin/time -l uv run closebooks run --phase final --out ../runs/final-a
    ```
-   Esperado: 3–4 min, pico < 8 GB. Avisos esperables por stderr: `no FX rate for <divisa>` (ver abajo), banco nuevo fuera de la tabla de categorías (esperado). El aviso `masters_final/<fichero> has N rows` no es esperable: ver §Decisiones.
+   Esperado: 3–4 min, pico < 8 GB. `run_slot` espera si hay un slot ocupado o menos de 8 GB libres. Avisos esperables por stderr: `no FX rate for <divisa>` (ver abajo), banco nuevo fuera de la tabla de categorías (esperado). El aviso `masters_final/<fichero> has N rows` no es esperable: ver §Decisiones.
 3. Validar con los límites oficiales:
    ```
    uv run closebooks validate --phase final ../runs/final-a/submission.csv.gz
@@ -62,9 +60,21 @@ Todos los comandos se lanzan **desde `backend/`, en la misma terminal**, salvo e
    Tiene que dar `"ok": true`, `txnsCovered == txnsTotal`, y < 60 MB sin comprimir.
 4. Comprobación sin golden:
    ```
-   uv run python ../scripts/final_check.py ../runs/final-a --ref ../runs/live-fraction-g
+   uv run python ../scripts/final_check.py ../runs/final-a --ref ../runs/live-freeze
    ```
-   Leer la tabla: verde = seguir. Ámbar «banco nuevo» = esperado. Rojo: ver §Decisiones.
+   La referencia es la LIVE del código congelado. Si `runs/live-freeze` no existe, poner en `--ref` la última LIVE enviada, la carpeta que da `ls -t ../runs/*/live_result.json | head -1`. Leer la tabla: verde = seguir. Ámbar «banco nuevo» = esperado. Rojo: ver §Decisiones.
+5. Enviar, **una sola vez**, si §Decisiones lo permite. La respuesta queda en `runs/final-a/final_result.json`. Anotar la hora. No volver a pedir URL de subida.
+   ```
+   uv run --with requests ../scripts/submit.py FINAL ../runs/final-a/submission.csv.gz | tee ../runs/final-a/final_result.json
+   ```
+
+Lo más probable, porque FINAL trae una divisa, un banco y una sociedad nuevos. Cualquier otro síntoma: §Decisiones.
+
+| Síntoma en `final_check` | Acción |
+| --- | --- |
+| Rojo «toda divisa tiene tipo en FX» | Enviar igual: el CSV va en la divisa de la partida |
+| «banco nuevo», ámbar o rojo, o rojo «todo banco con filas fuera de FALLBACK» solo en ese banco | Enviar igual: como mucho se pierden categorías de ese banco |
+| Rojo o aviso de `FALLBACK` en una sola sociedad, la nueva | Enviar igual: no tiene historial. Si son varias familias de reglas, avisar antes de enviar |
 
 ## Decisiones si algo sale mal
 
@@ -102,14 +112,6 @@ print(F, final.height, "->", merged.height)'
 ```
 
 Repetir por cada fichero en rojo, relanzar con `--out ../runs/final-b` y repetir la validación, la comprobación y el envío sobre `final-b`.
-
-## Envío (una sola vez)
-
-```
-uv run --with requests ../scripts/submit.py FINAL ../runs/final-a/submission.csv.gz | tee ../runs/final-a/final_result.json
-```
-
-La respuesta queda en `runs/final-a/final_result.json`. Anotar la hora. No volver a pedir URL de subida.
 
 ## Después (19:00–19:45)
 
