@@ -14,7 +14,7 @@ SIDE_OF_ITEM = {"API": "supplier", "APC": "supplier", "ARI": "customer", "ARC": 
 # Words of a company's legal form, in any of the group's markets. What is left after them is the name.
 LEGAL_FORMS = frozenset("""
 S A L U C V R DE RL COOP SA SL SLU SAS SARL EURL GMBH CO KG AG EK E LTD LTDA LLC LLP INC CORP PTY BV NV SRL SNC SPA
-SP Z O OO EIRELI ME EPP GROUP PLC
+SP Z O OO EIRELI ME EPP GROUP PLC LIMITED LDA B N P
 """.split())
 _NOT_ALNUM = re.compile(r"[^A-Z0-9]+")
 

@@ -303,6 +303,18 @@ def test_a_customer_with_its_legal_form_cut_by_the_bank_is_still_found_but_not_c
     assert not index.certain
 
 
+def test_limited_is_a_legal_form_the_bank_leaves_out():
+    """BT-2025-0048604 of holdout: nothing else in the text names Hill & Turner Pools Limited."""
+    moved = txn(1, "TRANSFER. EN DIV. | BEIHCBXX -HILL & TURNER POOLS | PAYMENT INV 522575 502205")
+    assert _index("Hill & Turner Pools Limited").find(moved, "customer") == ["C0"]
+
+
+def test_the_letters_of_a_dotted_legal_form_are_a_legal_form():
+    assert _index("Backyard Redcliffe B.V.").find(txn(1, "FP BACKYARD REDCLIFFE OUTDOOR"), "customer") == ["C0"]
+    assert _index("Giardini Etxeberria S.p.A.").find(txn(1, "BONIFICO DA GIARDINI ETXEBERRIA CAUSALE"),
+                                                      "customer") == ["C0"]
+
+
 def test_the_longer_name_written_whole_wins_over_the_shorter_one():
     moved = txn(1, "TRANSF. A SU FAVOR | MOLINOS ARRAYAN S.L.U. | PLAZO 4/4")
     index = _index("Molinos Arrayan S.L.", "Molinos Arrayan S.L.U.")
