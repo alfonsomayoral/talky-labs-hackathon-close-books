@@ -285,6 +285,8 @@ async function route(method, path, query, readBody) {
   const resource = seg[3]
   if (!resource) return current.run
   if (resource === 'status') return current.status
+  // Only in the mock, which keeps human/ in memory: what `closebooks serve` writes to runs/<id>/human/.
+  if (resource === 'human') return human
   if (resource === 'stats') return stats(query.get('entity'))
   if (resource === 'validate') return { ok: true, errors: [], sizeBytes: 9200000, uncompressedBytes: 34500000, rows: run.rows, txns: run.txns }
 
@@ -321,7 +323,7 @@ async function route(method, path, query, readBody) {
     if (seg[5] === 'decision' && method === 'POST') {
       const body = await readBody()
       human.decisions.push({ decisionId: decisionId(), caseId: c.caseId, ...body, at: now() })
-      if (body.action === 'done') c.status = 'done'
+      c.status = body.action === 'review' ? 'needs_review' : 'done'
       statsCache.clear()
       accountsCache.clear()
       return caseDetail(c)
@@ -332,6 +334,7 @@ async function route(method, path, query, readBody) {
   if (resource === 'questions') {
     if (seg[5] === 'answer' && method === 'POST') {
       const q = found(questions.find((x) => x.questionId === seg[4]), 'esa pregunta')
+      if (q.status === 'answered') throw new Problem(409, 'Esa pregunta ya está respondida')
       const body = await readBody()
       human.decisions.push({ decisionId: decisionId(), questionId: q.questionId, caseId: q.caseId, ...body, at: now() })
       q.status = 'answered'
@@ -339,9 +342,14 @@ async function route(method, path, query, readBody) {
       c.status = 'done'
       statsCache.clear()
       accountsCache.clear()
-      if (body.saveAsRule && q.rulePreview) {
+      // CONTRACT.md §5.2: the rule comes from rulePreview, with the party of the chosen item; «none» creates none.
+      if (body.saveAsRule && q.rulePreview && body.optionId !== 'none') {
         const { kind, description, ...params } = q.rulePreview
-        human.memoryRules.push({ ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, kind, params: { ...params, partyId: itemById.get(body.optionId)?.partyId ?? params.partyId }, description, scope: { entity: q.entity }, createdFrom: { questionId: q.questionId, caseId: q.caseId }, by: body.by, at: now(), active: true })
+        const chosen = itemById.get(body.optionId)
+        for (const key of Object.keys(params)) {
+          if (params[key] === '<la opción elegida>') params[key] = key === 'documentNumber' ? chosen?.documentNumber : chosen?.partyId
+        }
+        human.memoryRules.push({ ruleId: `MR-${String(human.memoryRules.length + 1).padStart(4, '0')}`, kind, params, description, scope: { entity: q.entity }, createdFrom: { questionId: q.questionId, caseId: q.caseId }, by: body.by, at: now(), active: true })
       }
       return caseDetail(c)
     }
@@ -361,7 +369,11 @@ async function route(method, path, query, readBody) {
     }
     if (!seg[4]) return list(drafts, query, { filters: { status: 'status', kind: 'kind' } })
     const d = found(draftById(seg[4]), 'ese borrador')
-    if (method === 'PUT') return Object.assign(d, await readBody())
+    if (method === 'PUT') {
+      Object.assign(d, await readBody())
+      human.outbox.push({ draftId: d.draftId, status: 'draft', subject: d.subject, body: d.body, to: d.to, attachments: d.attachments, by: null, at: now() })
+      return d
+    }
     if (seg[5] === 'send' || seg[5] === 'manual') {
       d.status = seg[5] === 'send' ? 'sent' : 'manual'
       human.outbox.push({ draftId: d.draftId, status: d.status, subject: d.subject, body: d.body, to: d.to, attachments: d.attachments, by: 'tesoreria@valtermia.example', at: now() })
@@ -378,7 +390,8 @@ async function route(method, path, query, readBody) {
       return rule
     }
     if (method === 'DELETE') {
-      found(human.memoryRules.find((r) => r.ruleId === seg[4]), 'esa regla').active = false
+      const rule = found(human.memoryRules.find((r) => r.ruleId === seg[4]), 'esa regla')
+      Object.assign(rule, { active: false, deletedAt: now() })
       return null
     }
   }
