@@ -80,7 +80,7 @@ Una fila por movimiento con tercero resuelto: `bankTxnId`, `partyId`, `partyKind
 
 ### 2.5 `state/open_items.parquet`
 
-Una fila por partida con movimiento en la fase o abierta al inicio: `itemId`, `itemType`, `entity`, `partyId`, `documentNumber`, `issueDate`, `dueDate`, `currency`, `totalCents`, `openAtStartCents`, `appliedCents`, `openAtEndCents`, `status` (`open`, `partial`, `cleared`, `disputed`, `returned`), `history` (JSON: `[{bankTxnId, bookingDate, amountCents, exception}]`).
+Una fila por partida **emitida en la fase**, abierta al inicio o con movimiento en la fase (también las que no tienen ningún movimiento: sin ellas el aging no es creíble): `itemId`, `itemType`, `entity`, `partyId`, `documentNumber`, `issueDate`, `dueDate`, `currency`, `totalCents`, `openAtStartCents`, `appliedCents`, `openAtEndCents`, `status` (`open`, `partial`, `cleared`, `disputed`, `returned`), `history` (JSON: `[{bankTxnId, bookingDate, amountCents, exception}]`).
 
 ### 2.6 `questions.jsonl`
 
@@ -615,4 +615,6 @@ Fijadas al integrar la API; mandan sobre lo que §4 y §5 dejaban abierto.
 11. `POST …/drafts` responde 501 hasta que exista el generador de borradores.
 12. `closebooks serve <run>` marca esa ejecución con `served: true` en `RunSummary` (las demás `false`) y es la única que precarga; la plataforma la elige por defecto. Las demás se abren bajo demanda (primera apertura, segundos).
 13. `GET …/cases` devuelve además `sumAmountEur`: suma de `amountEur` de todos los casos que cumplen el filtro, no solo de la página.
+15. `serve` no acepta conexiones hasta terminar la precarga de la ejecución servida (la primera petición nunca paga los ~30 s de apertura).
+16. `summary` de un caso describe lo resuelto (regla, partidas, excepción), nunca «sin casación» si hay filas con partida. `TxnDetail.party` solo es `null` con más de un `partyId` distinto; con 27 filas del mismo cliente lleva ese tercero con su `how` y confianza.
 14. El esquema OpenAPI de `ValidationResult.errors` es `{row: number | null, message: string}` (nombre de esquema propio, sin chocar con el `ValidationError` de FastAPI).
