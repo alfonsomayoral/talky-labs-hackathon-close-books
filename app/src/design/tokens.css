@@ -14,10 +14,11 @@
   --brand-line: #0f4c3a;
   --brand-strong: #04242b;
 
-  /* The primary action: deep teal with bone text, 15.4:1. */
-  --action: #04242b;
+  /* The primary action: deep green with bone text, 9.4:1 (11.6:1 on --brand-hover). The deep teal --brand-strong
+     stays for surfaces and gradients only. Hover darkens towards it: bone text stays ≥ 9.4:1 on both stops. */
+  --action: #0f4c3a;
   --action-ink: #faf9f6;
-  --gradient-action: linear-gradient(135deg, #04242b, #0f4c3a);
+  --gradient-action: linear-gradient(135deg, #0f4c3a, #04242b);
 
   /* Large-figure surfaces (the only gradient areas): see [data-surface='feature'] below. */
   --gradient-feature: linear-gradient(135deg, #04242b, #0f4c3a);
@@ -31,9 +32,9 @@
   --ink-inverse: #faf9f6;
 
   /* Lines and surfaces */
-  --line: #e3e1dc;
+  --line: #cfcfcf;
   --line-soft: #efede8;
-  --line-strong: #cfcfcf;
+  --line-strong: #b9bab6;
   /* App ground: warm bone; sidebar and canvas sit on it, cards are white. */
   --ground: #faf9f6;
   --ground-hover: rgb(4 36 43 / 0.045);
@@ -164,10 +165,11 @@
   --brand-line: #3fa673;
   --brand-strong: #8fd5b2;
 
-  /* The primary action: the one light block on the dark sheet, 16.4:1. */
-  --action: #f2f1ec;
-  --action-ink: #121413;
-  --gradient-action: linear-gradient(135deg, #f2f1ec, #cfe6da);
+  /* The primary action: a lightened deep green with off-white text, 4.65:1. Hover darkens it: 5.8:1 on the
+     darker stop, never below 4.65:1. */
+  --action: #1f7a5a;
+  --action-ink: #f2f1ec;
+  --gradient-action: linear-gradient(135deg, #1a6a4e, #1f7a5a);
 
   --gradient-feature: linear-gradient(135deg, #0f2e27, #1a1d1b);
 
