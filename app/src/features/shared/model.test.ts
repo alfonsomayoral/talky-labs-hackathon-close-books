@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { primaryAction } from './model'
+import { primaryAction, recipientLine } from './model'
 
 describe('primaryAction', () => {
   const base = { status: 'needs_review' as const, suggestedAction: 'review' as const, question: null, draft: null }
@@ -33,5 +33,15 @@ describe('primaryAction', () => {
 
   it('has no action for a case somebody already closed', () => {
     expect(primaryAction({ ...base, status: 'done' })).toBe('closed')
+  })
+})
+
+describe('recipientLine', () => {
+  it('gives name and address', () => {
+    expect(recipientLine({ toName: 'Navarro GmbH', to: 'pagos@navarro.example' })).toBe('Navarro GmbH <pagos@navarro.example>')
+  })
+  it('never prints a missing address: the masters carry no emails', () => {
+    expect(recipientLine({ toName: 'Navarro GmbH', to: null })).toBe('Navarro GmbH')
+    expect(recipientLine({ toName: null, to: null })).toBe('')
   })
 })
