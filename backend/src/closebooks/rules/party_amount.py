@@ -46,6 +46,8 @@ _MONTH = re.compile(r"\b(" + "|".join(sorted(MONTHS, key=len, reverse=True)) + r
 MAX_TIED_SUBSETS = 5
 CREDIT_NOTES = ("ARC", "APC")
 _WITHHOLDING = (0.0125, 0.015, 0.10)
+ROUND_FRACTIONS = 20  # a partial pays a round share of the invoice: a multiple of 5 %
+SHARE_WINDOW = 3  # cents a round share may be off by: one either way
 
 
 def _alnum(text: str) -> str:
@@ -213,12 +215,15 @@ class PartyAmount:
             "country" in customers.columns) else {}
         known = items.filter(pl.col("party_id").is_not_null())
         self.parties = PartyIndex(phase.masters, known.select("entity", "party_id", "party_name").unique())
+        self.related = {} if "related_document" not in items.columns else {
+            i: _alnum(r) for i, r in items.filter(pl.col("related_document").is_not_null())
+            .select("item_id", "related_document").iter_rows() if i[:3] in CREDIT_NOTES}
         self._known = known
         self.reindex()
 
     def release(self) -> None:
         """Before writing the run: the indexes are the biggest thing in memory and nothing needs them after resolve."""
-        self.items, self.by_number, self.clauses = {}, {}, {}
+        self.items, self.by_number, self.clauses, self.related = {}, {}, {}, {}
         self.parties = None
         self._known = None
 
@@ -418,6 +423,9 @@ class PartyAmount:
             return planned
         if not self.parties.certain:
             return None
+        fraction = self._round_fraction(free, cash, open_now, mine)
+        if fraction:
+            return Proposal("PARTY-FRACTION", [(fraction, cash)], confidence=0.85, party_id=party)
         run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
         if run:
             return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
@@ -605,6 +613,20 @@ class PartyAmount:
                 found.sources.append({"kind": "pdf", "ref": pdf["path"]})
             return found
         return None
+
+    def _round_fraction(self, free: list, cash: int, open_now: dict, mine: list) -> str | None:
+        """The one whole open invoice of which the cash is a round share, to the cent. Not one with an open credit
+        note of its own: notes are round shares too, and the invoice net of one only looks like a partial."""
+        noted = {self.related.get(i[0]) for i in mine if i[0][:3] in CREDIT_NOTES and open_now[i[0]] > 0}
+        # Its PDF says what is short and why: only `_plan_expects` can read that cash.
+        whole = [i for i, o in free if i[0][:3] not in CREDIT_NOTES and o == i[4] > cash and i[6] not in noted
+                 and not {"retention", "advance_deduction"} & self.clauses.get(i[0], {}).keys()]
+        # Each invoice spreads its shares over its own total: how many would land on any cash by chance.
+        if sum(_chance((ROUND_FRACTIONS - 1) * SHARE_WINDOW, [i[4]]) for i in whole) > MAX_CHANCE:
+            return None
+        hits = [i[0] for i in whole if any(
+            abs(cash * ROUND_FRACTIONS - i[4] * k) <= ROUND_FRACTIONS for k in range(1, ROUND_FRACTIONS))]
+        return hits[0] if len(hits) == 1 else None
 
     def _plan_expects(self, item: tuple, cash: int) -> bool:
         clauses = self.clauses.get(item[0])
