@@ -17,7 +17,9 @@ LOCALHOST = r"https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
 
 def create_app(runs_dir: Path | None = None, warm: str | None = None, store: Store | None = None) -> FastAPI:
     """`warm` is a run id to open at startup, so its first request is not the one that pays for the build."""
-    store = store or Store(runs_dir or paths.RUNS)
+    store = store or Store(runs_dir or paths.RUNS, served=warm)
+    store.served = warm or store.served
+    warm = store.served
 
     def open_run(run_id: str) -> None:
         """The run and the package tables its screens read, so no first request pays for their build."""

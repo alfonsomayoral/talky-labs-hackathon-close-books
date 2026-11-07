@@ -11,7 +11,7 @@ from .run_data import RunData
 from .schemas import (
     AnswerBody,
     CaseDetail,
-    CaseRow,
+    CasePage,
     DecisionBody,
     Draft,
     DraftAction,
@@ -39,7 +39,7 @@ def case_detail(run: RunData, case_id: str) -> dict:
     return {**case, "question": question, "draft": draft}
 
 
-@router.get("/runs/{runId}/cases", response_model=Paged[CaseRow])
+@router.get("/runs/{runId}/cases", response_model=CasePage)
 def list_cases(runId: str, request: Request, paging: Paging, status: str | None = None, kind: str | None = None,
                entity: str | None = None, priority: str | None = None, q: str | None = None,
                sort: str | None = None):
@@ -50,8 +50,12 @@ def list_cases(runId: str, request: Request, paging: Paging, status: str | None 
     w.isin('"entity"', entity)
     w.isin('"priority"', priority, int)
     w.search('"_search"', q)
-    return page_of(run.cursor(), "cases", cols(CASE_ROW), w,
+    cur = run.cursor()
+    page = page_of(cur, "cases", cols(CASE_ROW), w,
                    order_by(sort, CASE_SORT, '"priority", "amountEur" DESC', '"caseId"'), paging)
+    page["sumAmountEur"] = cur.execute(f'SELECT coalesce(sum("amountEur"), 0) FROM cases {w.clause()}',
+                                       w.params).fetchone()[0]
+    return page
 
 
 @router.get("/runs/{runId}/cases/{caseId}", response_model=CaseDetail)

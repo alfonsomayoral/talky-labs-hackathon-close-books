@@ -700,7 +700,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Paged_CaseRow_"
+                  "$ref": "#/components/schemas/CasePage"
                 }
               }
             }
@@ -3231,6 +3231,43 @@
         ],
         "title": "CaseDetail"
       },
+      "CasePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CaseRow"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "sumAmountEur": {
+            "type": "integer",
+            "title": "Sumamounteur"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "sumAmountEur"
+        ],
+        "title": "CasePage",
+        "description": "Sum of amountEur over every case matching the filter, not only this page."
+      },
       "CaseRow": {
         "properties": {
           "caseId": {
@@ -5039,37 +5076,6 @@
         ],
         "title": "OpenItem"
       },
-      "Paged_CaseRow_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/CaseRow"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          },
-          "page": {
-            "type": "integer",
-            "title": "Page"
-          },
-          "size": {
-            "type": "integer",
-            "title": "Size"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size"
-        ],
-        "title": "Paged[CaseRow]"
-      },
       "Paged_DataItem_": {
         "properties": {
           "items": {
@@ -6212,6 +6218,10 @@
               }
             ],
             "title": "Score"
+          },
+          "served": {
+            "type": "boolean",
+            "title": "Served"
           }
         },
         "type": "object",
@@ -6227,7 +6237,8 @@
           "memoryRulesApplied",
           "modelCalls",
           "modelCostUsd",
-          "score"
+          "score",
+          "served"
         ],
         "title": "RunSummary"
       },
@@ -6557,6 +6568,31 @@
         ],
         "title": "ValidationError"
       },
+      "ValidationIssue": {
+        "properties": {
+          "row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "row",
+          "message"
+        ],
+        "title": "ValidationIssue"
+      },
       "ValidationResult": {
         "properties": {
           "ok": {
@@ -6565,7 +6601,7 @@
           },
           "errors": {
             "items": {
-              "$ref": "#/components/schemas/ValidationError"
+              "$ref": "#/components/schemas/ValidationIssue"
             },
             "type": "array",
             "title": "Errors"
