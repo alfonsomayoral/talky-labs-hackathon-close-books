@@ -535,7 +535,7 @@ class PartyAmount:
         if withheld:
             return self._proposal("PARTY-WITHHELD", party, withheld, by_cash=True, confidence=0.85)
         if not self.parties.certain:
-            return None
+            return self._due_subset(free, cash, party, date)
         fraction = self._round_fraction(free, cash, open_now, mine)
         if fraction:
             return Proposal("PARTY-FRACTION", [(fraction, cash)], confidence=0.85, party_id=party)
@@ -545,14 +545,14 @@ class PartyAmount:
         net = self._net_of_terms(free, cash, txn["booking_date"])
         if net:
             return self._proposal("PARTY-NET-SUBSET", party, net, by_cash=True, confidence=0.85)
-        due_set = self._due_subset(free, cash, party, date) if not strong and not weak else None
+        due_set = self._due_subset(free, cash, party, date)
         if due_set:
             return due_set
         # Last: what open documents can explain is more certain than a second payment of a closed one.
         return self._paid_again(mine, open_now, cash, party, balances)
 
     def _due_subset(self, free: list, cash: int, party: str, booked: str) -> Proposal | None:
-        """A receipt citing nothing: the only set of invoices due by now, with no credit notes, that adds up to it."""
+        """What nothing else explained: the only set of due invoices, with no credit notes, that adds up to it."""
         limit = (Date.fromisoformat(booked) + timedelta(days=DUE_TOLERANCE_DAYS)).isoformat()
         pool = [(i[0], o) for i, o in sorted(free, key=lambda x: (x[0][2], x[0][0]))
                 if i[0][:3] == "ARI" and o <= cash and self._due.get(i[0], "9") <= limit]
