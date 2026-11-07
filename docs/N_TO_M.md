@@ -184,3 +184,25 @@ Ejecución real de la unión, sobre main a5c8ca8: 161 de 163 = 0,988 en holdout 
 | J4 de Jev en lote de 1, en un banco con vocabulario nuevo | No integrado; `docs/JEV_PLAN.md` §10.1 | 0,748 → 0,908 en contrafactual, 3,7 % de falsos |
 | Fuente nueva para parejas sin cita y dispersos | Sin señal en los datos | 806 + 2.435 líneas |
 | Cobros sueltos de `ar_n_to_m` y `PARTIAL` con segundo cobro fuera de fase | Sin explicar | 120 · 163 líneas |
+
+## 14. Medido en el último empujón, fuera por decisión de Alfonso
+
+**G2, `PARTY-SCATTERED` (rama `KPI-11_scattered-sets`, d085b03, sin PR).** Decisión de Alfonso: «Fuera, después». Cobro en fallback, tercero seguro y el único conjunto de facturas residuales vencidas que suma el cobro, en cascada por fecha. «Vencidas» y «residuales» se eligieron tras ver el golden, sin documento que lo diga.
+
+| Ejecución real sobre main 85366ec | Holdout | Drift |
+| --- | --- | --- |
+| Regla | 241 de 246 = 0,980 | 262 de 266 = 0,985 |
+| `ar_ref_noise` | 219 de 220 | 232 de 232 |
+| Falsos en `unidentified` y `unidentified_lookalike` | 0 | 0 |
+| Nota | 93,84 (base próxima `acc-mainff`: 93,72) | 93,61 (93,48) |
+| Tiempo · pico | 155 s · 6,6 GB | 203 s, con PDF en frío · 6,5 GB |
+
+La base no es del mismo commit (70b4a9b), así que la subida de nota es aproximada. Pasa el umbral de 0,98 en holdout por muy poco, y sus criterios dependen de los plazos de pago, que FINAL hace más lentos a propósito. Primero, medirla en una fase de 2024 con código actual.
+
+**V1 con múltiplos del 5 % (parejas de `ar_n_to_m` sin doble cita, replay sobre 70b4a9b).** No se implementó.
+
+| Variante | Holdout: objetivo bien/falsas, precisión | Drift: objetivo bien/falsas, precisión |
+| --- | --- | --- |
+| Sin filtro | 210/3, 0,876 | 198/8, 0,820 |
+| S1 y S2 no vacíos y un cliente | 118/2, 0,872 | 112/5, 0,810 |
+| Además, sin citar factura ajena | 118/2, 0,907 | 112/4, 0,853 |
