@@ -4,9 +4,10 @@
 
 Shares are in percentage points; a gap above 3 is a warning. Rows per bank line and the mean amount, which are not
 shares, warn at 3 % of their value. An entity the reference does not have is compared with the reference's whole.
-Hard checks, that do not depend on LIVE: validate, coverage, size, an FX rate for every currency of the phase, and every
-entity and bank with some line past a fallback. A bank new to the category table is amber, and red from 90 % of its
-fallback debits in BANK_FEES: its codes are not being read. Exit code 1 if anything warns or a hard check fails.
+Hard checks, that do not depend on LIVE: validate, coverage, size, an FX rate for every currency of the phase, every
+entity and bank with some line past a fallback, and no file of masters_final/ shorter than the master it replaces.
+A bank new to the category table is amber, and red from 90 % of its fallback debits in BANK_FEES: its codes are not
+being read. Exit code 1 if anything warns or a hard check fails.
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ import polars as pl
 
 from closebooks.categories import load_codes
 from closebooks.evaluate import validate_file
-from closebooks.load import load_masters
+from closebooks.load import load_masters, short_masters
 
 THRESHOLD = 3.0
 MAX_CSV_BYTES = 60_000_000
@@ -100,8 +101,11 @@ def _hard_checks(run: Path, profile: dict) -> list[tuple[str, bool, str]]:
     report = validate_file(run / "submission.csv.gz", phase)
     no_rate = _without_rate(Path(meta["dataDir"]), masters)
     entities, banks = _only_fallback(profile, "entity"), _only_fallback(profile, "bank")
+    short = short_masters(Path(meta["dataDir"]))
     return [("validate oficial", bool(report["ok"]), "; ".join(map(str, report["errors"][:3])) or "ok"),
             ("toda divisa tiene tipo en FX", not no_rate, str(no_rate) if no_rate else "ok"),
+            ("ningún masters_final más corto que el maestro que sustituye", not short,
+             "; ".join(f"{file}: {rows} filas frente a {base}" for file, (rows, base) in short.items()) or "ok"),
             ("toda sociedad con filas fuera de FALLBACK", not entities, ", ".join(entities) or "ok"),
             ("todo banco con filas fuera de FALLBACK", not banks, ", ".join(banks) or "ok"),
             ("cobertura de movimientos", not missing, f"{profile['bank_ids'].n_unique() - len(missing)} de "
