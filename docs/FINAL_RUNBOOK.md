@@ -116,3 +116,13 @@ Repetir por cada fichero en rojo, relanzar con `--out ../runs/final-b` y repetir
 ## Después (19:00–19:45)
 
 Entrega del proyecto: repo en main con `freeze-final`, vídeo y descripción (`docs/SUBMISSION.md`), con las cifras del ensayo de LIVE congelado.
+
+
+## Cambio de método (17:05): sin congelación, dos candidatos
+
+No hay congelación de reglas. En su lugar:
+
+1. **Candidato A (seguro).** A las 18:00, con el main que haya (tag `final-candidate-a`), se ejecuta FINAL inmediatamente (`runs/final-a`), se valida y se pasa `final_check`. Es el fichero que se envía si nada mejor llega a tiempo.
+2. **Mejoras después de las 18:00.** Las PR siguen entrando en main solo con la puerta completa en holdout y drift (FINAL no tiene golden: nada se mide sobre FINAL). Cada entrada relevante produce un **candidato B** (`runs/final-b`, tag `final-candidate-b`) con la misma secuencia: run, validate, `final_check --ref ../runs/final-a` además de `--ref ../runs/live-freeze`.
+3. **Decisión de envío (19:00 como muy tarde, para enviar antes de las 19:20):** se envía B solo si (a) validate ok, (b) `final_check` frente a A muestra solo los cambios esperados (las reglas nuevas suben, nada baja, ninguna sociedad cambia de reparto fuera de esas reglas) y (c) todas las PR entre A y B pasaron holdout **y** drift. Si falta cualquiera, se envía A. Nunca se envían los dos: FINAL admite un solo envío.
+4. **Máquina:** desde las 17:55 un slot queda reservado para FINAL (candidatos A y B); las mediciones de reglas usan el otro.
