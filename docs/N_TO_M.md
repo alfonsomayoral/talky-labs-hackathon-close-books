@@ -1,6 +1,6 @@
 # N_TO_M.md — qué es `ar_n_to_m` y qué se puede casar sin forzar (7 nov 2026)
 
-Resultado de la sesión N a M (`docs/briefs/n_to_m.md`). Las cifras son del holdout; las de drift salen iguales o casi, así que drift **no es prueba independiente** en esta estructura. Lo marcado **[Inferencia]** es estimación. Base: `runs/acc-group-holdout`. Con las reglas: `runs/acc-integ-holdout` y `-drift` (PR 99).
+Resultado de la sesión N a M (`docs/briefs/n_to_m.md`). Las cifras son del holdout salvo donde se indica; las de drift salen iguales o casi, así que drift **no es prueba independiente** en esta estructura. Lo marcado **[Inferencia]** es estimación. Base: `runs/acc-group-holdout`. Con las reglas: `runs/acc-integ-holdout` y `-drift` (PR 99).
 
 ## 1. Resultado
 
@@ -111,3 +111,76 @@ En los fallos de `ar_n_to_m` + `ar_partial` + `ar_1toN_credit_note`, 3.072 de 3.
 - **Recuentos de citas.** El análisis de la factura común dio dos censos: 209/94/123/340 con cola fuerte de 5 dígitos, y 287/76/125/278 con `_cited` fuerte y débil. La diferencia de criterio probablemente explica el salto [Inferencia]; no se han cruzado. Lo mismo con 741 y 761 parejas cuya suma cuadra.
 - **Avisos.** En un cruce sin filtro de pagador ni fecha, los números salen literales en avisos en 325 movimientos, frente a 175 enlazados. De esos 150, el análisis de enlace acota 77 a avisos de otro cobro. Es probable que el resto sean colisiones [Inferencia]; no se han revisado uno a uno.
 - **Coste del pase.** La etapa `rules` pasó de 8,5 a 34,2 s en la ejecución integrada (148 s en total, tope 150 s). Falta separar qué parte es de `REF-SPLIT`.
+
+## 8. Parejas de cobros en `ar_partial`: `PAIRED-PARTIAL`, sin PR
+
+Rama `KPI-11_paired-partial`, sin fusionar. Dos cobros de un solo cliente suman al céntimo el saldo de la única factura que encaja. Sin constantes.
+
+| Medida | Holdout | Drift |
+| --- | --- | --- |
+| Sobre main antes de `PARTY-FRACTION` (replay) | 378 de 378, `ar_partial` 0,752 → 0,855 | 382 de 384 |
+| **Marginal sobre main con `PARTY-FRACTION`** (replay sobre `seg-main-45236d1-holdout`) | **30 movimientos**, 30 mal→bien, `ar_partial` 0,967 → 0,975 | — |
+
+- **Por qué no entra:** 30 líneas no llegan al mínimo de 50 acordado; `PARTY-FRACTION` (PR 109) se llevó esa masa.
+- **Fuera de muestra, TRAIN 2024-H1:** 2.104 de 2.178 = 0,966, 0 falsos en `unidentified` y `unidentified_lookalike`. Con guardas (abstención si hay plan de cuotas en el PDF o si el cobro cita otra factura): 1.616 de 1.620 = 0,9975, pero las guardas salieron de los falsos de esa misma ventana. Estado de una ejecución antigua, sin `REF-*` ni `PARTY-*`: es una prueba de estrés, no la población real.
+- **Homónimos, para después del evento:** aceptar los 2–5 clientes con el mismo nombre en vez de uno solo recuperaría 687 fallos en vez de 377 (163 parejas más), con 1–2 parejas falsas en `ar_instalment`. Filtro post-hoc: fuera.
+- **Sin señal:** 163 `PARTIAL` cuyo segundo cobro cae fuera de la fase. Solo los explican las fracciones del golden.
+
+## 9. Conjuntos dispersos de `ar_ref_noise`: sin señal
+
+Holdout: 2.826 líneas en fallback, 2.435 con 2 o más facturas (2.297 sin cita), de tamaño 4·6·10 (cuartiles) y máximo 43, entre 32·47·70 abiertas del cliente. Todas pagan facturas enteras. Los cobros son periódicos, pero los conjuntos no son ciclos: 1.863 de 2.236 solapan vencimientos con el cobro anterior.
+
+| Hipótesis (aciertos/disparos en líneas en fallback) | Holdout | Drift | Falsos `unidentified`/`lookalike` |
+| --- | --- | --- | --- |
+| Mes de emisión, subconjunto único | 164/196 | 185/219 | 1 |
+| Serie, subconjunto único | 178/203 | 168/191 | 2 |
+| Más antiguo que cuadra | 389/2.423 | 352/2.509 | 11 |
+| Vencidas con cotas del repo (post-hoc) | 182/190 = 0,958 | 164/169 | 0 |
+| Residuales vencidas en cascada (post-hoc) | 286/293 = 0,976 | 309/314 = 0,984 | 0 |
+
+Las hipótesis que superan 0,98 suman 44 líneas, y casi todas ya están resueltas. La más cercana no llega en holdout, se eligió tras ver el golden y sin cascada da 0,833. **No entra ninguna regla y el umbral no se relaja.**
+
+## 10. Parejas de `ar_n_to_m` solo por importes: no pasan
+
+958 líneas de pareja sin doble cita, 806 de ellas fallan. Replay sobre el estado de la ejecución, solo líneas sin resolver hoy, holdout.
+
+| Variante | Parejas | Objetivo bien / falsas | Falsas totales | Precisión |
+| --- | --- | --- | --- | --- |
+| V1, con fracciones 0,4/0,5/0,6 y 10–42 días (del golden) | 214 | 266 / 4 | 40 | 0,907 |
+| V2, partición exacta sin constantes | 247 | 0 / 0 | 4 | 0,992 |
+
+V2 solo acierta pares de una sola factura, sobre todo `ar_partial`, y no resuelve N a M. Sin fracción, la suma no dice qué factura se parte: 733 abstenciones por varias particiones. V1 no llega al umbral y sus constantes están retiradas.
+
+## 11. Líneas sueltas sin tercero resuelto: `PARTY-AMOUNT-LATE` (PR 120)
+
+Cobros en fallback donde el texto nombra al pagador de forma parcial y el importe es el saldo exacto de una única factura abierta. Con la PR 105 de `parties`, de las 391 líneas sueltas de `ar_ref_noise` siguen en fallback 113.
+
+| Variante (replay sobre todos los cobros en fallback) | Holdout | Drift | LIVE (recuento) | Falsos `unidentified`/`lookalike` |
+| --- | --- | --- | --- | --- |
+| Un solo tercero, por prefijo | 61/61 | 61/61 | 64 | 0 |
+| Unión con varios candidatos (post-hoc) | 162/162 | 167/167 | 166 | 0 |
+| Sin tercero, factura única de sociedad y divisa | 356/982 | 359/999 | 940 | 477 · 488 |
+
+Ejecución real de la unión, sobre main a5c8ca8: 161 de 163 = 0,988 en holdout y 170 de 172 = 0,988 en drift, 0 falsos en `unidentified` y `unidentified_lookalike`. Los 2 fallos son `ar_same_amount_fifo` con mismo importe y mismo saldo.
+
+- **Primera medida real: 0,895 en drift.** Cerraba por saldo final un cobro anterior a otro que ya había dejado `PARTIAL` la factura. El orden por fecha lo corrigió: el anterior es el parcial y el último cierra.
+- **Justificación:** ejemplo oficial de referencia ruidosa (hackathon.usetalky.com/ejemplos). POLICIES §3 advierte de no identificados con el importe exacto de otra factura; por eso se exige tercero, partida única y revisión por una persona.
+- **Límite:** corre tras la cascada y no libera cobros posteriores que dependan de ese saldo.
+
+## 12. Otras cifras de la tarde
+
+- **`PARTY-FRACTION` (PR 109, de otra sesión), holdout sobre 45236d1:** 456 de 466 = 0,9785. De los 10 fallos, 8 tienen factura e importe bien y excepción mal, y 2 casan un cobro sin partida (1 `unidentified_lookalike`, 1 `customer_advance`). Múltiplos del 5 % sin documento que los nombre: es la excepción conocida a la puerta.
+- **Coste de `REF-SPLIT`:** 29,7 s en holdout, pico 4,1 GB, casi todo en un segundo `PartyAmount` y `parties._in_text`. El reorden de la rama `KPI-11_n_to_m-speed` no ahorró nada medible y no se fusionó.
+
+## 13. Para después del evento
+
+| Qué | Por qué | Cifra de partida |
+| --- | --- | --- |
+| Reutilizar el motor de `PartyAmount` en `REF-SPLIT` y etapas tras `resolve` | Lo que de verdad cuesta | ~30 s por fase |
+| Medir `PAIRED-PARTIAL` en una fase de 2024 con código actual | El 0,966 de TRAIN usa estado antiguo | Marginal hoy: 30 líneas |
+| Parejas de homónimos | Más cobertura, filtro post-hoc | 163 parejas más, 1–2 falsas |
+| Revisar `PARTY-FRACTION` en una fase ajena | Sin documento, lookalike < 1,000 | 0,9785 en holdout |
+| Reconciliar los dos censos de citas y los 150 movimientos con avisos sin enlazar | Abierto en §7 | 150 movimientos |
+| J4 de Jev en lote de 1, en un banco con vocabulario nuevo | No integrado; `docs/JEV_PLAN.md` §10.1 | 0,748 → 0,908 en contrafactual, 3,7 % de falsos |
+| Fuente nueva para parejas sin cita y dispersos | Sin señal en los datos | 806 + 2.435 líneas |
+| Cobros sueltos de `ar_n_to_m` y `PARTIAL` con segundo cobro fuera de fase | Sin explicar | 120 · 163 líneas |

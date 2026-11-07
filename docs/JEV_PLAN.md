@@ -116,3 +116,27 @@ Total previsto: < 40 $ de los 100 $. Ninguno de los bloques 2–6 cabe antes de 
 
 **Sin medir:** otros prompts, la cobertura del `Noul`, el impacto en la nota, y motivos de FINAL ausentes de TRAIN. Un motivo nuevo sería hoy `SHORT_DISPUTE`, como manda `_deducted`.
 
+### 10.1 Piloto J4, categoría sin tabla (7 nov, 16:00, API real, 0,245 $)
+
+**Decisión: J4 no se integra.** Con el vocabulario de hoy no mejora al fallback en ninguna categoría y categoriza el 3,7 % de los cobros UNIDENTIFIED, cuando la puerta exige 0. El código queda en la rama `KPI-11_categories-judged`, sin PR y sin enganchar.
+
+Banco PENA de holdout, sin código ni tabla: 3.000 líneas con semilla fija de 5.656, 19 categorías más UNIDENTIFIED. Umbral 0,8, fijado antes de medir. Definiciones de `categories.csv` y POLICIES §4, sin tocar. El lote de 60 es el diseño fijado; **el lote de 1 es post-hoc**, añadido porque el de 60 parecía un artefacto.
+
+| Cifras reponderadas a la población | Precisión | Cobertura | Exactitud, con fallback en el resto |
+| --- | --- | --- | --- |
+| Fallback sin tabla (TEXT_RULES + BANK_FEES) | 0,999 | 0,999 | 0,999 |
+| Jev, lote de 60 | 0,872 | 0,294 | 0,956 |
+| Jev, lote de 1 (post-hoc) | 0,965 | 0,829 | 0,970 |
+
+| Falsos de Jev | Lote de 1 |
+| --- | --- |
+| `CASH_POOL` como `INTERNAL_TRANSFER` («TRASPASO PROPIO») | 124 |
+| `CUSTOMER_REFUND` como `SUPPLIER_REFUND` | 21 |
+| `INTERCOMPANY` como `LOAN_REPAYMENT` | 10 |
+| `BANK_REVERSAL` como `SOCIAL_SECURITY` | 9 |
+| Cobros UNIDENTIFIED categorizados (de 300; el fallback, 0) | 11, sobre todo «ANTICIPO» como `CUSTOMER_ADVANCE` |
+
+**Por qué retomarlo después del evento.** El fallback sale favorecido: TEXT_RULES salió de TRAIN y PENA comparte ese vocabulario; se quitó la tabla, no el vocabulario. Contrafactual calculado con el texto de PENA, sin TEXT_RULES, como vocabulario nuevo: solo respaldo ≤ 0,748; Jev más respaldo 0,772 (lote de 60) y 0,908 (lote de 1), con ese 3,7 % de falsos. No se ha medido en un banco nuevo real, ni en FINAL ni en ZA01.
+
+**Quien lo retome, en lote de 1.** Referenciar `lines[i]` en lotes grandes degrada a Jev: cobertura 0,26 frente a 0,77 y precisión 0,835 frente a 0,932 en la muestra. J1 y J2 (§10) se midieron en lotes, así que pudieron medir a la baja [Inferencia]. Coste del lote de 1: 0,15 s de mediana por petición; unos 5 min en frío para 16.000 líneas con 8 en paralelo [Inferencia], frente al tope de +30 s de §4.
+

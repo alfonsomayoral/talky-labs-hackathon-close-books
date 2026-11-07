@@ -91,9 +91,9 @@ De los 12.601 movimientos fallados, 8.654 son `not_matched`: cobros en `FALLBACK
 
 **No intentar con una heurística:**
 
-- **Facturas dispersas sin referencia:** calculo que 2.000–2.500 líneas de un gran cliente seguirán en fallback [Inferencia]. Son 5 o más facturas sueltas entre decenas de abiertas, sin ninguna en el texto: hay más combinaciones que céntimos posibles, así que varias suman el cobro y nada dice cuál es.
+- **Facturas dispersas sin referencia:** 2.435 líneas con 2 o más facturas seguían en fallback en holdout, repartidas entre 912 clientes (el mayor, 18 líneas): no hay un gran cliente (`docs/N_TO_M.md` §9). Son 5 o más facturas sueltas entre decenas de abiertas, sin ninguna en el texto: hay más combinaciones que céntimos posibles, así que varias suman el cobro y nada dice cuál es.
 - **Muchas candidatas pequeñas:** `MAX_CHANCE` descarta la búsqueda cuando se esperan demasiadas soluciones por azar.
-- **Una factura abierta y un importe distinto, sin cita:** simulado en holdout con saldos del golden. `PARTIAL` acierta 51 y falla 60 (46 sobre `unidentified`); `OVERPAYMENT` acierta 23 y falla 67 (35 sobre `unidentified`). Siguen en fallback.
+- **Una factura abierta y un importe distinto, sin cita y sin pareja: retirada.** Medida en holdout con saldos de estado: acierta 22 de 229, con 154 falsos sobre `unidentified` y `unidentified_lookalike`. Siguen en fallback; lo que sí se empareja es `PAIRED-PARTIAL`, dos cobros que suman al céntimo el saldo de la única factura que lo cumple. Antes, con saldos del golden, se había simulado `PARTIAL` con 51 aciertos y 60 fallos, y `OVERPAYMENT` con 23 y 67.
 
 ## 5. Reglas del juego
 
