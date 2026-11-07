@@ -256,6 +256,14 @@ def _slow_receipts(txns: pl.DataFrame, slow_ids: pl.DataFrame, days: int = 15) -
     ).drop("_slow")
 
 
+def delayable_receipts(golden: pl.DataFrame) -> pl.DataFrame:
+    """Plain 1:1 receipts whose item moves nowhere else: delaying another would put it after its duplicate or return."""
+    items = golden.filter(pl.col("item_id").is_not_null())
+    once = items.group_by("item_id").len().filter(pl.col("len") == 1).select("item_id")
+    return items.join(once, on="item_id").filter(pl.col("segment").is_in(["ar_1to1", "ar_ref_noise"]),
+                                                 pl.col("exception").is_null())
+
+
 def build_drift(dest: Path | None = None) -> Path:
     """The holdout with drift: ZA01 from MA01, RIBA N43 -> camt, renamed customers, new IT01 account, slower payers.
 
@@ -266,7 +274,7 @@ def build_drift(dest: Path | None = None) -> Path:
     out = _fresh(dest or DB / "holdout-drift")
 
     golden = load_table(source / "golden_allocations.csv.gz")
-    plain = golden.filter(pl.col("segment").is_in(["ar_1to1", "ar_ref_noise"]), pl.col("exception").is_null())
+    plain = delayable_receipts(golden)
 
     txns = _clone_txns(load_table(source / "bank_transactions.csv.gz")).with_columns(
         (pl.col("amount").cast(pl.Float64) * 100).round().cast(pl.Int64).alias("amount_cents"))

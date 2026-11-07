@@ -3,7 +3,7 @@ from __future__ import annotations
 import polars as pl
 from conftest import require_phase
 
-from closebooks.holdout import bank_to_camt, clone_entity, open_items_at
+from closebooks.holdout import bank_to_camt, clone_entity, delayable_receipts, open_items_at
 from closebooks.load import cancelled_item_ids, load_table, phase_items
 from closebooks.paths import phase_dir
 
@@ -147,3 +147,11 @@ def test_built_drift_holdout_is_consistent_and_keeps_new_entity_out_of_the_packa
     missing = golden.filter(pl.col("item_id").is_not_null()).join(items, on="item_id", how="anti").select("item_id")
     # Items closed before the cut and paid again (duplicates, returns) are in no item table of the phase.
     assert missing.n_unique() / golden["item_id"].n_unique() < 0.02
+
+
+def test_only_payments_of_items_with_no_other_movement_are_delayed():
+    # A delayed original would land after its own duplicate and turn the labels upside down.
+    golden = pl.DataFrame({
+        "bank_txn_id": ["BT-1", "BT-2", "BT-3", "BT-4"], "item_id": ["I1", "I2", "I2", None],
+        "segment": ["ar_1to1", "ar_1to1", "ar_duplicate_payment", "ar_1to1"], "exception": [None, None, "X", None]})
+    assert sorted(delayable_receipts(golden)["bank_txn_id"].to_list()) == ["BT-1"]
