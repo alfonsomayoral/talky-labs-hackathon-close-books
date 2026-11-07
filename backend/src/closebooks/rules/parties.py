@@ -29,6 +29,7 @@ class PartyIndex:
         self.by_iban: dict[tuple[str, str, str], set[str]] = defaultdict(set)
         self.by_prefix: dict[tuple[str, str, str], list[tuple[str, str]]] = defaultdict(list)
         self.group_of: dict[str, list[str]] = {}
+        self.entities: set[str] = set()
         customers = masters["customers"]
         for row in customers.iter_rows(named=True):
             self._add("customer", row["entity"], row["customer_id"], row["name"], row["iban"])
@@ -50,6 +51,7 @@ class PartyIndex:
                 self.group_of[row["customer_id"]] = members[key]
 
     def _add(self, kind: str, entity: str, party: str, name: str | None, iban: str | None) -> None:
+        self.entities.add(entity)
         norm = normalize(name)
         if norm:
             key = (kind, entity, norm)
@@ -70,7 +72,14 @@ class PartyIndex:
         iban = txn.get("counterparty_account")
         if iban and (found := self.by_iban.get((kind, entity, iban))):
             return sorted(found)
-        return self._in_text(txn, kind, entity, name, whole_only=bool(name))
+        found = self._in_text(txn, kind, entity, name, whole_only=bool(name))
+        if found or kind != "supplier":
+            return found
+        # The group's treasury pays invoices of its subsidiaries (POLICIES §5.2): the supplier may be another entity's.
+        for other in sorted(self.entities - {entity}):
+            found += self._in_text(txn, kind, other, name, whole_only=bool(name))
+        self.certain = False
+        return sorted(set(found))
 
     def _in_text(self, txn: dict, kind: str, entity: str, name: str, whole_only: bool) -> list[str]:
         """The party named in the text. With an unknown ordering party it may be paying for someone else (confirming),

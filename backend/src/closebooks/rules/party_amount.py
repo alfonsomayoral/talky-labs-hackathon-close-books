@@ -213,6 +213,9 @@ class PartyAmount:
         subset = self._subset(free, cash, ambiguous=tied) if self.parties.certain else None
         if subset:
             return self._proposal("PARTY-SUBSET", party, subset, confidence=0.9)
+        block = self._consecutive(free, cash)
+        if block:
+            return self._proposal("PARTY-BLOCK", party, block, confidence=0.85)
         short = self._short_paid(free, cash, party, txn)
         if short:
             return self._proposal("PARTY-SHORT", party, [short], by_cash=True, confidence=0.85)
@@ -279,6 +282,29 @@ class PartyAmount:
         if len(closed) == 1:
             return make("REF-TEXT", party, [closed[0][0]], by_cash=True, confidence=0.9)
         return None
+
+    @staticmethod
+    def _consecutive(free: list, cash: int) -> list[str] | None:
+        """A single run of consecutive open invoices, by date, adding up to the cash, alone or net of one credit note.
+
+        Too many candidates for a unique subset, but exact cents make a false run very unlikely."""
+        invoices = sorted((x for x in free if x[0][0][:3] not in CREDIT_NOTES), key=lambda x: (x[0][2], x[0][0]))
+        notes = [x for x in free if x[0][0][:3] in CREDIT_NOTES]
+        targets = {cash: None, **{cash + o: i[0] for i, o in notes}}
+        found = []
+        for start in range(len(invoices)):
+            total = 0
+            for end in range(start, len(invoices)):
+                total += invoices[end][1]
+                if total in targets and end > start:
+                    found.append((start, end, targets[total]))
+                if total > cash + sum(o for _, o in notes):
+                    break
+        if len(found) != 1:
+            return None
+        start, end, note = found[0]
+        block = [invoices[k][0][0] for k in range(start, end + 1)]
+        return [*block, note] if note else block
 
     @staticmethod
     def _notes_for(notes: list, gap: int) -> list[str] | None:
