@@ -659,6 +659,9 @@ class PartyAmount:
         for item, open_cents in free:
             if item[0][:3] in CREDIT_NOTES or open_cents != item[4]:
                 continue
+            # Its PDF says what is short and why: only `_plan_expects` can read that cash.
+            if {"retention", "advance_deduction"} & self.clauses.get(item[0], {}).keys():
+                continue
             pct = self.terms_pct.get(item[0])
             if pct and abs(item[4] - round(item[4] * pct / 100) - cash) <= 1:
                 hits.append(item[0])

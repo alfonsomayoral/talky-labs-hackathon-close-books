@@ -81,6 +81,11 @@ def test_a_cash_the_percentage_does_not_give_settles_nothing(total, pdf, cash):
     assert retention_rows(total, pdf, cash) == UNIDENTIFIED
 
 
+def test_a_cent_off_a_retention_of_a_withholding_rate_settles_nothing():
+    pdf = retention_pdf("10", "1.640,50", "14.764,50")
+    assert retention_rows(1640500, pdf, 1476449) == UNIDENTIFIED
+
+
 @pytest.mark.parametrize(("line", "name"), [("INGRESO EN CUENTA", None), ("TRANSFERENCIA", "Otra Sociedad S.A.")],
                          ids=["no_party", "unknown_party"])
 def test_the_amount_of_the_percentage_without_the_party_settles_nothing(line, name):
