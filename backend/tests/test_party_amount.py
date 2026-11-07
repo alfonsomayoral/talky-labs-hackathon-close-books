@@ -585,6 +585,31 @@ def test_receipt_does_not_search_customers_of_another_entity():
     assert index.find(txn(1, "TRANSF RUBIO AGUAS S.A.", entity="E1"), "customer") == []
 
 
+@pytest.mark.parametrize(("item_type", "party", "side", "other_side"), [
+    ("API", "P9", "supplier", "customer"), ("APC", "P9", "supplier", "customer"),
+    ("ARI", "SUN1", "customer", "supplier"), ("ARC", "SUN1", "customer", "supplier")])
+def test_a_printed_party_is_on_the_side_of_its_item_whatever_its_id_starts_with(item_type, party, side, other_side):
+    index = PartyIndex(masters(), pl.DataFrame({"entity": ["E1"], "party_id": [party], "party_name": ["Rubio Aguas"],
+                                                "item_type": [item_type]}))
+    assert index.find(txn(1, name="Rubio Aguas"), side) == [party]
+    assert index.find(txn(1, name="Rubio Aguas"), other_side) == []
+
+
+@pytest.mark.parametrize(("party", "side", "other_side"), [("S1", "supplier", "customer"),
+                                                           ("C1", "customer", "supplier")])
+def test_a_printed_party_with_no_item_type_is_on_the_side_of_its_id(party, side, other_side):
+    no_column = pl.DataFrame({"entity": ["E1"], "party_id": [party], "party_name": ["Rubio Aguas"]})
+    for printed in (no_column, no_column.with_columns(pl.lit(None, pl.String).alias("item_type"))):
+        index = PartyIndex(masters(), printed)
+        assert index.find(txn(1, name="Rubio Aguas"), side) == [party]
+        assert index.find(txn(1, name="Rubio Aguas"), other_side) == []
+
+
+def test_debit_finds_a_supplier_only_its_invoices_name_whatever_its_id_starts_with():
+    rule, balances = engine([item("API-1", "P9", "F21/03076", 80135, name="Metalurgica Express")], customers=())
+    assert lines(rule(txn(-80135, "SEPA-LASTSCHRIFT MREF+33", name="Metalurgica Express"), balances)) == {"API-1"}
+
+
 def test_a_long_legal_form_does_not_lose_the_party_to_a_namesake():
     # "Camping Arenal del Sur S.L.U." against "... S.L.": real, the wrong namesake won.
     index = _index("Camping Arenal del Sur S.L.U.", "Camping Arenal del Sur S.L.")
