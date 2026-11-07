@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { CircleAlert, CircleCheck } from 'lucide-react'
-import { Amount, Badge, Button, Card, DataTable, EmptyState, FilterBar, FilterChip, Metric, Mono, Page, PageHeader, Skeleton, TabPanel, Tabs, type Column, type SortState } from '@/components'
+import { Amount, Badge, Button, DataTable, EmptyState, FilterBar, FilterChip, Metric, Mono, Page, PageHeader, Skeleton, TabPanel, Tabs, type Column, type SortState } from '@/components'
 import { useActiveRun, useCases, useQueueTotals, useRunStats } from '@/data'
 import { PRIORITY_LABEL, QUEUES, caseKindLabel, firstActionable, queueFilter, queueOfKind, type CasePriority, type CaseRow } from '@/domain'
 import { formatNumber } from '@/lib/format'
@@ -178,14 +178,14 @@ export function InboxPage() {
       />
       <div className={styles.kpis}>
         {QUEUES.map((t) => (
-          <Card key={t.id} padding="sm" data-surface="feature">
+          <button key={t.id} type="button" className={styles.kpi} data-surface={t.id === queue.id ? 'feature' : undefined} aria-pressed={t.id === queue.id} onClick={() => setVista(t.id)}>
             <Metric
               label={t.label}
               value={totals ? formatNumber(totals[t.id].cases) : ''}
               loading={!totals}
               comparison={totals ? <Amount cents={totals[t.id].amountEur} compact /> : undefined}
             />
-          </Card>
+          </button>
         ))}
       </div>
       <Tabs

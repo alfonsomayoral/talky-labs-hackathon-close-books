@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { categoryLabel, partyHowLabel, ruleDescription } from './labels'
+import { caseStatusBadge, categoryLabel, partyHowLabel, ruleDescription } from './labels'
 
 describe('categoryLabel', () => {
   it('names a category of the master in Spanish', () => {
@@ -32,5 +32,16 @@ describe('partyHowLabel', () => {
   })
   it('explains a rule when the API sends the rule as the way it was found', () => {
     expect(partyHowLabel('ADVICE-TXT')).toBe('Aviso de remesa: el documento del cliente dice qué paga')
+  })
+})
+
+describe('caseStatusBadge', () => {
+  it('says the system opened a closed movement that still has an email to write', () => {
+    expect(caseStatusBadge({ status: 'auto', suggestedAction: 'email_supplier' })).toEqual({ label: 'Abierto por el sistema', emphasis: 'medium' })
+  })
+
+  it('keeps the plain status otherwise, green only for what closed by itself', () => {
+    expect(caseStatusBadge({ status: 'auto', suggestedAction: 'none' })).toEqual({ label: 'Automático', emphasis: 'positive' })
+    expect(caseStatusBadge({ status: 'fallback', suggestedAction: 'review' })).toEqual({ label: 'Sin casación', emphasis: 'strong' })
   })
 })

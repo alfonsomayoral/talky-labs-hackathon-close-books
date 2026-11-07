@@ -99,39 +99,40 @@ export function ReconciliationPage() {
       <PageHeader
         title="Conciliación"
         subtitle="Qué liquida cada movimiento del banco y por qué: su regla, sus partidas y la evidencia que lo respalda."
-        filters={
-          <FilterBar
-            onClear={hasActiveFilters(filters) ? clear : undefined}
-            end={
-              list.total != null && (
-                <span className={styles.count}>
-                  {formatNumber(list.total)} {list.total === 1 ? 'movimiento' : 'movimientos'}
-                </span>
-              )
-            }
-          >
-            <SearchBox value={q ?? ''} onCommit={(v) => setQ(v.trim() || null)} placeholder="Buscar texto, contraparte, id o factura" aria-label="Buscar movimientos" />
-            {!entity && chip('entity', 'Sociedad')}
-            {chip('account', 'Cuenta')}
-            {chip('format', 'Formato')}
-            {chip('rule', 'Regla')}
-            {chip('exception', 'Excepción')}
-            {chip('category', 'Categoría')}
-            {chip('status', 'Estado del caso')}
-          </FilterBar>
-        }
       />
+      {/* The figures are the whole group's: with a filter on they would contradict the list under them. */}
+      {!hasActiveFilters(filters) && (
       <div className={styles.kpis}>
-        <Card padding="sm" data-surface="feature">
+        <Card padding="sm">
           <Metric label="Movimientos" value={stats.data ? formatNumber(stats.data.txns) : ''} loading={!stats.data} />
         </Card>
         <Card padding="sm" data-surface="feature">
           <Metric label="Conciliado sin intervención" value={stats.data ? formatPercent(autoRate(stats.data), { decimals: 1 }) : ''} loading={!stats.data} />
         </Card>
-        <Card padding="sm" data-surface="feature">
+        <Card padding="sm">
           <Metric label="Importe identificado" value={stats.data ? <Amount cents={stats.data.identifiedEur} compact /> : ''} loading={!stats.data} />
         </Card>
       </div>
+      )}
+    <FilterBar
+      onClear={hasActiveFilters(filters) ? clear : undefined}
+      end={
+        list.total != null && (
+          <span className={styles.count}>
+            {formatNumber(list.total)} {list.total === 1 ? 'movimiento' : 'movimientos'}
+          </span>
+        )
+      }
+    >
+      <SearchBox value={q ?? ''} onCommit={(v) => setQ(v.trim() || null)} placeholder="Buscar texto, contraparte, id o factura" aria-label="Buscar movimientos" />
+      {!entity && chip('entity', 'Sociedad')}
+      {chip('account', 'Cuenta')}
+      {chip('format', 'Formato')}
+      {chip('rule', 'Regla')}
+      {chip('exception', 'Excepción')}
+      {chip('category', 'Categoría')}
+      {chip('status', 'Estado del caso')}
+    </FilterBar>
       {list.error && list.rows.length === 0 ? (
         <EmptyState icon={<CloudOff />} title="No se pudieron cargar los movimientos" description={list.error.message} action={undefined} />
       ) : list.loading ? (

@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { ArrowUpRight, CircleAlert } from 'lucide-react'
 import { Amount, Badge, ButtonLink, EmptyState, KeyValue, Mono, SidePanel, Skeleton } from '@/components'
 import { useCase, useOpenItems } from '@/data'
-import { CASE_STATUS_LABEL, CASE_STATUS_EMPHASIS, PRIORITY_LABEL, caseKindLabel } from '@/domain'
+import { caseStatusBadge, PRIORITY_LABEL, caseKindLabel } from '@/domain'
 import { formatDate, formatNumber } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { CaseActions } from '@/features/shared'
@@ -61,7 +61,7 @@ export function CasePanel({ runId, caseId, onClose }: CasePanelProps) {
             className={styles.facts}
             labelWidth={110}
             items={[
-              { label: 'Estado', value: <Badge emphasis={CASE_STATUS_EMPHASIS[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge> },
+              { label: 'Estado', value: <Badge emphasis={caseStatusBadge(c).emphasis}>{caseStatusBadge(c).label}</Badge> },
               { label: 'Prioridad', value: PRIORITY_LABEL[c.priority] },
               { label: 'Importe', value: <Amount cents={c.amountCents} currency={c.currency} /> },
               ...(c.currency !== 'EUR' ? [{ label: 'En euros', value: <Amount cents={c.amountEur} currency="EUR" /> }] : []),

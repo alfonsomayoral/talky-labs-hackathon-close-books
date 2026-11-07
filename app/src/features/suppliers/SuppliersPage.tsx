@@ -162,13 +162,6 @@ export function SuppliersPage() {
       <PageHeader
         title="Proveedores"
         subtitle="Facturas pagadas por otro importe, dos veces, rechazadas, cedidas a un factor o abonos sin compensar."
-        filters={
-          <FilterBar onClear={filtered ? clear : undefined} end={cases.total != null && <span className="tabular">{formatNumber(cases.total)} incidencias</span>}>
-            <TextField label="Buscar incidencias" hideLabel type="search" placeholder="Buscar proveedor o caso" value={typed} onChange={search} className={styles.search} />
-            <FilterChip label="Incidencia" options={KIND_OPTIONS} selected={kinds} onChange={setKinds} />
-            <FilterChip label="Estado" options={STATE_OPTIONS} selected={states} onChange={setStates} />
-          </FilterBar>
-        }
       />
       <div className={styles.header}>
         <div className={styles.metrics}>
@@ -182,7 +175,7 @@ export function SuppliersPage() {
             loading={loadingHeader}
           />
         </Card>
-        <Card data-surface="feature">
+        <Card>
           <Metric
             label="Abonos por compensar"
             value={loadingHeader ? '' : formatNumber(openCredits.total)}
@@ -193,6 +186,11 @@ export function SuppliersPage() {
         </div>
         <AgingStrip runId={runId} entity={entity} />
       </div>
+    <FilterBar onClear={filtered ? clear : undefined} end={cases.total != null && <span className="tabular">{formatNumber(cases.total)} incidencias</span>}>
+      <TextField label="Buscar incidencias" hideLabel type="search" placeholder="Buscar proveedor o caso" value={typed} onChange={search} className={styles.search} />
+      <FilterChip label="Incidencia" options={KIND_OPTIONS} selected={kinds} onChange={setKinds} />
+      <FilterChip label="Estado" options={STATE_OPTIONS} selected={states} onChange={setStates} />
+    </FilterBar>
       {body}
       <CasePanel runId={runId} caseId={open} onClose={() => setOpen(null)} />
     </Page>

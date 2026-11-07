@@ -14,7 +14,7 @@ const queue = (r: RunSummary) => INBOX_STATUSES.reduce((sum, s) => sum + (r.case
 const COLUMNS: Column<RunSummary>[] = [
   { id: 'runId', header: 'Ejecución', width: 'minmax(210px, 1.4fr)', cell: (r) => (
       <span>
-        <Mono>{r.runId}</Mono> {r.served && <Badge emphasis="strong">Abierta</Badge>}
+        <Mono>{r.runId}</Mono> {r.served && <Badge emphasis="positive">Abierta</Badge>}
       </span>
     ),
     sortValue: (r) => r.runId },
