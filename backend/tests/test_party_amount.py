@@ -1099,7 +1099,8 @@ def test_a_single_invoice_or_one_with_no_due_date_is_not_this_path():
     assert _due_set(120001, ("ARI-A", 50000, "2024-05-01"), ("ARI-B", 70001, None)) is None
 
 
-def test_a_receipt_citing_an_item_or_with_a_cash_too_big_to_search_stays_out():
+def test_a_receipt_citing_an_item_or_with_a_cash_too_big_to_search_stays_out(monkeypatch):
+    monkeypatch.setattr("closebooks.rules.note_unit.note_units", lambda *a: None)
     invoices = [item("ARI-A", "C1", "FV24-000111", 50000, due="2024-05-01"),
                 item("ARI-B", "C1", "FV24-000222", 70001, due="2024-05-01")]
     rule, balances = engine(invoices)
