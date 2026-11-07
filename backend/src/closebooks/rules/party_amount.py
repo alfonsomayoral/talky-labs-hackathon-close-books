@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from fractions import Fraction
 from itertools import combinations
+from math import floor
 
 import polars as pl
 
@@ -135,6 +137,21 @@ def _discount_days(phase) -> dict[str, int]:
 
 def _net(pairs: list) -> int:
     return sum(-o if i[0][:3] in CREDIT_NOTES else o for i, o in pairs)
+
+
+def document_says(clauses: dict | None, total: int, cash: int) -> str | None:
+    """The exception of a cash the invoice's own PDF foresees, or None. Why it generalizes: the official example of
+    ar_retention pays the PDF's amount without citing the invoice and its row is PARTIAL, and POLICIES §3 lists the first
+    payment of a guarantee retention and of an invoice net of an advance as PARTIAL, and the release as empty.
+
+    The percentage gives the retained part, rounded half up, whatever the total: the PDF prints it cut, so what it says
+    is payable can be a cent above the cash. The advance is an amount, so its net is the one printed."""
+    clauses = clauses or {}
+    if retention := clauses.get("retention"):
+        retained = floor(Fraction(total) * Fraction(str(retention["pct"])) / 100 + Fraction(1, 2))
+        if cash in (retained, total - retained):
+            return "" if cash == retained else "PARTIAL"
+    return "PARTIAL" if cash == clauses.get("advance_deduction", {}).get("netDueCents") else None
 
 
 def _clauses(phase) -> dict[str, dict[str, dict]]:
@@ -577,20 +594,19 @@ class PartyAmount:
     def _explained_by_state(self, free: list, cash: int, party: str) -> Proposal | None:
         """No exact amount: only what the invoice's own PDF expects. Anything looser was measured and rejected."""
         invoices = [(i, o) for i, o in free if i[0][:3] not in CREDIT_NOTES]
-        planned = [i for i, _ in invoices if self._plan_expects(i[0], cash)]
+        planned = [i for i, _ in invoices if self._plan_expects(i, cash)]
         if planned:
             return self._proposal("PARTY-PLAN", party, [min(planned, key=lambda i: (i[2], i[0]))[0]], by_cash=True,
                                   confidence=0.9)
         return None
 
-    def _plan_expects(self, item_id: str, cash: int) -> bool:
-        clauses = self.clauses.get(item_id)
+    def _plan_expects(self, item: tuple, cash: int) -> bool:
+        clauses = self.clauses.get(item[0])
         if not clauses:
             return False
         if cash in clauses.get("instalments", {}).get("amounts", ()):
             return True
-        return cash in (clauses.get("retention", {}).get("payableCents"),
-                        clauses.get("advance_deduction", {}).get("netDueCents"))
+        return document_says(clauses, item[4], cash) is not None
 
     def _by_number_alone(self, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
         """A whole number in the text and an amount that agrees: enough without knowing who paid."""
