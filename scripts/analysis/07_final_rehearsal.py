@@ -89,7 +89,7 @@ class Rename:
         target.parent.mkdir(parents=True, exist_ok=True)
         table.with_columns(exprs).write_csv(target)
 
-    def masters(self, source: Path, target: Path) -> None:
+    def masters(self, source: Path, target: Path, with_rate: bool = True) -> None:
         target.mkdir()
         for name in MASTER_TABLES:
             shutil.copy(source / f"{name}.csv", target / f"{name}.csv")
@@ -106,13 +106,16 @@ class Rename:
             table = load_table(source / f"{name}.csv")
             table.with_columns(self.money("invoice_currency", mine), *self.ids(table)).write_csv(target / f"{name}.csv")
         rates = load_table(source / "fx_rates.csv")
+        if self.new_currency in rates["currency"].to_list():
+            raise SystemExit(f"{self.new_currency} is already in the FX file: it would not be a new currency")
         same = rates.filter(pl.col("currency") == self.currency).with_columns(
             pl.lit(self.new_currency).alias("currency"))
         if same.is_empty():  # the euro has no rates: the new currency stands at one everywhere
             same = rates.select("date").unique().sort("date").with_columns(
                 pl.lit(self.new_currency).alias("currency"), pl.lit("1.0").alias("units_per_eur"),
                 pl.lit("rehearsal").alias("source"))
-        pl.concat([rates, same.select(rates.columns)]).write_csv(target / "fx_rates.csv")
+        kept = [rates, same.select(rates.columns)] if with_rate else [rates]
+        pl.concat(kept).write_csv(target / "fx_rates.csv")
 
     def advice(self, source: Path, target: Path) -> None:
         """The currency a customer prints, in each format; amounts and references stay."""
@@ -182,7 +185,7 @@ def main_bank_and_currency(masters: Path, entity: str) -> tuple[str, str]:
 
 
 def build(source_name: str, dest_name: str, entity: str, new_entity: str, new_bank: str, new_currency: str,
-          new_format: str) -> Path:
+          new_format: str, with_rate: bool = True) -> Path:
     source = phase_dir(source_name)
     out = _fresh(DB / dest_name)
     masters = masters_dir(source)
@@ -205,7 +208,7 @@ def build(source_name: str, dest_name: str, entity: str, new_entity: str, new_ba
         for file in sorted((source / folder).glob("*.csv")):
             rename.detail(file, out / folder / file.name.replace(entity, new_entity, 1))
     _link(source / "bank_statements", out / "bank_statements")
-    rename.masters(masters, out / "masters_final")
+    rename.masters(masters, out / "masters_final", with_rate)
     prior = []
     if (source / "prior_phases").exists():
         shutil.copy(source / "prior_phases", out / "prior_phases")
@@ -259,8 +262,9 @@ def main() -> None:
     made.add_argument("--entity", default="MA01")
     made.add_argument("--new-entity", default="XX01")
     made.add_argument("--new-bank", default="QNTM")
-    made.add_argument("--new-currency", default="PLN")
+    made.add_argument("--new-currency", default="HUF")
     made.add_argument("--new-format", default="mt940x")
+    made.add_argument("--no-rate", action="store_true", help="the new currency has no line in the FX file")
     told = sub.add_parser("report")
     told.add_argument("base", type=Path)
     told.add_argument("final", type=Path)
@@ -269,7 +273,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.command == "build":
         print(build(args.source, args.dest, args.entity, args.new_entity, args.new_bank, args.new_currency,
-                    args.new_format))
+                    args.new_format, not args.no_rate))
     else:
         report(args.base, args.final, args.phase, args.new_entity)
 
