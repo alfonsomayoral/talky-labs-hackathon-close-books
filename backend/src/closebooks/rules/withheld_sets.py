@@ -33,16 +33,17 @@ _EXCEPTION = "SHORT_WITHHOLDING"
 _SEARCHES = len(WITHHOLDING_RATES) * len(ROUNDING_CENTS)
 
 
-def _largest_size(values: list[int]) -> int:
+def _largest_size(values: list[int], factor: float = 1.0) -> int:
     """How many items a set can have before the sets searched could add up to any cash by chance."""
     total, size, sets = max(sum(abs(v) for v in values), 1), 0, 1
-    while size < len(values) and (sets + comb(len(values), size + 1)) * _SEARCHES / total <= MAX_CHANCE:
+    while size < len(values) and (sets + comb(len(values), size + 1)) * _SEARCHES / total <= MAX_CHANCE * factor:
         size += 1
         sets += comb(len(values), size)
     return size
 
 
-def _sets(free: list, cash: int, named: set[str], rates: set[float], engine: PartyAmount) -> dict[frozenset, float]:
+def _sets(free: list, cash: int, named: set[str], rates: set[float], engine: PartyAmount, least: int = 1,
+          factor: float = 1.0) -> dict[frozenset, float]:
     """The sets of open documents, with the ones the text names, whose invoices net of one of the rates are the cash."""
     invoices = [(i[0], o) for i, o in free if i[0][:3] not in CREDIT_NOTES and o == i[4]
                 and not OWN_SHORTFALL & engine.clauses.get(i[0], {}).keys()]
@@ -57,11 +58,11 @@ def _sets(free: list, cash: int, named: set[str], rates: set[float], engine: Par
             continue
         rest = [x for x in signed if x[0] not in named]
         base = sum(v for _, v in must)
-        for size in range(0 if named else 1, _largest_size([v for _, v in rest]) + 1):
+        for size in range(0 if named else 1, _largest_size([v for _, v in rest], factor) + 1):
             for chosen in combinations(rest, size):
                 if abs(base + sum(v for _, v in chosen) - cash) <= 1:
                     found.setdefault(frozenset((*named, *(i for i, _ in chosen))), rate)
-    return {key: rate for key, rate in found.items() if any(i[:3] not in CREDIT_NOTES for i in key)}
+    return {key: rate for key, rate in found.items() if sum(i[:3] not in CREDIT_NOTES for i in key) >= least}
 
 
 def _rate_of(rows: list[Row], cash: int) -> float | None:
@@ -110,15 +111,19 @@ def _candidates(txn: dict, cash: int, currency: str, here: list[Row], seen: dict
     took = {r.item_id: r.amount_cents for r in here}
     found = {}
     for party in engine.parties.find(txn, "customer"):
-        rates = _earlier(seen.get(party, ()), date)
-        if engine.countries.get(party) not in WITHHOLDING_COUNTRIES or not rates:
+        if engine.countries.get(party) not in WITHHOLDING_COUNTRIES:
             continue
+        rates = _earlier(seen.get(party, ()), date)
+        unbacked = not rates
+        if unbacked:
+            rates = dict.fromkeys(WITHHOLDING_RATES, "")
         mine = [i for i in engine.items.get(party, ()) if i[2] <= date and i[3] == currency]
         if named - {i[0] for i in mine}:
             continue
         free = [(i, balances.open(i[0]) + took.get(i[0], 0)) for i in mine]
         free = [(i, o) for i, o in free if i[0] in named or engine.is_free(i, o, balances)]
-        for key, rate in _sets(free, cash, named, set(rates), engine).items():
+        for key, rate in _sets(free, cash, named, set(rates), engine, 2 if unbacked else 1,
+                              0.5 if unbacked else 1.0).items():
             found.setdefault(key, (party, rate, rates[rate]))
     return found
 
@@ -128,8 +133,11 @@ def _settle(txn: dict, key: frozenset, party: str, rate: float, witness: str, he
     txn_id, date = txn["bank_txn_id"], txn["booking_date"]
     took = {r.item_id: r.amount_cents for r in here}
     rule = CITED_RULE if took else RULE
-    why = (f"{Evidence.SEEN_RATE.name}: the only set net of {rate:.2%} among the open documents of {party}; "
-           f"seen withholding at this rate in {witness}")
+    seen = f"seen withholding at this rate in {witness}" if witness else (
+        f"no earlier receipt shows it; {engine.countries.get(party)} withholds at this rate")
+    why = f"{Evidence.SEEN_RATE.name}: the only set net of {rate:.2%} among the open documents of {party}; {seen}"
+    backing = {"kind": "bankLine", "ref": witness, "label": "seen withholding at this rate"} if witness else {
+        "kind": "country", "ref": engine.countries.get(party)}
     out = []
     for item in sorted(key):
         exception = "" if item[:3] in CREDIT_NOTES else _EXCEPTION
@@ -141,8 +149,7 @@ def _settle(txn: dict, key: frozenset, party: str, rate: float, witness: str, he
             balances.apply(item, amount, exception, txn_id, date)
             balances.history(item).sort(key=lambda h: h["bookingDate"])
         out.append(Row(txn_id, item, amount, currency, None, exception or None, rule, 0.85, party, None,
-                       [{"kind": "customer", "ref": party}, {"kind": "bankLine", "ref": witness,
-                                                             "label": "seen withholding at this rate"}],
+                       [{"kind": "customer", "ref": party}, backing],
                        [{"itemId": item, "amountCents": amount, "currency": currency, "why": why}]))
     engine.abstentions.pop(txn_id, None)
     return out
@@ -151,8 +158,6 @@ def _settle(txn: dict, key: frozenset, party: str, rate: float, witness: str, he
 def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAmount) -> None:
     """Rewrites the rows of each line. Call it before `engine.release()`."""
     seen = _witnesses(phase, rows, engine)
-    if not seen:
-        return
     by_txn: dict[str, list[Row]] = defaultdict(list)
     for row in rows:
         if row.rule in (_FALLBACK, _CITED):

@@ -58,14 +58,22 @@ def test_the_only_set_net_of_a_rate_clears_in_full_with_the_exception():
     assert {r.confidence for r in rows} == {0.85}  # below 0.9: the case goes to review
 
 
-def test_a_customer_nobody_saw_withholding_stays_where_it_was():
+def test_a_customer_nobody_saw_withholding_settles_the_set_on_the_country_alone():
     rows, _ = run(rows=[FALLBACK])
+    assert {r.item_id for r in rows} == PAID
+    assert {r.exception for r in rows} == {"SHORT_WITHHOLDING"}
+    assert rows[0].sources[1] == {"kind": "country", "ref": "MA"}
+    assert "no earlier receipt" in rows[0].candidates[0]["why"]
+
+
+def test_without_a_witness_a_single_invoice_is_not_enough():
+    rows, _ = run(rows=[FALLBACK], cash=309160 - round(309160 * 0.10))
     assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
 
 
 def test_a_line_seen_only_later_is_no_witness():
     rows, _ = run(seen_on="2024-07-01")
-    assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
+    assert rows and all(r.sources[1]["kind"] == "country" for r in rows)
 
 
 def test_a_witness_at_another_rate_is_not_the_same_signal():
@@ -75,7 +83,7 @@ def test_a_witness_at_another_rate_is_not_the_same_signal():
 
 def test_an_exception_the_rate_does_not_explain_is_no_witness():
     rows, _ = run(seen_cash=70000)
-    assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
+    assert rows and all(r.sources[1]["kind"] == "country" for r in rows)
 
 
 def test_a_customer_outside_the_countries_of_policies_stays_where_it_was():
