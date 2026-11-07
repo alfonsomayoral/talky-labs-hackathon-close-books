@@ -134,7 +134,7 @@ uv run closebooks serve ../runs/live-envio
 ### El día de FINAL
 
 1. Descomprime en `db/final/`, con `masters_final/` dentro. `load` lo prefiere sobre los maestros del paquete y lee `db/train` y `db/live` como fases anteriores.
-2. Sube a mano los ficheros si `db/final` no tiene la forma esperada: `phase_dir` busca `bank_transactions.csv.gz`.
+2. Comprueba que `db/final/bank_transactions.csv.gz` existe en la raíz de la fase: `phase_dir` lo busca ahí.
 3. `run --phase final --out ../runs/final-1`, y compara `byRule` con LIVE en `run.json`: ZA01 no puede salir todo `UNIDENTIFIED`.
 4. `validate`, y que el envío lo haga **una persona**. Ninguna herramienta del repo envía nada.
 
@@ -150,9 +150,11 @@ uv run closebooks serve ../runs/live-envio
 | Casos, preguntas, borradores | `cases.py`, `drafts.py` |
 | API | `api/` |
 
-### Lo que no hay
+### Riesgos y lo que no hay
 
-- `memory.py` no existe: `--memory` no está en `closebooks run`, así que las reglas guardadas en `human/` **no se aplican todavía** en la ejecución siguiente.
-- El proveedor de modelo y su caché no están hechos: toda la extracción es por parsers. No hay ninguna llamada a modelo.
-- `facts/parties.parquet` va vacío.
-- El holdout mutado no incluye el drift (d), avisos reescritos al xlsx nuevo, y ZA01 conserva la numeración original en avisos y PDFs.
+- **Pagos más lentos en FINAL** (POLICIES §6): el holdout mutado retrasa 15 días los cobros 1:1 y `ar_same_amount_fifo` baja 0,044. Las reglas no filtran por fecha reciente, pero el orden FIFO se resiente si el pago llega cuando ya hay otra factura igual. Es un riesgo real, no un artefacto.
+- **Caída de `ar_duplicate_payment` en el holdout mutado** (0,446 → 0,061): sospecho que es del mutador, sin comprobar. El arreglo está en la PR 63; hay que reconstruir con `just holdout` y medir.
+- **Reglas de memoria:** `closebooks run --memory <human/>` aplica `payer_is_customer`, `parent_pays`, `reference_alias` y `always_category`. `supplier_nets_credit_notes` e `ignore_suffix` no se aplican: salen en `memoryRulesIgnored`.
+- **Modelo:** en LIVE no hay ninguna llamada; toda la extracción es por parsers. El proveedor (PR 68) va apagado por defecto y **no está probado de extremo a extremo**: `claude -p` no tenía sesión. Para probarlo hay que renovarla con `/login` en una terminal.
+- **TRAIN:** con el motor por fecha tarda más de 26 min y usa al menos 12,8 GB (se paró sin acabar). Ponlo a correr en solitario.
+- **Holdout mutado incompleto:** sin el drift (d), avisos reescritos al xlsx nuevo, y ZA01 conserva la numeración original en avisos y PDFs.
