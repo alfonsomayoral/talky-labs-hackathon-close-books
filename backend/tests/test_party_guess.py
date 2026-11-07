@@ -86,3 +86,16 @@ def test_a_later_receipt_does_not_take_what_an_earlier_guess_took():
     items = [invoice("ARI-1", 10000, "2024-02-01"), invoice("ARI-2", 10000, "2024-03-01")]
     rows, _ = run(items, [line("BT-2", 10000, NAMED, date="2024-06-02"), line("BT-1", 10000, NAMED)])
     assert (guessed(rows, "BT-1"), guessed(rows, "BT-2")) == ([("ARI-1", 10000)], [("ARI-2", 10000)])
+
+
+def test_the_oldest_invoice_alone_with_an_excess_within_the_policy_limits_is_an_overpayment():
+    items = [invoice("ARI-1", 100000, "2024-02-01"), invoice("ARI-2", 50000, "2024-03-01")]
+    rows, balances = run(items, [line(cents=101000, text=NAMED)])
+    assert [(r.item_id, r.amount_cents, r.exception) for r in rows] == [("ARI-1", 100000, "OVERPAYMENT")]
+    assert (balances.open("ARI-1"), balances.open("ARI-2")) == (0, 50000)
+
+
+def test_a_guess_whose_leftover_is_beyond_the_limits_has_no_exception():
+    items = [invoice("ARI-1", 100000, "2024-02-01"), invoice("ARI-2", 50000, "2024-03-01")]
+    rows, _ = run(items, [line(cents=130017, text=NAMED)])
+    assert [(r.item_id, r.exception) for r in rows] == [("ARI-1", None)]

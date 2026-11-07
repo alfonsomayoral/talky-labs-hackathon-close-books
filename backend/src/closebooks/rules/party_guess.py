@@ -7,6 +7,9 @@ POLICIES §3 warns of unidentified receipts with the amount of an unrelated invo
 named, and the case stays for a person to review. Nothing here is learned from any phase: the order is the due date,
 the window is the customer's own previous receipt, and three is a cap on the cost of being wrong.
 
+One invoice and cash left over within the overpayment criterion of `policy`: POLICIES §3 calls that an overpayment of a
+single invoice (cleared in full, the excess on account), so the row says OVERPAYMENT rather than nothing.
+
 Runs last, after PARTY-AMOUNT-LATE, by booking date, so a later receipt does not take what an earlier guess took."""
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ import polars as pl
 
 from ..load import Phase
 from ..model import Row
+from ..policy import _is_overpayment
 from ..state import OpenBalances
 from .late_party_amount import _by_start, _by_words, _name_words
 from .party_amount import PartyAmount
@@ -67,10 +71,12 @@ def apply(phase: Phase, rows: list[Row], balances: OpenBalances, engine: PartyAm
         if not chosen:
             continue
         txn_id = txn["bank_txn_id"]
+        overpaid = len(chosen) == 1 and left > 0 and _is_overpayment(left, chosen[0][1])
+        said = "OVERPAYMENT" if overpaid else None
         for item, cents, _ in chosen:
-            balances.apply(item, cents, "", txn_id, date)
+            balances.apply(item, cents, said or "", txn_id, date)
         guesses[at[txn_id]] = [Row(
-            txn_id, item, cents, currency, None, None, RULE, 0.3, party, None, [{"kind": "customer", "ref": party}],
+            txn_id, item, cents, currency, None, said, RULE, 0.3, party, None, [{"kind": "customer", "ref": party}],
             [{"itemId": item, "amountCents": cents, "currency": currency,
               "why": f"oldest invoice due ({due_date}) of the only customer named; no reference, to review"}])
             for item, cents, due_date in chosen]
