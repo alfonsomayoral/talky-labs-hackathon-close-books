@@ -68,4 +68,5 @@ En ese caso el paso 5 sube a 40 s: se edita una línea del correo al proveedor, 
 
 - **La API no responde:** la barra lateral dice «Sin conexión con la API». Arranca `just be-serve` otra vez.
 - **Una pantalla va lenta la primera vez:** `serve` no acepta conexiones hasta acabar la precarga, así que no debería pasar. Si pasa, ábrela antes de grabar.
+- **El vídeo se queda en el esqueleto de carga con la página ya cargada:** es la captura, no la plataforma: el screencast de Chrome deja de entregar fotogramas con la página quieta. El arreglo está sin aplicar, en el commit `928ea6e` (rama local `KPI-7_fe-integration-local`; `586fee9` en la rama remota `KPI-7_fe-second-design-pass`): añade a `record.mjs` un elemento de 1 px en movimiento. Recupéralo con `git cherry-pick` antes de grabar y comprueba los fotogramas de Memoria y Ejecuciones, porque nunca se ha probado en una toma.
 - **Sin preguntas o borradores en la ejecución:** la bandeja sigue funcionando con «Marcar gestionado», pero los pasos 3 y 4 pierden su sentido: pide una ejecución que los genere antes de grabar.

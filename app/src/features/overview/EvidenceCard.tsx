@@ -19,7 +19,7 @@ export function EvidenceCard({ byRule, total }: { byRule: RunStats['byRule']; to
           </div>
         ))}
       </div>
-      <RankList rows={sources.map((s) => ({ key: s.source, label: s.source, value: s.txns, detail: formatPercent(s.share, { decimals: 1 }) }))} />
+      <RankList rows={sources.map((s) => ({ key: s.source, label: s.source, value: s.txns, detail: formatPercent(s.share, { decimals: 1 }) }))} total={total} />
     </Card>
   )
 }

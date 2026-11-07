@@ -19,6 +19,7 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+  white-space: normal;
   font-size: var(--text-12);
   line-height: var(--leading);
   color: var(--ink-2);

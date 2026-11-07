@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import clsx from 'clsx'
+import { formatNumber } from '@/lib/format'
 import styles from './Section.module.css'
 
 export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
@@ -19,7 +20,7 @@ export function Section({ title, description, count, actions, className, childre
         <div className={styles.heading}>
           <h2 className={styles.title}>
             {title}
-            {count != null && <span className={clsx(styles.count, 'tabular')}>{count}</span>}
+            {count != null && <span className={clsx(styles.count, 'tabular')}>{formatNumber(count)}</span>}
           </h2>
           {description != null && <p className={styles.description}>{description}</p>}
         </div>
