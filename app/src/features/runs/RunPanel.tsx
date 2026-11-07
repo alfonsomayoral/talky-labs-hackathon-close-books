@@ -4,7 +4,7 @@ import { CASE_STATUS_LABEL, categoryLabel, exceptionLabel, segmentLabel, type Ca
 import { formatDateTime, formatDuration, formatNumber, formatPercent } from '@/lib/format'
 import { BarList } from './BarList'
 import { ScoreExplainer } from './ScoreExplainer'
-import { STAGE_LABEL, SUBMISSION_LIMIT_BYTES, formatBytes, stageList } from './model'
+import { officialResultOf, STAGE_LABEL, SUBMISSION_LIMIT_BYTES, formatBytes, stageList } from './model'
 import styles from './RunPanel.module.css'
 
 const byValue = (counts: Record<string, number>) =>
@@ -48,7 +48,7 @@ function Detail({ run }: { run: Run }) {
         <BarList label="Duración por etapa" items={stages.map((s) => ({ key: s.stage, label: STAGE_LABEL[s.stage] ?? s.stage, value: s.ms!, display: formatDuration(s.ms) }))} />
       </Section>
       <Section title="Puntuación">
-        <ScoreExplainer score={run.score ?? null} runs={runs} />
+        <ScoreExplainer score={run.score ?? null} official={officialResultOf(runs, run.runId)} runs={runs} />
       </Section>
       {run.score && (
         <Section title="Acierto por tipo de movimiento" description="Del peor al mejor." count={Object.keys(run.score.segments).length}>
