@@ -37,6 +37,8 @@ node app/mock/figures.mjs
 | 7 | 4:00–4:25 | **Cuentas** `/cuentas` y **Explorador** `/explorador` | Una cuenta con cambio de formato; una pestaña del Explorador con un documento abierto | «Los datos del paquete, a escala real: un banco que cambia de formato en octubre sin tocar código» |
 | 8 | 4:25–5:00 | **Ejecuciones** `/ejecuciones` | Historial, comparar dos ejecuciones por segmento, consola FINAL | «Cada ejecución queda medida. La consola deja lista la fase FINAL en un solo paso, en `<Z>` minutos sobre datos nunca vistos. El envío lo hace una persona: aquí no hay botón» |
 
+**Si la ejecución final sigue con 0 llamadas a modelo,** la última frase del paso 1 pasa a: «Todo determinista: los parsers leen los documentos y las reglas deciden; el modelo queda como residuo opcional, hoy sin usar».
+
 ## Variante B del paso 4 (40 s, sin `overdue_customer`)
 
 Se decide a las 09:15 con la ejecución que haya. Si ningún cliente tiene caso de cobro, Cobros no tiene correo que preparar: se enseña el aging y las disputas, y el correo se enseña en el paso 5.
