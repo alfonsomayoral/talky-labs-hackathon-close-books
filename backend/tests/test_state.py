@@ -1,8 +1,27 @@
 from __future__ import annotations
 
+import tracemalloc
+
 import polars as pl
 
 from closebooks.state import OpenBalances
+
+
+def test_settlement_history_uses_compact_events_instead_of_a_python_tuple_per_allocation():
+    balances = OpenBalances({"ARI-1": 0})
+    tracemalloc.start()
+    try:
+        for _ in range(100_000):
+            balances.apply("ARI-1", 1234, "DUPLICATE_PAYMENT", "BT-1", "2025-01-01")
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 4 * 1024**2, f"settlement history allocated {peak / 1024**2:.1f} MiB"
+    history = balances.history("ARI-1")
+    assert len(history) == 100_000
+    assert history[0] == history[-1] == {
+        "bankTxnId": "BT-1", "bookingDate": "2025-01-01", "amountCents": 1234, "exception": "DUPLICATE_PAYMENT"}
+    assert balances.open("ARI-1") == 0
 
 
 def test_column_balances_keep_large_cents_and_ordered_history_through_duplicates_and_returns():
@@ -15,6 +34,7 @@ def test_column_balances_keep_large_cents_and_ordered_history_through_duplicates
     assert balances.open("ARI-1") == 0
     balances.apply("ARI-1", 6_000_000_000, "RETURNED", "BT-3", "2025-01-03")
     assert balances.open("ARI-1") == 5_000_000_000
+    assert balances.open_at(balances.index["ARI-1"]) == 5_000_000_000
     assert balances.total("ARI-1") == 5_000_000_000
     assert balances.open("ARI-2") == 0
     assert set(balances.touched()) == {"ARI-1"}

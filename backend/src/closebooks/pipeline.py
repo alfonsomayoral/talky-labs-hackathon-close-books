@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from collections import Counter
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 
@@ -20,7 +21,7 @@ from .drafts import render, top_per_template
 from .evaluate import score_file
 from .load import cancelled_item_ids, load_phase
 from .memory import Memory, load_rules
-from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
+from .output import allocation_writer, write_cases, write_facts, write_jsonl, write_open_items
 from .paths import ROOT, RUNS, phase_dir
 from .resolve import resolve
 from .rules import propose, stateful
@@ -35,6 +36,12 @@ def _peak_rss_mb() -> int:
 def _git_commit() -> str | None:
     done = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True)
     return done.stdout.strip() or None
+
+
+def _write_progress(run: Path, progress: dict) -> None:
+    temporary = run / "progress.tmp"
+    temporary.write_bytes(orjson.dumps(progress))
+    temporary.replace(run / "progress.json")
 
 
 def _party_book(phase) -> tuple[dict[str, str], dict[str, str]]:
@@ -53,13 +60,13 @@ def _rates(phase, cutoff: str) -> dict[str, float]:
         "currency", pl.col("units_per_eur").cast(pl.Float64)).iter_rows())
 
 
-def _overdue_inputs(phase, balances, cutoff: str) -> list[dict]:
+def _overdue_inputs(phase, balances, cutoff: str) -> Iterator[dict]:
     """Customer invoices past due at the cutoff, with their balance at the end of the phase."""
     cancelled = list(cancelled_item_ids(phase.items))
-    late = phase.items.filter(pl.col("item_type") == "ARI", pl.col("due_date") < cutoff,
-                              ~pl.col("item_id").is_in(cancelled))
-    return [{"item_id": i, "entity": e, "party_id": p, "due_date": d, "currency": c, "open_cents": balances.open(i)}
-            for i, e, p, d, c in late.select("item_id", "entity", "party_id", "due_date", "currency").iter_rows()]
+    late = phase.items.select("item_id", "entity", "party_id", "due_date", "currency", "item_type").filter(
+        pl.col("item_type") == "ARI", pl.col("due_date") < cutoff, ~pl.col("item_id").is_in(cancelled))
+    return ({"item_id": i, "entity": e, "party_id": p, "due_date": d, "currency": c, "open_cents": balances.open(i)}
+            for i, e, p, d, c in late.select("item_id", "entity", "party_id", "due_date", "currency").iter_rows())
 
 
 def _item_info(phase, ids: list[str], names: dict[str, str]) -> dict[str, dict]:
@@ -70,11 +77,8 @@ def _item_info(phase, ids: list[str], names: dict[str, str]) -> dict[str, dict]:
                                 "currency").iter_rows(named=True)}
 
 
-def _drafts(cases, rows, phase, balances, names, countries, created_at: str) -> list[dict]:
+def _drafts(cases, exceptions, phase, balances, names, countries, created_at: str) -> list[dict]:
     """The biggest cases of every template, written from fixed text. Cases get their draftId."""
-    keys = {(c["bankTxnId"], c["itemIds"][0]): c["caseId"] for c in cases
-            if c["kind"] == "supplier_invoice_mismatch"}
-    exceptions = {keys[k]: r.exception for r in rows if (k := (r.bank_txn_id, r.item_id)) in keys}
     chosen = top_per_template(cases, exceptions)
     info = _item_info(phase, [i for c in chosen for i in c["itemIds"]], names)
     senders = dict(phase.masters["entities"].select("entity", "legal_name").iter_rows())
@@ -107,6 +111,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True, m
         command += ["--memory", str(memory)]
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
     meta = orjson.loads((run / "run.json").read_bytes())
+    _write_progress(run, {"stage": "score", "stages": meta["stages"], "peakRssMb": meta["peakRssMb"]})
     clock = time.perf_counter()
     scored = score_file(run / "submission.csv.gz", phase_name)
     meta["score"] = {k: scored[k] for k in ("score", "metrics", "segments", "ok", "errors")}
@@ -129,6 +134,9 @@ def _reconcile(phase_name: str, out: Path | None, memory: Path | None) -> Path:
         stages[stage] = int((now - clock) * 1000)
         peak_mb[stage] = _peak_rss_mb()
         clock = now
+        print(f"{phase_name}: {stage} {stages[stage] / 1000:.1f}s, peak {peak_mb[stage]} MiB", file=sys.stderr,
+              flush=True)
+        _write_progress(run, {"stage": stage, "stages": stages, "peakRssMb": peak_mb})
 
     run_id = out.name if out else f"{phase_name}-{started:%Y%m%d-%H%M%S}"
     run = out or RUNS / run_id
@@ -144,31 +152,58 @@ def _reconcile(phase_name: str, out: Path | None, memory: Path | None) -> Path:
     lap("rules")
     engine = stateful(phase, proposals)
     engine.memory = taught if taught.rules else None
-    rows, balances = resolve(phase, proposals, engine)
+    created_at = started.isoformat(timespec="seconds")
+    cases, txns, exceptions = [], {}, {}
+    by_rule, by_exception, by_category = Counter(), Counter(), Counter()
+    row_count = memory_applied = completed = 0
+    last_movement: dict[str, str] = {}
+    progress_clock = time.perf_counter()
+
+    with allocation_writer(run) as writer:
+        def receive(txn, rows):
+            nonlocal row_count, memory_applied, completed, progress_clock
+            writer.write(rows)
+            row_count += len(rows)
+            by_rule.update(r.rule for r in rows)
+            by_exception.update(r.exception for r in rows if r.exception)
+            by_category.update(r.category for r in rows if r.category)
+            memory_applied += sum(r.rule == "MEMORY-RULE" for r in rows)
+            txn_id = txn["bank_txn_id"]
+            created = build_cases(rows, {txn_id: txn}, created_at)
+            cases.extend(created)
+            if txn_id in engine.abstentions and any(c["caseId"] == f"CASE-{txn_id}" for c in created):
+                txns[txn_id] = txn
+            supplier_issues = {r.item_id: r.exception for r in rows if r.item_id and r.item_id.startswith("AP")}
+            for case in created:
+                if case["kind"] == "supplier_invoice_mismatch":
+                    exceptions[case["caseId"]] = supplier_issues[case["itemIds"][0]]
+            for row in rows:
+                if row.party_id:
+                    last_movement[row.party_id] = max(last_movement.get(row.party_id, ""), txn["booking_date"])
+            completed += 1
+            if time.perf_counter() - progress_clock >= 5:
+                progress_clock = time.perf_counter()
+                print(f"{phase_name}: resolve {completed}/{phase.txns.height} txns, {row_count} rows, "
+                      f"peak {_peak_rss_mb()} MiB", file=sys.stderr, flush=True)
+                _write_progress(run,
+                    {"stage": "resolve", "completedTxns": completed, "rows": row_count,
+                     "totalTxns": phase.txns.height, "stages": stages,
+                     "peakRssMb": peak_mb | {"resolve": _peak_rss_mb()}})
+
+        _, balances = resolve(phase, proposals, engine, on_transaction=receive)
+        csv_bytes = writer.csv_bytes
     engine.release()
     del proposals
     gc.collect()
     lap("resolve")
 
-    csv_bytes = write_submission(run, rows)
-    write_explanations(run, rows)
-    txns = {t["bank_txn_id"]: t for t in phase.txns.select(
-        "bank_txn_id", "entity", "booking_date", "amount_cents", "currency", "amount_eur_cents", "text",
-        "counterparty_name", "counterparty_account").iter_rows(named=True)}
-    created_at = started.isoformat(timespec="seconds")
-    cases = build_cases(rows, txns, created_at)
     names, countries = _party_book(phase)
     cutoff = phase.txns["booking_date"].max()
-    last_movement: dict[str, str] = {}
-    for row in rows:
-        if row.party_id:
-            booked = txns[row.bank_txn_id]["booking_date"]
-            last_movement[row.party_id] = max(last_movement.get(row.party_id, ""), booked)
     cases += overdue_cases(_overdue_inputs(phase, balances, cutoff), cutoff, _rates(phase, cutoff), names, created_at,
                            last_movement)
     questions = attach_questions(cases, engine.abstentions, txns, lambda ids: _item_info(phase, ids, names), names,
                                  created_at)
-    drafts = _drafts(cases, rows, phase, balances, names, countries, created_at)
+    drafts = _drafts(cases, exceptions, phase, balances, names, countries, created_at)
     write_cases(run, cases)
     write_facts(run, pl.concat([documents_frame(advices), clauses_frame(phase_clauses(phase))]), None)
     write_open_items(run, phase, balances)
@@ -179,12 +214,10 @@ def _reconcile(phase_name: str, out: Path | None, memory: Path | None) -> Path:
     meta = {
         "runId": run_id, "phase": phase_name, "dataDir": str(phase.dir), "createdAt": started.isoformat(),
         "gitCommit": _git_commit(), "durationMs": sum(stages.values()), "stages": stages, "peakRssMb": peak_mb,
-        "txns": phase.txns.height, "rows": len(rows), "csvBytes": csv_bytes,
-        "byRule": dict(Counter(r.rule for r in rows)),
-        "byException": dict(Counter(r.exception for r in rows if r.exception)),
-        "byCategory": dict(Counter(r.category for r in rows if r.category)),
+        "txns": phase.txns.height, "rows": row_count, "csvBytes": csv_bytes,
+        "byRule": dict(by_rule), "byException": dict(by_exception), "byCategory": dict(by_category),
         "cases": dict(Counter(c["status"] for c in cases)),
-        "advices": residue(advices), "models": {}, "memoryRulesApplied": sum(r.rule == "MEMORY-RULE" for r in rows),
+        "advices": residue(advices), "models": {}, "memoryRulesApplied": memory_applied,
         "memoryRulesIgnored": taught.ignored, "score": None,
     }
     (run / "run.json").write_bytes(orjson.dumps(meta, option=orjson.OPT_INDENT_2))

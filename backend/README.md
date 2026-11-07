@@ -29,6 +29,16 @@ Dos pánicos de kernel la noche del 6 al 7 de noviembre coincidieron con memoria
 Las salidas CSV/JSONL se escriben por bloques, y el motor comparte un único índice de partidas con saldos y totales
 en vectores de enteros de 64 bits. El historial conserva los mismos campos al exportarse.
 
+La resolución escribe asignaciones y explicaciones por movimiento, sin acumular todas las filas ni un diccionario
+con todos los movimientos. Las facturas permanecen en tablas por columnas; solo se materializan las referencias
+encontradas y las candidatas emitidas, abiertas y no reservadas. Las referencias, prefijos, sufijos y pedidos usan hashes
+compactos, comprobando los campos originales antes de aceptar un candidato. Un cobro explicado por sus referencias
+no necesita materializar todo el historial del tercero.
+
+El historial de liquidaciones usa vectores de eventos enlazados por posición de partida. Su exportación a Parquet
+se ejecuta por lotes. `progress.json` y stderr conservan etapas, movimientos completados y pico RSS durante el run;
+el estado de la API consulta ese progreso porque el CSV se abre desde el inicio de la resolución.
+
 En las fases con golden, `run` termina un proceso de conciliación antes de cargar el evaluador en el proceso
 coordinador: sus estados grandes no conviven. `peakRssMb.score` mide ese segundo proceso; los otros valores son
 máximos acumulados del proceso de conciliación, sin sumar los workers de documentos.

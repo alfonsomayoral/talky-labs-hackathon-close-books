@@ -5,7 +5,23 @@ import json
 import pytest
 
 from closebooks import pipeline
+from closebooks.api.jobs import Job, Jobs
 from closebooks.cli import main
+
+
+def test_streaming_run_reports_resolve_even_though_the_submission_file_is_already_open(tmp_path):
+    run = tmp_path / "streaming"
+    run.mkdir()
+    (run / "submission.csv.gz").write_bytes(b"partial gzip")
+    (run / "progress.json").write_text(json.dumps({"stage": "resolve", "completedTxns": 5000,
+                                                 "stages": {"load": 100, "rules": 300}}))
+    jobs = Jobs(tmp_path)
+    job = Job("streaming")
+    job.status = "running"
+    jobs.jobs[job.run_id] = job
+    status = jobs.status("streaming")
+    assert status["stage"] == "resolve"
+    assert status["stages"] == {"load": 100, "rules": 300}
 
 
 def test_scored_run_does_not_load_reconciliation_data_in_the_scoring_process(tmp_path, monkeypatch, sample):

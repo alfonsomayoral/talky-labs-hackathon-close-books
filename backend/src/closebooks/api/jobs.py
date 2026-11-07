@@ -104,7 +104,13 @@ class Jobs:
             return {"runId": run_id, "status": "done", "stage": None, "stages": meta["stages"],
                     "startedAt": meta["createdAt"], "finishedAt": meta["createdAt"], "error": None}
         stage = None
+        stages = meta["stages"] if meta else {}
         if job.status == "running":
-            stage = "output" if (folder / "submission.csv.gz").exists() else "load"
-        return {"runId": run_id, "status": job.status, "stage": stage, "stages": meta["stages"] if meta else {},
+            progress_path = folder / "progress.json"
+            if progress_path.exists():
+                progress = orjson.loads(progress_path.read_bytes())
+                stage, stages = progress["stage"], progress.get("stages", stages)
+            else:
+                stage = "output" if (folder / "submission.csv.gz").exists() else "load"
+        return {"runId": run_id, "status": job.status, "stage": stage, "stages": stages,
                 "startedAt": job.started_at, "finishedAt": job.finished_at, "error": job.error}

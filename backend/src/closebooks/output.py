@@ -4,6 +4,7 @@ from __future__ import annotations
 import gzip
 import io
 from collections.abc import Iterable
+from contextlib import contextmanager
 from itertools import chain
 from pathlib import Path
 
@@ -30,14 +31,17 @@ PARTY_SCHEMA = {
 }
 
 
-def _gzip_chunks(path: Path, chunks: Iterable[bytes]) -> int:
-    """mtime=0 and no file name in the header: same content, same bytes."""
-    size = 0
+@contextmanager
+def _gzip_stream(path: Path):
     with path.open("wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=6) as gz:
         with io.BufferedWriter(gz, buffer_size=1 << 20) as buffered:
-            for chunk in chunks:
-                size += buffered.write(chunk)
-    return size
+            yield buffered
+
+
+def _gzip_chunks(path: Path, chunks: Iterable[bytes]) -> int:
+    """mtime=0 and no file name in the header: same content, same bytes."""
+    with _gzip_stream(path) as buffered:
+        return sum(buffered.write(chunk) for chunk in chunks)
 
 
 def _csv_line(row: Row) -> str:
@@ -53,12 +57,33 @@ def write_submission(run: Path, rows: Iterable[Row]) -> int:
 
 
 def write_explanations(run: Path, rows: Iterable[Row]) -> None:
-    lines = (orjson.dumps({
+    _gzip_chunks(run / "explanations.jsonl.gz", (_explanation(r) for r in rows))
+
+
+def _explanation(r: Row) -> bytes:
+    return orjson.dumps({
         "bankTxnId": r.bank_txn_id, "itemId": r.item_id, "amountCents": r.amount_cents, "currency": r.currency,
         "category": r.category, "exception": r.exception, "rule": r.rule, "confidence": r.confidence,
         "partyId": r.party_id, "reference": r.reference, "sources": r.sources, "candidates": r.candidates,
-    }) + b"\n" for r in rows)
-    _gzip_chunks(run / "explanations.jsonl.gz", lines)
+    }) + b"\n"
+
+
+class AllocationWriter:
+    def __init__(self, submission, explanations):
+        self.submission, self.explanations = submission, explanations
+        self.csv_bytes = submission.write(CSV_HEADER.encode())
+
+    def write(self, rows: Iterable[Row]) -> None:
+        for row in rows:
+            self.csv_bytes += self.submission.write(_csv_line(row).encode())
+            self.explanations.write(_explanation(row))
+
+
+@contextmanager
+def allocation_writer(run: Path):
+    with _gzip_stream(run / "submission.csv.gz") as submission, \
+            _gzip_stream(run / "explanations.jsonl.gz") as explanations:
+        yield AllocationWriter(submission, explanations)
 
 
 def write_cases(run: Path, cases: Iterable[dict]) -> None:
@@ -94,23 +119,33 @@ def write_open_items(run: Path, phase: Phase, balances: OpenBalances) -> None:
 
     Items closed in earlier phases (nothing open, no movement, not in open_at_start) are left out."""
     (run / "state").mkdir(exist_ok=True)
-    touched = balances.touched()
-    carried = set(phase.open_at_start["item_id"].to_list()) if phase.open_at_start is not None else set()
-    keep = phase.items.filter(pl.col("item_id").is_in(list(touched | carried)) | (pl.col("open_cents") != 0))
-    ids = keep["item_id"].to_list()
-    starts = keep["open_cents"].to_list()
-    ends = [balances.open(i) for i in ids]
-    histories = [balances.history(i) for i in ids]
-    applied = [sum(h["amountCents"] for h in hs if h["exception"] != "RETURNED") for hs in histories]
-    keep.select(
+    carried = phase.open_at_start["item_id"] if phase.open_at_start is not None else pl.Series([], dtype=pl.String)
+    touched = pl.Series("_touched", (balances.has_history(i) for i in phase.items["item_id"]), dtype=pl.Boolean)
+    keep = phase.items.filter(touched | pl.col("item_id").is_in(carried.implode()) | (pl.col("open_cents") != 0))
+    base = keep.select(
         pl.col("item_id").alias("itemId"), pl.col("item_type").alias("itemType"), "entity",
         pl.col("party_id").alias("partyId"), pl.col("document_number").alias("documentNumber"),
         pl.col("issue_date").alias("issueDate"), pl.col("due_date").alias("dueDate"), "currency",
         pl.col("total_cents").alias("totalCents"),
-    ).with_columns(
-        pl.Series("openAtStartCents", starts, dtype=pl.Int64),
-        pl.Series("appliedCents", applied, dtype=pl.Int64),
-        pl.Series("openAtEndCents", ends, dtype=pl.Int64),
-        pl.Series("status", [_status(e, bool(h), h) for e, h in zip(ends, histories, strict=True)], dtype=pl.String),
-        pl.Series("history", [orjson.dumps(h).decode() for h in histories], dtype=pl.String),
-    ).write_parquet(run / "state" / "open_items.parquet")
+        pl.col("open_cents").alias("openAtStartCents"),
+    )
+
+    def with_history(batch: pl.DataFrame) -> pl.DataFrame:
+        ends, applied, statuses, histories = [], [], [], []
+        for item_id in batch["itemId"]:
+            end = balances.open(item_id)
+            history = balances.history(item_id)
+            ends.append(end)
+            applied.append(sum(h["amountCents"] for h in history if h["exception"] != "RETURNED"))
+            statuses.append(_status(end, bool(history), history))
+            histories.append(orjson.dumps(history).decode())
+        return batch.with_columns(
+            pl.Series("appliedCents", applied, dtype=pl.Int64),
+            pl.Series("openAtEndCents", ends, dtype=pl.Int64),
+            pl.Series("status", statuses, dtype=pl.String),
+            pl.Series("history", histories, dtype=pl.String))
+
+    schema = dict(base.schema) | {"appliedCents": pl.Int64, "openAtEndCents": pl.Int64,
+                                  "status": pl.String, "history": pl.String}
+    base.lazy().map_batches(with_history, schema=schema, streamable=True).sink_parquet(
+        run / "state" / "open_items.parquet", engine="streaming", row_group_size=65_536)
