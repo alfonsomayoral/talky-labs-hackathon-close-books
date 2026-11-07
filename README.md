@@ -27,7 +27,7 @@ Una aplicación operativa sobre el resultado de cada ejecución, a escala real: 
 
 Los correos no se envían: «enviar» queda registrado en `runs/<id>/human/outbox.jsonl`.
 
-Con la ejecución `live-kpi6-cases2` de LIVE (cambia con cada mejora de las reglas): 203.083 movimientos, 692.609 filas, 86,8 % de los movimientos cerrados sin intervención, 33.920 casos para una persona y 0 llamadas a modelo. Con la API de `closebooks serve`, las nueve pantallas abren en menos de 1,1 s una vez arrancada, y arrancar lleva cerca de un minuto (ver [docs/HANDOFF.md](docs/HANDOFF.md)).
+Con la ejecución `live-final-a` de LIVE: 203.083 movimientos, 694.707 filas, 87 % de los movimientos cerrados sin intervención, 33.558 casos para una persona y 0 llamadas a modelo. Con la API de `closebooks serve`, las nueve pantallas abren en menos de 1,1 s una vez arrancada, y arrancar lleva cerca de un minuto (ver [docs/HANDOFF.md](docs/HANDOFF.md)).
 
 ![Resumen con la ejecución real de LIVE, tema oscuro](docs/screenshots/final/resumen-oscuro.png)
 

@@ -30,4 +30,7 @@ describe('partyHowLabel', () => {
     expect(partyHowLabel('iban')).toBe('Por el IBAN del ordenante')
     expect(partyHowLabel('nuevo')).toBe('nuevo')
   })
+  it('explains a rule when the API sends the rule as the way it was found', () => {
+    expect(partyHowLabel('ADVICE-TXT')).toBe('Aviso de remesa: el documento del cliente dice qué paga')
+  })
 })
