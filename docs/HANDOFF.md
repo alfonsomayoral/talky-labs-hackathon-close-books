@@ -66,7 +66,7 @@ PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/capture.mjs htt
 
 ## Grabar el recorrido del vídeo
 
-`app/mock/record.mjs` recorre los ocho pasos de `docs/DEMO.md` con sus pausas y deja `demo.webm`, solo imagen. **Preparado, pero sin ejecutar todavía.** Necesita `npx playwright install ffmpeg`. Sin `--write` no guarda nada; con `--write` responde y envía de verdad, así que va sobre una copia. Los ids se cambian con `--ids ids.json`.
+`app/mock/record.mjs` recorre los ocho pasos de `docs/DEMO.md` con sus pausas y deja `demo.webm`, solo imagen. Ejecutado de principio a fin con una copia de `live-final-a`: sin fallos y sin errores de consola. Necesita `npx playwright install ffmpeg`. Graba webm; para mp4, con el `ffmpeg` del sistema: `ffmpeg -i demo.webm -c:v libx264 -crf 20 -pix_fmt yuv420p demo.mp4`. El nombre de la copia se ve en Ejecuciones y en la barra lateral. Sin `--write` no guarda nada; con `--write` responde y envía de verdad, así que va sobre una copia. Los ids se cambian con `--ids ids.json`.
 
 ```bash
 PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/record.mjs http://localhost:5173 --out <dir>

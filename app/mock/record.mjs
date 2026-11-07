@@ -52,7 +52,7 @@ const step = async (n, seconds, run) => {
 }
 
 try {
-  // Seconds per step are those of docs/DEMO.md, and add up to 5 minutes.
+  // Seconds per step follow docs/DEMO.md; 3 s less in the last one, so the video stays under the 5 minute limit.
   await step(1, 40, async () => {
     await go('/')
     await hold(12)
@@ -98,7 +98,7 @@ try {
     await hold(11)
     await go('/explorador?tipo=documents')
   })
-  await step(8, 35, async () => {
+  await step(8, 32, async () => {
     await go('/ejecuciones')
     await hold(10)
     await go('/ejecuciones?vista=comparar')

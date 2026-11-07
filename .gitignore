@@ -22,5 +22,8 @@ coverage
 .vscode/*
 .idea
 
+# Demo video drafts: too heavy for the repo
+docs/video/
+
 # Design tooling output
 .taste-skill/
