@@ -25,3 +25,5 @@ cd backend && uv run python -c "import json; from pathlib import Path; from clos
 ## Memoria
 
 Dos pánicos de kernel la noche del 6 al 7 de noviembre coincidieron con memoria agotada por procesos Python (un proceso de 97 GB, compresor saturado). Una ejecución de `holdout` debe quedar por debajo de 8 GB de RSS: mídelo con `/usr/bin/time -l uv run closebooks run --phase holdout --out ../runs/holdout-mem`. FINAL corre con la plataforma y `serve` arriba, así que ese es el límite que importa. Una medición pesada a la vez; los pools no pasan de 6 procesos.
+
+`_RJEM_MALLOC_CONF=dirty_decay_ms:0,muzzy_decay_ms:0` hace que Polars devuelva al sistema la memoria que libera: tras `load` en holdout, 950 MB de RSS frente a 1,8 GB. Lo fijan `closebooks/__init__.py`, si la variable no está ya definida, y el `justfile`. FINAL corre con ella.
