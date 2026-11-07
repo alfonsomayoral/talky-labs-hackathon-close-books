@@ -144,7 +144,7 @@ def match(phase: Phase) -> tuple[dict[str, Proposal], Counter]:
         proposals[txn] = Proposal(
             rule=f"ADVICE-{advice.fmt.upper()}", lines=lines,
             confidence=1.0 if not unmapped and advice.closes else 0.85, reference=advice.payment_ref,
-            deductions=deductions,
+            deductions=deductions, by_cash=not advice.closes,
             sources=[{"kind": "remittanceAdvice", "ref": advice.path, "label": advice.payment_ref}])
     return proposals, stats
 
