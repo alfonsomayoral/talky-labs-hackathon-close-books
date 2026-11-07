@@ -994,3 +994,14 @@ def test_netted_cited_does_not_act_when_the_text_cites_only_credit_notes():
     rule, balances = engine(due + later + [credit])
     found = rule(txn(777, f"{NAME} AB007", date="2024-06-01"), balances)
     assert found.rule == "REF-TEXT" and lines(found) == {"ARC-1"}
+
+
+def test_netted_cited_does_not_read_a_payment_of_an_invoice_already_settled_as_a_batch():
+    # The text cites an invoice that is closed and the cash is its total: a second payment, not a netted batch.
+    due, later = _cited_batch()
+    credit = item("ARC-1", "C1", "AB007", 31337, "2024-05-20")
+    batch = sum(due[i]["total_cents"] for i in (3, 5, 7)) - 31337
+    due[1]["total_cents"], due[1]["open_cents"] = batch, 0
+    rule, balances = engine(due + later + [credit])
+    found = rule(txn(batch, f"{NAME} FAC001", date="2024-06-01"), balances)
+    assert found is None or found.rule != "PARTY-NETTED"

@@ -314,8 +314,8 @@ class PartyAmount:
         """The only set of the party's open credit notes and invoices that fell due, with the cited invoices, that adds
         up to the cash. Never credit notes alone: it needs a cited invoice and at least one credit note."""
         named = {i for i, _ in cited.lines}
-        if not any(i[:3] == "ARI" for i in named):
-            return None
+        if not any(i[:3] == "ARI" for i in named) or any(balances.open(i) <= 0 for i in named):
+            return None  # a cited item already settled is a second payment (PARTY-DUPLICATE), not a batch
         booked = txn["booking_date"]
         pool = []
         for i in self.items.get(party, ()):
