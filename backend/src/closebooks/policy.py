@@ -81,7 +81,9 @@ def decide(item_id: str, item_currency: str, txn_currency: str, open_cents: int,
     if returned:
         return (applied_cents if applied_cents is not None else open_cents), "RETURNED"
     if open_cents <= 0:
-        return (applied_cents if applied_cents is not None else 0), "DUPLICATE_PAYMENT"
+        amount = applied_cents if applied_cents is not None else 0
+        exact = terms is None or amount == terms.total_cents
+        return amount, "DUPLICATE_PAYMENT" if exact else ""
     if deduction is not None and applied_cents is not None:
         amount, exception = _deducted(open_cents, applied_cents, deduction, terms, booking_date)
     elif applied_cents is not None and applied_cents < open_cents:
@@ -108,7 +110,7 @@ def allocate(cash: int | None, items: list[tuple[str, int, Terms]], booking_date
     notes = [i for i in items if i[0][:3] in CREDIT_NOTES]
     out = {item: (open_cents, "") for item, open_cents, _ in notes}
     if len(items) == 1 and items[0][1] <= 0:
-        return {items[0][0]: (cash or 0, "DUPLICATE_PAYMENT")}
+        return {items[0][0]: (cash or 0, "DUPLICATE_PAYMENT" if cash == items[0][2].total_cents else "")}
     net = sum(o for _, o, _ in invoices) - sum(o for _, o, _ in notes)
     if cash is None:
         cash = net
