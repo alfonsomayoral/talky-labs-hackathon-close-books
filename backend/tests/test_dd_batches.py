@@ -135,6 +135,41 @@ def test_return_whose_batch_is_before_the_phase_reverses_the_receipt_presented_a
     assert dd_batches.propose(phase)["BT-R"].lines == [("ARI-2025-0000001", 10000)]
 
 
+def _return_then_transfers(phase_factory, *transfers):
+    """F-2 is what the delay of the return says; F-1 is what a later transfer may say."""
+    files = {"direct_debit_batches": HEADER
+             + batch("01250401001", "2025-04-01", [(M1, 100.0, "FA25000111", "N")])
+             + batch("01250429002", "2025-04-29", [(M1, 100.0, "FA25000222", "N")])}
+    return phase_factory(items=[item(1, "FA25000111", 10000), item(2, "FA25000222", 10000)], files=files,
+                         txns=[credit("BT-R", f"RUECKLASTSCHRIFT AM04 MREF+{M1}", -10000, date="2025-05-05"),
+                               *transfers])
+
+
+def test_of_two_receipts_the_one_whose_invoice_a_later_transfer_cites_is_the_one_that_came_back(phase_factory):
+    paid = credit("BT-P", "TRANSFER PAGO FA25000111", 10000, date="2025-05-20")
+    proposal = dd_batches.propose(_return_then_transfers(phase_factory, paid))["BT-R"]
+    assert proposal.lines == [("ARI-2025-0000001", 10000)]
+
+
+def test_a_transfer_may_cite_only_the_end_of_the_number(phase_factory):
+    paid = credit("BT-P", "PAGO RECIBO 5000111", 10000, date="2025-05-20")
+    proposal = dd_batches.propose(_return_then_transfers(phase_factory, paid))["BT-R"]
+    assert proposal.lines == [("ARI-2025-0000001", 10000)]
+
+
+def test_later_transfers_that_say_nothing_about_which_receipt_leave_the_delay_to_decide(phase_factory):
+    usual = [("ARI-2025-0000002", 10000)]
+    both = [credit("BT-P", "PAGO FA25000111", 10000, date="2025-05-20"),
+            credit("BT-Q", "PAGO FA25000222", 10000, date="2025-05-21")]
+    assert dd_batches.propose(_return_then_transfers(phase_factory, *both))["BT-R"].lines == usual
+    other_amount = credit("BT-P", "PAGO FA25000111", 9000, date="2025-05-20")
+    assert dd_batches.propose(_return_then_transfers(phase_factory, other_amount))["BT-R"].lines == usual
+    before = credit("BT-P", "PAGO FA25000111", 10000, date="2025-05-01")
+    assert dd_batches.propose(_return_then_transfers(phase_factory, before))["BT-R"].lines == usual
+    too_late = credit("BT-P", "PAGO FA25000111", 10000, date="2025-07-20")
+    assert dd_batches.propose(_return_then_transfers(phase_factory, too_late))["BT-R"].lines == usual
+
+
 def test_return_of_a_mandate_with_no_receipt_of_that_amount_is_not_forced(phase_factory):
     phase = returns_phase(phase_factory, "AM04", 6)
     phase.txns = phase.txns.with_columns((pl.col("amount_cents") - 1).alias("amount_cents"))

@@ -2,11 +2,16 @@
 a returned receipt reopens the invoice of the receipt it reverses (§3 RETURNED, §5.10)."""
 from __future__ import annotations
 
+import re
+from collections import defaultdict
+from datetime import date
+
 import polars as pl
 
 from ..load import Phase, load_detail
 from ..model import Proposal
-from .ar_common import applied_lines, by_attribute, by_number, cents, entity_of_account, invoices, tokens
+from .ar_common import MIN_SUFFIX, applied_lines, by_attribute, by_number, cents, entity_of_account, invoices, tokens
+from .party_amount import PartyAmount, _alnum
 
 # A mandate as the bank prints it: three or more hyphenated groups (VTM-ES-0004409).
 MANDATE = r"[A-Z0-9]+(?:-[A-Z0-9]+){2,}"
@@ -43,7 +48,7 @@ def propose(phase: Phase) -> dict[str, Proposal]:
         return {}
     txns = phase.txns.select("bank_txn_id", "account_id", "booking_date", "amount_cents", "text", "ref1", "ref2",
                              "end_to_end_id", "remittance_info")
-    return {**_batches(txns, receipts), **_returns(txns, receipts)}
+    return {**_batches(txns, receipts), **_returns(txns, receipts, invoices(phase))}
 
 
 def _batches(txns: pl.DataFrame, receipts: pl.DataFrame) -> dict[str, Proposal]:
@@ -66,13 +71,43 @@ def _batches(txns: pl.DataFrame, receipts: pl.DataFrame) -> dict[str, Proposal]:
         for row in lines.iter_rows(named=True)}
 
 
-def _returns(txns: pl.DataFrame, receipts: pl.DataFrame) -> dict[str, Proposal]:
+def _cites(flats: set[str], number: str) -> bool:
+    """The whole number, or at least its last MIN_SUFFIX digits, as a citation counts on its own in `party_amount`."""
+    digits = re.sub(r"\D", "", number)
+    return _alnum(number) in flats or any(
+        flat.isdigit() and len(flat.lstrip("0")) >= MIN_SUFFIX and digits.endswith(flat.lstrip("0")) for flat in flats)
+
+
+def _paid_again(candidates: pl.DataFrame, txns: pl.DataFrame, items: pl.DataFrame) -> pl.DataFrame:
+    """(bank_txn_id, item_id) of the receipt whose invoice a later transfer of that amount cites: its customer paid it
+    another way because it came back (POLICIES §3, §5.10). Only where several could be the one returned, and only if
+    one is cited: two say nothing.
+
+    Why it generalizes: the evidence is the customer's own citation and the exact amount, in the days a returned receipt
+    is presented again, with nothing learned from any phase."""
+    several = candidates.filter(pl.col("item_id").n_unique().over("bank_txn_id") > 1).select(
+        "bank_txn_id", "account_id", "cents", "booking_date", "item_id").unique()
+    numbers = dict(items.select("item_id", "document_number").iter_rows())
+    later: dict[tuple[str, int], list[tuple[str, set[str]]]] = defaultdict(list)
+    for txn in txns.filter(pl.col("amount_cents").is_in(several["cents"].unique().to_list())).iter_rows(named=True):
+        later[txn["account_id"], txn["amount_cents"]].append(
+            (txn["booking_date"], {_alnum(t) for t in PartyAmount._tokens(txn)}))
+    found = []
+    for return_id, account, amount, booked, item in several.iter_rows():
+        if any(0 < (date.fromisoformat(day) - date.fromisoformat(booked)).days <= REPRESENT_DAYS
+               and _cites(flats, numbers.get(item) or "") for day, flats in later[account, amount]):
+            found.append((return_id, item))
+    return pl.DataFrame(found, schema={"bank_txn_id": pl.String, "item_id": pl.String}, orient="row").filter(
+        pl.len().over("bank_txn_id") == 1).with_columns(pl.lit(True).alias("paid_again"))
+
+
+def _returns(txns: pl.DataFrame, receipts: pl.DataFrame, items: pl.DataFrame) -> dict[str, Proposal]:
     """A debit naming a mandate, with the amount of a receipt: that receipt comes back.
 
-    Of several receipts of the same mandate and amount collected before: the batch the debit cites; a delay as the
-    reason says (a refund claim, MD06, comes weeks later; any other return within days); a receipt not presented
-    again; the latest. A receipt comes back once. If none fits (its file is from before the phase), the receipt
-    presented again soon after is the one that came back (§5.10)."""
+    Of several receipts of the same mandate and amount collected before: the batch the debit cites; the only one whose
+    invoice a later transfer cites; a delay as the reason says (a refund claim, MD06, comes weeks later; any other
+    return within days); a receipt not presented again; the latest. A receipt comes back once. If none fits (its file
+    is from before the phase), the receipt presented again soon after is the one that came back (§5.10)."""
     debits = txns.filter(pl.col("amount_cents") < 0).with_columns(pl.col("amount_cents").abs().alias("cents"))
     text = pl.concat_str(["text", "ref1", "ref2", "end_to_end_id", "remittance_info"], separator=" ", ignore_nulls=True)
     named = (
@@ -104,11 +139,13 @@ def _returns(txns: pl.DataFrame, receipts: pl.DataFrame) -> dict[str, Proposal]:
         .select("bank_txn_id", "batch_id", "mandate_id").unique().with_columns(pl.lit(True).alias("reopened")))
     candidates = (
         candidates.join(reopened, on=["bank_txn_id", "batch_id", "mandate_id"], how="left")
+        .join(_paid_again(candidates, txns, items), on=["bank_txn_id", "item_id"], how="left")
         .with_columns(pl.col("cited").fill_null(False), pl.col("reopened").fill_null(False),
+                      pl.col("paid_again").fill_null(False),
                       (pl.col("re_presentation") == "N").alias("first_presentation"),
                       pl.col("delay").abs().alias("gap"))
-        .sort("booking_date", "bank_txn_id", "cited", "fit", "reopened", "first_presentation", "gap",
-              descending=[False, False, True, False, True, True, False]))
+        .sort("booking_date", "bank_txn_id", "cited", "paid_again", "fit", "reopened", "first_presentation", "gap",
+              descending=[False, False, True, True, False, True, True, False]))
     proposals: dict[str, Proposal] = {}
     used: set[tuple[str, str]] = set()
     for _, rows in candidates.group_by("bank_txn_id", maintain_order=True):
