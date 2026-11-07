@@ -20,7 +20,7 @@ interface PartyPanelProps {
   onClose: () => void
 }
 
-const ITEM_ROW = 36
+const ITEM_ROW = 44
 const ITEMS_MAX_HEIGHT = 8 * ITEM_ROW + 40
 const RECENT_MOVEMENTS = 8
 const OWN_CASE_KINDS = ['dispute', 'duplicate_payment']

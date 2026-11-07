@@ -92,7 +92,7 @@ export function SuppliersPage() {
       {
         id: 'bookingDate',
         header: 'Antigüedad',
-        width: 100,
+        width: 112,
         align: 'right',
         sortValue: (c) => c.bookingDate,
         cell: (c) => <span className="tabular">{ageLabel(ageDays(c.bookingDate, asOf))}</span>,

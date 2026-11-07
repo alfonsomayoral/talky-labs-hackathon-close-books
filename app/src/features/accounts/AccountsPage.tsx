@@ -26,9 +26,9 @@ const COLUMNS: Column<Account>[] = [
     ),
     sortValue: (a) => a.accountId,
   },
-  { id: 'bank', header: 'Banco', width: 'minmax(120px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
-  { id: 'entity', header: 'Sociedad', width: 84, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
-  { id: 'currency', header: 'Divisa', width: 68, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
+  { id: 'bank', header: 'Banco', width: 'minmax(112px, 1fr)', cell: (a) => a.bankName ?? a.bank, sortValue: (a) => a.bankName ?? a.bank },
+  { id: 'entity', header: 'Sociedad', width: 92, cell: (a) => <Mono>{a.entity}</Mono>, sortValue: (a) => a.entity },
+  { id: 'currency', header: 'Divisa', width: 72, cell: (a) => <Mono>{a.currency}</Mono>, sortValue: (a) => a.currency },
   {
     id: 'format',
     header: 'Formato de extracto',
@@ -73,7 +73,7 @@ const COLUMNS: Column<Account>[] = [
   {
     id: 'reconciled',
     header: '% conciliado',
-    width: 110,
+    width: 118,
     cell: (a) =>
       a.reconciledRate == null ? (
         '—'

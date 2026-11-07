@@ -49,6 +49,8 @@
   --bg-subtle: #f5f4f0;
   --bg-muted: #eeece7;
   --bg-overlay: rgb(4 36 43 / 0.32);
+  /* Table row on hover: a very light green, apart from the selected --brand-soft; --ink-2 on it 6.9:1 (7.6:1 on dark). */
+  --row-hover: #f3f7f5;
 
   /* Status: base (dots, bars, icons), bg (soft fills), border, ink (text on bg / white, AA). */
   /* ok is teal, not green, so it never reads as the brand green (as in the dark theme). */
@@ -100,6 +102,7 @@
   /* Headlines and headline figures: a light serif, set at --weight-light. */
   --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
   --font-mono: 'Chivo Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  --text-11: 11px;
   --text-12: 12px;
   --text-13: 13px;
   --text-14: 14px;
@@ -143,7 +146,7 @@
   --sidebar-width: 248px;
   --rail-width: 60px;
   --topbar-height: 48px;
-  --row-height: 40px;
+  --row-height: 44px;
   --control-height-sm: 24px;
   --control-height-md: 34px;
   --page-padding: 32px 40px 48px;
@@ -198,6 +201,7 @@
   --bg-subtle: #222623;
   --bg-muted: #2a2f2c;
   --bg-overlay: rgb(0 0 0 / 0.6);
+  --row-hover: #1f2623;
 
   /* Status: base (dots, bars, icons), bg (soft fills, 14 % of base over --bg), border (38 %), ink (text on
      bg / --bg, AA). */

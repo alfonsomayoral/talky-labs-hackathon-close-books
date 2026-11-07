@@ -69,7 +69,7 @@ function track(width: number | string | undefined): string {
 }
 
 /**
- * Virtualized list-table for thousands of rows (36px rows, sticky header).
+ * Virtualized list-table for thousands of rows (44px rows, sticky header).
  * Sort by header click, optional collapsible groups, keyboard cursor (j/k/↑/↓, Enter opens).
  */
 export function DataTable<T>({
@@ -89,7 +89,7 @@ export function DataTable<T>({
   onOpen,
   globalKeys = false,
   variant = 'table',
-  rowHeight = 36,
+  rowHeight = 44,
   height,
   empty,
   className,

@@ -20,7 +20,7 @@ const COLUMNS: Column<RunSummary>[] = [
   { id: 'txns', header: 'Movimientos', width: 110, align: 'right', cell: (r) => formatNumber(r.txns), sortValue: (r) => r.txns },
   { id: 'rows', header: 'Filas', width: 90, align: 'right', cell: (r) => formatNumber(r.rows), sortValue: (r) => r.rows },
   { id: 'queue', header: 'En cola', width: 90, align: 'right', cell: (r) => formatNumber(queue(r)), sortValue: queue },
-  { id: 'calls', header: 'Llamadas', width: 90, align: 'right', cell: (r) => formatNumber(r.modelCalls), sortValue: (r) => r.modelCalls },
+  { id: 'calls', header: 'Llamadas', width: 100, align: 'right', cell: (r) => formatNumber(r.modelCalls), sortValue: (r) => r.modelCalls },
   { id: 'cost', header: 'Coste', width: 90, align: 'right', cell: (r) => <Amount cents={Math.round(r.modelCostUsd * 100)} currency="USD" />, sortValue: (r) => r.modelCostUsd },
   { id: 'score', header: 'Puntuación', width: 110, align: 'right', cell: (r) => formatNumber(r.score, { decimals: 2 }), sortValue: (r) => r.score },
 ]
