@@ -23,6 +23,10 @@ FEE_LIMIT_EUR_CENTS = 6000
 FEE_LIMIT_RATIO = 0.02
 DISCOUNT_WORDS = ("DISCOUNT", "DESCUENTO", "DTO", "SKONTO", "ESCOMPTE", "SCONTO")
 WITHHOLDING_WORDS = ("RET", "RETENCION", "RETENCIÓN", "WITHHOLDING", "WHT", "ISR", "IRRF")
+# As in rules/party_amount.py, which imports this module: a partial pays a round share, a multiple of 5 %, to the cent.
+ROUND_FRACTIONS = 20
+SHARE_WINDOW = 3
+MAX_CHANCE = 0.05
 
 
 def cross_border(bank_code: str | None, text: str | None) -> bool:
@@ -75,15 +79,16 @@ class Evidence(IntEnum):
     """What backs a hypothesis, weakest first. Two different hypotheses on one level are a tie: neither is taken."""
 
     DEFAULT = 0  # nothing explains the gap: what the cash reaches
-    BOUNDED = 1  # within the limits POLICIES sets, not exact: an overpayment
-    MOVEMENT_MARK = 2  # the bank line marks it as from abroad and the fee is within the limits of POLICIES
-    RATE_ON_ALL = 3  # the rate of POLICIES on every invoice, to the rounding of each
-    ONE_DISCOUNT = 4  # the gap is the discount in the terms of one invoice of several
-    ALL_DISCOUNTS = 5  # the gap is the discounts in the terms of all of them
-    EXACT = 6  # the open balances are the cash to the cent
-    PRINTED_DISCOUNT = 7  # a document prints the amount, with no reason: it is the discount in the terms
-    PRINTED_RATE = 8  # a document prints the amount, with no reason: it is a rate where that tax is withheld
-    PRINTED_REASON = 9  # a document prints the amount and why
+    ROUND_SHARE = 1  # with the others cleared whole, the cash pays a round share of this invoice, to the cent
+    BOUNDED = 2  # within the limits POLICIES sets, not exact: an overpayment
+    MOVEMENT_MARK = 3  # the bank line marks it as from abroad and the fee is within the limits of POLICIES
+    RATE_ON_ALL = 4  # the rate of POLICIES on every invoice, to the rounding of each
+    ONE_DISCOUNT = 5  # the gap is the discount in the terms of one invoice of several
+    ALL_DISCOUNTS = 6  # the gap is the discounts in the terms of all of them
+    EXACT = 7  # the open balances are the cash to the cent
+    PRINTED_DISCOUNT = 8  # a document prints the amount, with no reason: it is the discount in the terms
+    PRINTED_RATE = 9  # a document prints the amount, with no reason: it is a rate where that tax is withheld
+    PRINTED_REASON = 10  # a document prints the amount and why
 
 
 @dataclass(slots=True)
@@ -313,9 +318,29 @@ def _what_the_cash_reaches(case: Gap) -> Iterator[Hypothesis]:
         yield Hypothesis(Evidence.DEFAULT, _oldest_first(available, case.invoices), "no clause explains the gap")
 
 
+def _round_share(case: Gap) -> Iterator[Hypothesis]:
+    """The invoice that, with the others cleared whole, takes a round share of its total: that one is the partial.
+
+    A whole invoice's balance says nothing; a share to the cent does, as in PARTY-FRACTION. Two that fit tie and neither
+    is taken; so is a share chance would explain. A document that lists the items already said where the money stops."""
+    invoices = case.invoices
+    if case.gap <= 0 or len(invoices) < 2 or any(t.listed_at is not None for _, _, t in invoices):
+        return
+    whole = [(i, o) for i, o, t in invoices if o == t.total_cents]
+    if sum((ROUND_FRACTIONS - 1) * SHARE_WINDOW / max(o, 1) for _, o in whole) > MAX_CHANCE:
+        return
+    available = case.cash + sum(o for _, o, _ in case.notes) - sum(o for _, o, _ in invoices)
+    for item, open_cents in whole:
+        applied = available + open_cents
+        if 0 < applied < open_cents and any(abs(applied * ROUND_FRACTIONS - open_cents * k) <= ROUND_FRACTIONS
+                                            for k in range(1, ROUND_FRACTIONS)):
+            yield Hypothesis(Evidence.ROUND_SHARE, {**_clear(case), item: (applied, "PARTIAL")},
+                             f"{item} takes a round share, the rest paid whole")
+
+
 # What can explain a gap. A new hypothesis is a function of a Gap that yields it, added here.
 NODES = (_exact, _beyond_the_balances, _overpaid, _all_discounts, _one_discount, _withheld_on_all, _bank_fee,
-         _what_the_cash_reaches)
+         _round_share, _what_the_cash_reaches)
 
 
 def _oldest_first(available: int, invoices: list) -> dict[str, tuple[int, str]]:

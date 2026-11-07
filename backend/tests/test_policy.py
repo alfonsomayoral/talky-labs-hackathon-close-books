@@ -228,6 +228,56 @@ def test_a_gap_that_is_the_discount_of_one_of_two_invoices_with_terms_goes_to_th
     assert allocate(149000, items, "2025-06-05", False) == {"ARI-1": (100000, ""), "ARI-2": (50000, "SHORT_DISCOUNT")}
 
 
+def _whole(total, issued="2025-06-01"):
+    return Terms(None, None, issued, total, "ES")
+
+
+def test_the_partial_of_a_receipt_is_the_only_invoice_it_pays_a_round_share_of():
+    # With the others cleared whole, 40 % of the newest is left: the money does not stop at the oldest.
+    items = [("ARI-OLD", 123457, _whole(123457, "2025-01-01")), ("ARI-NEW", 200000, _whole(200000))]
+    assert allocate(123457 + 80000, items, "2025-06-05", False) == {
+        "ARI-OLD": (123457, ""), "ARI-NEW": (80000, "PARTIAL")}
+    # BT-2025-0096935's shape: oldest first would leave the old one partial; the round share is the old one's.
+    items = [("ARI-OLD", 200000, _whole(200000, "2025-01-01")), ("ARI-NEW", 123457, _whole(123457))]
+    assert allocate(123457 + 80000, items, "2025-06-05", False) == {
+        "ARI-OLD": (80000, "PARTIAL"), "ARI-NEW": (123457, "")}
+
+
+def test_two_invoices_with_a_round_share_stay_oldest_first():
+    # 40 % of the old one and 40 % of the new one: nothing says which, and the order of always stands.
+    items = [("ARI-NEW", 200000, _whole(200000)), ("ARI-OLD", 200000, _whole(200000, "2025-01-01"))]
+    assert allocate(280000, items, "2025-06-05", False) == {"ARI-OLD": (200000, ""), "ARI-NEW": (80000, "PARTIAL")}
+
+
+def test_no_round_share_stays_oldest_first():
+    items = [("ARI-NEW", 200000, _whole(200000)), ("ARI-OLD", 123457, _whole(123457, "2025-01-01"))]
+    assert allocate(123457 + 77777, items, "2025-06-05", False) == {
+        "ARI-OLD": (123457, ""), "ARI-NEW": (77777, "PARTIAL")}
+
+
+def test_a_round_share_of_a_tiny_invoice_could_be_chance_and_proves_nothing():
+    items = [("ARI-OLD", 200000, _whole(200000, "2025-01-01")), ("ARI-NEW", 1000, _whole(1000))]
+    assert allocate(200000 + 400, items, "2025-06-05", False) == {"ARI-OLD": (200000, ""), "ARI-NEW": (400, "PARTIAL")}
+    items = [("ARI-OLD", 1000, _whole(1000, "2025-01-01")), ("ARI-NEW", 200033, _whole(200033))]
+    assert allocate(200033 + 400, items, "2025-06-05", False) == {"ARI-OLD": (1000, ""), "ARI-NEW": (199433, "PARTIAL")}
+
+
+def test_an_invoice_already_part_paid_takes_no_round_share():
+    items = [("ARI-OLD", 123457, _whole(123457, "2025-01-01")), ("ARI-NEW", 150000, _whole(200000))]
+    assert allocate(123457 + 60000, items, "2025-06-05", False) == {
+        "ARI-OLD": (123457, ""), "ARI-NEW": (60000, "PARTIAL")}
+    items = [("ARI-OLD", 150000, _whole(200000, "2025-01-01")), ("ARI-NEW", 123457, _whole(123457))]
+    assert allocate(123457 + 60000, items, "2025-06-05", False) == {
+        "ARI-OLD": (150000, ""), "ARI-NEW": (33457, "PARTIAL")}
+
+
+def test_a_document_that_lists_the_items_wins_over_a_round_share():
+    items = [("ARI-NEW", 200000, Terms(None, None, "2025-06-01", 200000, "ES", listed_at=0)),
+             ("ARI-OLD", 123457, Terms(None, None, "2025-01-01", 123457, "ES", listed_at=1))]
+    assert allocate(80000 + 123457, items, "2025-06-05", False) == {
+        "ARI-NEW": (200000, ""), "ARI-OLD": (3457, "PARTIAL")}
+
+
 def test_two_invoices_whose_discount_is_the_gap_are_not_guessed():
     items = [("ARI-1", 50000, _terms(2.0, 50000)), ("ARI-2", 50000, _terms(2.0, 50000))]
     out = allocate(99000, items, "2025-06-05", False)
