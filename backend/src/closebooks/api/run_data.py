@@ -47,7 +47,7 @@ class RunData:
     def __init__(self, run_dir: Path):
         self.dir = run_dir
         self.id = run_dir.name
-        self.meta: dict = orjson.loads((run_dir / "run.json").read_bytes())
+        self.meta: dict = {**orjson.loads((run_dir / "run.json").read_bytes()), "runId": run_dir.name}
         self.phase: str = self.meta["phase"]
         self.phase_dir = phase_dir(self.phase)
         self.human = HumanFiles(run_dir)

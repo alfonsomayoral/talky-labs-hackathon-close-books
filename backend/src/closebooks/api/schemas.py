@@ -145,7 +145,7 @@ class Draft(BaseModel):
     draftId: str
     caseId: str
     kind: Literal["email_customer", "email_supplier"]
-    to: str
+    to: str | None
     toName: str | None = None
     partyId: str | None = None
     language: str = "es"

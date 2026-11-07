@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from itertools import combinations
 
 import polars as pl
 
@@ -30,6 +31,7 @@ MONTHS = {name: number for number, names in enumerate((
     "NOVIEMBRE NOVEMBER NOVEMBRE NOVEMBRO NOV", "DICIEMBRE DECEMBER DECEMBRE DEZEMBER DICEMBRE DEZEMBRO DIC DEC DEZ",
 ), 1) for name in names.split()}
 _MONTH = re.compile(r"\b(" + "|".join(sorted(MONTHS, key=len, reverse=True)) + r")\b(?: (\d{2}|\d{4})\b)?")
+MAX_TIED_SUBSETS = 5
 CREDIT_NOTES = ("ARC", "APC")
 _WITHHOLDING = (0.0125, 0.015, 0.10)
 
@@ -76,6 +78,12 @@ def _unique_subset(signed: list, cash: int, min_size: int) -> list[str] | None:
     chosen = [signed[i][0] for i in range(half) if found[0] >> i & 1]
     chosen += [signed[half + i][0] for i in range(len(signed) - half) if found[1] >> i & 1]
     return chosen if len(chosen) >= min_size else None
+
+
+def _tied_subsets(signed: list, cash: int) -> list[list[str]]:
+    ties = [[i for i, _ in combo] for size in (2, 3) for combo in combinations(signed, size)
+            if sum(v for _, v in combo) == cash]
+    return ties[:MAX_TIED_SUBSETS] if len(ties) > 1 else []
 
 
 def _small_subset(signed: list, cash: int, min_size: int) -> list[str] | None:
@@ -125,6 +133,9 @@ class PartyAmount:
         self.reserved = reserved
         self.clauses = _clauses(phase)
         self.cancelled = cancelled_item_ids(phase.items) if "reason" in phase.items.columns else set()
+        # bank_txn_id -> why the engine proposed nothing although it had evidence: nobody reads this to decide
+        self.abstentions: dict[str, dict] = {}
+        self._pending: list[tuple[str, list[str]]] = []
         items = phase.items
         # TRAIN has no opening balances: items issued before its first line are candidates only if something cites them.
         self.unknown_before = phase.start if getattr(phase, "name", "") == "train" else ""
@@ -158,10 +169,22 @@ class PartyAmount:
         kind = "customer" if txn["amount_cents"] > 0 else "supplier"
         parties = self.parties.find(txn, kind)
         cash, currency = self._cash(txn)
+        self._pending = []
         results = [r for party in parties if (r := self._match(party, txn, cash, currency, balances))]
         if len(results) == 1:
             return results[0]
-        return self._by_number_alone(txn, cash, currency, balances)
+        found = self._by_number_alone(txn, cash, currency, balances)
+        if found:
+            return found
+        if results:
+            self._abstain(txn, "parties", [(r.party_id, [i for i, _ in r.lines]) for r in results], balances)
+        elif self._pending:
+            self._abstain(txn, "subsets", self._pending, balances)
+        return None
+
+    def _abstain(self, txn: dict, reason: str, options: list[tuple[str, list[str]]], balances: OpenBalances) -> None:
+        self.abstentions[txn["bank_txn_id"]] = {"reason": reason, "options": [
+            {"partyId": party, "items": [(i, balances.open(i)) for i in items]} for party, items in options]}
 
     @staticmethod
     def _cash(txn: dict) -> tuple[int, str]:
@@ -186,12 +209,14 @@ class PartyAmount:
         if same:
             picked = self._of_month(same, txn) or min(same, key=lambda i: (i[2], i[0]))
             return self._proposal("PARTY-AMOUNT", party, [picked[0]], confidence=0.95 if len(same) == 1 else 0.9)
-        subset = self._subset(free, cash)
+        tied: list[list[str]] = []
+        subset = self._subset(free, cash, ambiguous=tied)
         if subset:
             return self._proposal("PARTY-SUBSET", party, subset, confidence=0.9)
         short = self._short_paid(free, cash, party, txn)
         if short:
             return self._proposal("PARTY-SHORT", party, [short], by_cash=True, confidence=0.85)
+        self._pending += [(party, group) for group in tied]
         return self._explained_by_state(free, cash, party)
 
     @staticmethod
@@ -324,15 +349,19 @@ class PartyAmount:
         return self._proposal("REF-NUMBER", None, [i[0] for i in items], by_cash=True, confidence=0.95)
 
     @staticmethod
-    def _subset(free: list, cash: int, min_size: int = 2) -> list[str] | None:
-        """A unique set of items, net of credit notes, that adds up exactly to the cash."""
+    def _subset(free: list, cash: int, min_size: int = 2, ambiguous: list | None = None) -> list[str] | None:
+        """A unique set of items, net of credit notes, that adds up exactly to the cash. With a list in `ambiguous`,
+        small sets that tie are left there for a person to decide; nothing reads them to choose."""
         ordered = sorted(free, key=lambda x: (x[0][2], x[0][0]))
         credit = sum(o for i, o in ordered if i[0][:3] in CREDIT_NOTES)
         # An invoice above the cash plus every credit note cannot be part of it.
         signed_all = [(i[0], -o if i[0][:3] in CREDIT_NOTES else o) for i, o in ordered
                       if i[0][:3] in CREDIT_NOTES or o <= cash + credit]
         if len(signed_all) <= MAX_FULL_SEARCH:
-            return _unique_subset(signed_all, cash, min_size)
+            found = _unique_subset(signed_all, cash, min_size)
+            if found is None and ambiguous is not None:
+                ambiguous += _tied_subsets(signed_all, cash)
+            return found
         running = 0
         for n, (_, value) in enumerate(signed_all, 1):
             running += value
