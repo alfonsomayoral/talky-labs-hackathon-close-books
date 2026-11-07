@@ -39,10 +39,16 @@ export function NewRuleDialog({ runId, onClose }: Props) {
     setTried(false)
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setTried(true)
-    if (!valid || descriptionError) return
+    if (!valid || descriptionError) {
+      // Send the keyboard to the first field to fix.
+      const first = spec.fields.find((f) => errors[f.name])?.name ?? 'description'
+      const field = e.currentTarget.elements.namedItem(first)
+      if (field instanceof HTMLElement) field.focus()
+      return
+    }
     create.mutate(
       {
         kind,
@@ -100,6 +106,7 @@ export function NewRuleDialog({ runId, onClose }: Props) {
               <span className={styles.label}>{f.label}</span>
               <input
                 className={`${styles.control} ${f.mono ? styles.mono : ''}`}
+                name={f.name}
                 value={values[f.name] ?? ''}
                 placeholder={f.placeholder}
                 autoComplete="off"
@@ -133,13 +140,19 @@ export function NewRuleDialog({ runId, onClose }: Props) {
           <span className={styles.label}>Descripción</span>
           <textarea
             className={styles.control}
+            name="description"
             rows={2}
             value={description}
             placeholder="Se escribe sola al rellenar los campos"
             aria-invalid={descriptionShown ? true : undefined}
+            aria-describedby={descriptionShown ? `${formId}-description` : undefined}
             onChange={(e) => setEdited(e.target.value)}
           />
-          {descriptionShown && <span className={styles.error}>{descriptionError}</span>}
+          {descriptionShown && (
+            <span id={`${formId}-description`} className={styles.error}>
+              {descriptionError}
+            </span>
+          )}
         </label>
       </form>
     </Dialog>

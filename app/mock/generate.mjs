@@ -279,6 +279,23 @@ for (const item of items.slice(0, 120)) {
   documents.push({ path, kind: 'invoicePdf', entity: item.entity, format: 'pdf', name: `${item.itemId}.pdf`, date: item.issueDate, partyName: item.partyName, text: `FACTURA ${item.documentNumber}\n${item.partyName}\nFecha ${item.issueDate} · Vencimiento ${item.dueDate}\nTotal ${(item.totalCents / 100).toFixed(2)} ${item.currency}` })
 }
 
+// The six kinds of memory rule of CONTRACT.md §4, in turn, so every question flow can be walked. No rnd() here: the rest of the run stays as it is.
+questions.forEach((q, i) => {
+  const c = cases.find((x) => x.caseId === q.caseId)
+  const customer = partiesOf(q.entity, 'customer')[i % 18]
+  const supplier = partiesOf(q.entity, 'supplier')[i % 8]
+  const payer = txns.find((t) => t.bankTxnId === q.bankTxnId).counterpartyName
+  q.rulePreview = [
+    { kind: 'payer_is_customer', payerName: payer, partyId: '<la opción elegida>', description: `En adelante, los cobros de ${payer} se asignan al cliente elegido` },
+    { kind: 'reference_alias', pattern: `REF-${1000 + i}`, documentNumber: '<la opción elegida>', description: `En adelante, la referencia REF-${1000 + i} apunta a la factura elegida` },
+    { kind: 'parent_pays', payerPartyId: customer.partyId, forPartyId: '<la opción elegida>', description: `En adelante, ${customer.name} paga por el cliente elegido` },
+    { kind: 'ignore_suffix', partyId: customer.partyId, regex: '-[A-Z]{2}$', description: `En adelante, se ignora el sufijo de país en las referencias de ${customer.name}` },
+    { kind: 'supplier_nets_credit_notes', partyId: supplier.partyId, description: `En adelante, ${supplier.name} neta sus abonos en sus cobros` },
+    { kind: 'always_category', bank: 'PENA', bankCode: '17', textPattern: 'TRASPASO', category: 'INTERNAL_TRANSFER', description: 'En adelante, los apuntes «TRASPASO» de Banco Peñalara son traspasos internos' },
+  ][i % 6]
+  c.partyId = null
+})
+
 const count = (list, key) => list.reduce((acc, x) => ((acc[key(x)] = (acc[key(x)] ?? 0) + 1), acc), {})
 const dropNull = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => k !== 'null' && k !== 'undefined'))
 const run = {

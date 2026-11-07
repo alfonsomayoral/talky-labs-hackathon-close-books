@@ -1,0 +1,14 @@
+From: cuentas.pagar@cprriegossl.example
+To: cobros@valtermia.example
+Date: Mon, 19 May 2025 09:19:00 +0100
+Subject: Aviso de pago 250519869471
+
+Buenos días,
+
+Les informamos de que hemos ordenado una transferencia por importe de 668,22 EUR con fecha 19/05/2025 que liquida los siguientes documentos:
+
+  FV24-0106009       26/12/24          954,59
+  AB25-0100001       02/01/25         -286,37
+
+Saludos cordiales,
+CPR Riegos S.L.

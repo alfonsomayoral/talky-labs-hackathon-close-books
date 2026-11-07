@@ -22,18 +22,23 @@ export function SegmentedControl<V extends string>({ options, value, onChange, s
   const ref = useRef<HTMLDivElement>(null)
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const i = options.findIndex((o) => o.value === value)
+    const radios = [...(ref.current?.querySelectorAll<HTMLElement>('[role="radio"]') ?? [])]
+    const chosen = options.findIndex((o) => o.value === value)
+    const i = chosen >= 0 ? chosen : radios.indexOf(document.activeElement as HTMLElement)
     const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
     if (!delta) return
     e.preventDefault()
     const next = (i + delta + options.length) % options.length
     onChange(options[next].value)
-    ref.current?.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus()
+    radios[next]?.focus()
   }
+
+  // With nothing chosen yet, the first option is the group's tab stop.
+  const nothingChosen = !options.some((o) => o.value === value)
 
   return (
     <div ref={ref} role="radiogroup" className={clsx(styles.group, styles[size], className)} onKeyDown={onKeyDown} {...aria}>
-      {options.map((o) => {
+      {options.map((o, index) => {
         const checked = o.value === value
         return (
           <button
@@ -41,7 +46,7 @@ export function SegmentedControl<V extends string>({ options, value, onChange, s
             type="button"
             role="radio"
             aria-checked={checked}
-            tabIndex={checked ? 0 : -1}
+            tabIndex={checked || (nothingChosen && index === 0) ? 0 : -1}
             className={clsx(styles.option, checked && styles.checked)}
             onClick={() => onChange(o.value)}
           >

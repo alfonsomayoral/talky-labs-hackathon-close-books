@@ -16,8 +16,9 @@ MAX_OPEN_RUNS = 3
 
 
 class Store:
-    def __init__(self, runs_dir: Path, command=default_command):
+    def __init__(self, runs_dir: Path, command=default_command, served: str | None = None):
         self.runs_dir = runs_dir
+        self.served = served  # the one run `serve` was started on: the only one opened ahead of time
         self.jobs = Jobs(runs_dir, command)
         self._runs: OrderedDict[str, RunData] = OrderedDict()
         self._phases: dict[str, PhaseData] = {}

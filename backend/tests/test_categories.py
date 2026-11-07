@@ -110,12 +110,20 @@ def test_unidentified_by_code_carries_its_exception():
 
 
 def test_resolve_emits_a_category_row_for_a_category_proposal():
-    items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [1000], "currency": ["EUR"]})
+    items = pl.DataFrame({"item_id": ["ARI-1"], "open_cents": [1000], "total_cents": [1000], "currency": ["EUR"],
+                          "party_id": ["C1"], "payment_terms": ["T30"], "issue_date": ["2025-01-01"]})
+    masters = {
+        "payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None], "discount_days": [None]},
+                                      schema_overrides={"early_payment_discount_pct": pl.String,
+                                                        "discount_days": pl.String}),
+        "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["ES"]}),
+    }
     for amount, category, exception in ((-1000, "BANK_FEES", None), (1000, "UNIDENTIFIED", "UNIDENTIFIED")):
         t = pl.DataFrame({"bank_txn_id": ["BT-1"], "booking_date": ["2025-01-01"], "amount_cents": [amount],
                           "currency": ["EUR"], "bank": ["PENA"], "bank_code": ["17"], "bank_subcode": ["310"],
-                          "text": ["X"]})
-        rows, _ = resolve(SimpleNamespace(items=items, txns=t),
+                          "text": ["X"], "orig_cents": [None], "orig_currency": [None], "amount_eur_cents": [amount]},
+                         schema_overrides={"orig_cents": pl.Int64, "orig_currency": pl.String})
+        rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters),
                           {"BT-1": Proposal(rule="CAT-CODE", lines=[], category=category)})
         assert len(rows) == 1
         r = rows[0]

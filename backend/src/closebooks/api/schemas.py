@@ -93,6 +93,7 @@ class RunSummary(BaseModel):
     modelCalls: int
     modelCostUsd: float
     score: float | None
+    served: bool
 
 
 class Case(BaseModel):
@@ -158,6 +159,12 @@ class Draft(BaseModel):
 
 class CaseRow(Case):
     partyName: str | None
+
+
+class CasePage(Paged[CaseRow]):
+    """Sum of amountEur over every case matching the filter, not only this page."""
+
+    sumAmountEur: int
 
 
 class CaseDetail(CaseRow):
@@ -240,14 +247,14 @@ class RunStatus(BaseModel):
     error: str | None
 
 
-class ValidationError(BaseModel):
+class ValidationIssue(BaseModel):
     row: int | None
     message: str
 
 
 class ValidationResult(BaseModel):
     ok: bool
-    errors: list[ValidationError]
+    errors: list[ValidationIssue]
     sizeBytes: int
     uncompressedBytes: int
     rows: int

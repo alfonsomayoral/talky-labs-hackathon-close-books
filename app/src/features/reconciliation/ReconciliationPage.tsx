@@ -104,7 +104,7 @@ export function ReconciliationPage() {
             onClear={hasActiveFilters(filters) ? clear : undefined}
             end={
               list.total != null && (
-                <span className={styles.count} aria-live="polite">
+                <span className={styles.count}>
                   {formatNumber(list.total)} {list.total === 1 ? 'movimiento' : 'movimientos'}
                 </span>
               )
