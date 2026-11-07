@@ -1,24 +1,34 @@
 import { describe, expect, it } from 'vitest'
 import type { DayStats } from '@/domain'
-import { dayChart, headline, amountSplit, modelTotals, monthTicks, nearestIndex, scoreMetrics, segmentsWorstFirst } from './model'
+import { dayChart, headline, amountSplit, modelTotals, monthTicks, nearestIndex, periodMonths, scoreMetrics, segmentsWorstFirst } from './model'
 
 const day = (date: string, txns: number, txnsAuto: number): DayStats => ({ date, txns, txnsAuto, reviewQueue: txns - txnsAuto, identifiedEur: 0 })
 
 const plain = (text: string) => text.replace(/\s/g, ' ')
 
 describe('headline', () => {
-  it('groups thousands in the number of waiting cases', () => {
-    expect(plain(headline({ txns: 203083, txnsAuto: 0, reviewQueue: 203083 }))).toContain('203.083 casos esperan')
+  const stats = { txns: 203083, txnsAuto: 176641 }
+  const totals = { decidir: { cases: 235, amountEur: 1 }, revisar: { cases: 18018, amountEur: 1 }, reclamar: { cases: 15305, amountEur: 1 } }
+
+  it('separates decisions, review and collections, with the rate of movements closed alone', () => {
+    expect(plain(headline(stats, totals))).toBe('87 % de los movimientos conciliados sin intervención · 235 decisiones · 18,0 k por revisar · 15,3 k en cobros')
   })
-  it('states the auto rate and how many cases wait for a person', () => {
-    expect(plain(headline({ txns: 800, txnsAuto: 600, reviewQueue: 40 }))).toBe('75 % conciliado sin intervención; 40 casos esperan a una persona')
+  it('uses the singular for one decision and leaves out what is empty', () => {
+    const one = { ...totals, decidir: { cases: 1, amountEur: 1 }, reclamar: { cases: 0, amountEur: 0 } }
+    expect(plain(headline(stats, one))).toBe('87 % de los movimientos conciliados sin intervención · 1 decisión · 18,0 k por revisar')
   })
-  it('uses the singular for one case and says so when the queue is empty', () => {
-    expect(headline({ txns: 10, txnsAuto: 9, reviewQueue: 1 })).toContain('1 caso espera')
-    expect(plain(headline({ txns: 10, txnsAuto: 10, reviewQueue: 0 }))).toBe('100 % conciliado sin intervención; nada espera a una persona')
+  it('gives the rate alone until the queues load', () => {
+    expect(plain(headline({ txns: 800, txnsAuto: 600 }, null))).toBe('75 % de los movimientos conciliados sin intervención')
   })
   it('does not divide by zero', () => {
-    expect(headline({ txns: 0, txnsAuto: 0, reviewQueue: 0 })).toBe('Sin movimientos en este alcance')
+    expect(headline({ txns: 0, txnsAuto: 0 }, totals)).toBe('Sin movimientos en este alcance')
+  })
+})
+
+describe('periodMonths', () => {
+  it('counts calendar months, whatever the day they start or end', () => {
+    expect(periodMonths('2025-07-01', '2025-12-31')).toBe(6)
+    expect(periodMonths('2025-11-15', '2026-01-02')).toBe(3)
   })
 })
 

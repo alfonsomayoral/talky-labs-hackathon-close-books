@@ -1,13 +1,30 @@
 // Pure calculations of the Resumen screen.
-import type { DayStats, ModelUsage, RunStats, Score } from '@/domain'
+import type { DayStats, ModelUsage, QueueId, RunStats, Score } from '@/domain'
 import { autoRate } from '@/domain'
 import { formatNumber, formatPercent } from '@/lib/format'
 
-export function headline(s: Pick<RunStats, 'txns' | 'txnsAuto' | 'reviewQueue'>): string {
+type Totals = Record<QueueId, { cases: number }>
+
+/** A big count at a glance: `235`, `18,0 k`. */
+const shortCount = (n: number) => (n < 1000 ? formatNumber(n) : `${formatNumber(n / 1000, { decimals: 1 })} k`)
+
+export function headline(s: Pick<RunStats, 'txns' | 'txnsAuto'>, totals: Totals | null): string {
   const rate = autoRate(s)
   if (rate == null) return 'Sin movimientos en este alcance'
-  const waiting = s.reviewQueue === 0 ? 'nada espera a una persona' : `${formatNumber(s.reviewQueue)} ${s.reviewQueue === 1 ? 'caso espera' : 'casos esperan'} a una persona`
-  return `${formatPercent(rate, { decimals: 0 })} conciliado sin intervención; ${waiting}`
+  const parts = [`${formatPercent(rate, { decimals: 0 })} de los movimientos conciliados sin intervención`]
+  if (totals) {
+    const { decidir, revisar, reclamar } = totals
+    if (decidir.cases) parts.push(`${shortCount(decidir.cases)} ${decidir.cases === 1 ? 'decisión' : 'decisiones'}`)
+    if (revisar.cases) parts.push(`${shortCount(revisar.cases)} por revisar`)
+    if (reclamar.cases) parts.push(`${shortCount(reclamar.cases)} en cobros`)
+  }
+  return parts.join(' · ')
+}
+
+/** Calendar months a period touches. */
+export function periodMonths(from: string, to: string): number {
+  const month = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7))
+  return month(to) - month(from) + 1
 }
 
 /** The whole amount, as shares: settled against items, waiting in the queue, and the rest, which only got a category. */

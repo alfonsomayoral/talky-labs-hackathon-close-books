@@ -1,15 +1,16 @@
 import { ArrowRight } from 'lucide-react'
 import { Amount, ButtonLink, Card, EmptyState, Metric, Mono, Page, PageHeader, Section, Skeleton } from '@/components'
-import { useActiveRun, useRun, useRunStats } from '@/data'
-import { autoRate, categoryLabel, exceptionLabel, ruleDescription } from '@/domain'
+import { useActiveRun, useQueueTotals, useRun, useRunStats } from '@/data'
+import { autoRate, categoryLabel, exceptionLabel, queueOfKind, ruleDescription } from '@/domain'
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format'
 import { useEntityScope, useScopedTo } from '@/lib/urlState'
 import { DayChart } from './DayChart'
 import { EntityCard } from './EntityCard'
 import { KindCard } from './KindCard'
+import { QueueCard } from './QueueCard'
 import { RankList } from './RankList'
 import { ScoreSection } from './ScoreSection'
-import { amountSplit, headline, modelTotals } from './model'
+import { amountSplit, headline, modelTotals, periodMonths } from './model'
 import styles from './OverviewPage.module.css'
 
 const TOP = 8
@@ -20,14 +21,14 @@ export function OverviewPage() {
   const scoped = useScopedTo()
   const statsQuery = useRunStats(runId, entity)
   const runQuery = useRun(runId)
+  const totals = useQueueTotals(runId, entity)
   const stats = statsQuery.data
   const models = runQuery.data ? modelTotals(runQuery.data.models) : null
 
-  const to = (pathname: string, param?: [string, string]) => {
+  const to = (pathname: string, params: Record<string, string> = {}) => {
     const link = scoped(pathname)
-    if (!param) return link
     const search = new URLSearchParams(link.search)
-    search.set(...param)
+    for (const [key, value] of Object.entries(params)) search.set(key, value)
     return { pathname, search: `?${search}` }
   }
 
@@ -62,18 +63,32 @@ export function OverviewPage() {
 
   return (
     <Page>
-      <PageHeader
-        title={headline(stats)}
-        subtitle={`${scope} · fase ${stats.phase} · ${formatDate(stats.periodFrom)} – ${formatDate(stats.periodTo)}`}
-        actions={
-          <ButtonLink variant="primary" to={to('/bandeja')} trailingIcon={<ArrowRight aria-hidden />}>
-            Ver lo que te necesita
-          </ButtonLink>
-        }
-      />
+      <div className={styles.banner} data-surface="feature">
+        <PageHeader
+          title={headline(stats, totals)}
+          subtitle={[
+            scope,
+            `${formatDate(stats.periodFrom)} – ${formatDate(stats.periodTo)}`,
+            ...(entity ? [] : [`${formatNumber(stats.byEntity.length)} sociedades`]),
+            `${formatNumber(stats.txns)} movimientos`,
+            ...(stats.periodFrom && stats.periodTo ? [`${formatNumber(periodMonths(stats.periodFrom, stats.periodTo))} meses`] : []),
+          ].join(' · ')}
+          actions={
+            <ButtonLink variant="primary" to={to('/bandeja')} trailingIcon={<ArrowRight aria-hidden />}>
+              Ver lo que te necesita
+            </ButtonLink>
+          }
+        />
+      </div>
+
+      <div className={styles.queues}>
+        <QueueCard label="Decisiones" description="Varias opciones con la misma evidencia: decide una persona." totals={totals?.decidir} to={to('/bandeja', { vista: 'decidir' })} />
+        <QueueCard label="Por revisar" description="Sin evidencia para casar: cobros sin identificar, casaciones ambiguas y cargos." totals={totals?.revisar} to={to('/bandeja', { vista: 'revisar' })} />
+        <QueueCard label="Cobros" description="Ya conciliados, con algo que reclamar: parciales, disputas y clientes vencidos." totals={totals?.reclamar} to={to('/bandeja', { vista: 'reclamar' })} />
+      </div>
 
       <div className={styles.metrics}>
-        <Card data-surface="feature">
+        <Card>
           <Metric
             label="Conciliado sin intervención"
             value={formatPercent(autoRate(stats), { decimals: 1 })}
@@ -81,7 +96,7 @@ export function OverviewPage() {
             hint="Movimientos sin ningún caso abierto para una persona."
           />
         </Card>
-        <Card data-surface="feature">
+        <Card>
           <Metric
             label="Importe identificado"
             value={<Amount cents={stats.identifiedEur} compact />}
@@ -95,19 +110,7 @@ export function OverviewPage() {
             hint={`De ${formatMoney(stats.totalEur, 'EUR', { compact: true })} en movimientos. Identificado: los que tienen al menos una partida casada. Categorías: los que no liquidan ninguna${biggestCategories ? `, como ${biggestCategories}` : ''}.`}
           />
         </Card>
-        <Card data-surface="feature">
-          <Metric
-            label="Cola de revisión"
-            value={formatNumber(stats.reviewQueue)}
-            comparison={
-              <>
-                casos · <Amount cents={stats.reviewQueueEur} compact />
-              </>
-            }
-            hint="Casos por revisar, con pregunta o sin casación."
-          />
-        </Card>
-        <Card data-surface="feature">
+        <Card>
           <Metric
             label="Coste de modelo"
             value={models ? formatMoney(Math.round(models.costUsd * 100), 'USD', { decimals: 2 }) : ''}
@@ -122,11 +125,11 @@ export function OverviewPage() {
         <Card>{stats.byDay.length ? <DayChart byDay={stats.byDay} /> : <EmptyState size="sm" title="Sin movimientos en el periodo" />}</Card>
       </Section>
 
-      <Section title="Casos por tipo" description="Lo que espera a una persona. Cada tipo abre la bandeja filtrada." count={stats.byKind.length}>
+      <Section title="Casos por tipo" description="La misma cola, por tipo de caso. Cada tipo abre su pestaña de la bandeja." count={stats.byKind.length}>
         {stats.byKind.length ? (
           <div className={styles.kinds}>
             {stats.byKind.map((k) => (
-              <KindCard key={k.kind} {...k} to={to('/bandeja', ['kind', k.kind])} />
+              <KindCard key={k.kind} {...k} to={to('/bandeja', { vista: queueOfKind(k.kind), kind: k.kind })} />
             ))}
           </div>
         ) : (
@@ -158,7 +161,7 @@ export function OverviewPage() {
         <Section title="Filas por regla" description="Qué regla produjo cada fila. Abre la conciliación.">
           <Card padding="none">
             {stats.byRule.length ? (
-              <RankList rows={stats.byRule.slice(0, TOP).map((r) => ({ key: r.rule, label: <Mono title={ruleDescription(r.rule)}>{r.rule}</Mono>, value: r.rows, to: to('/conciliacion', ['regla', r.rule]) }))} />
+              <RankList rows={stats.byRule.slice(0, TOP).map((r) => ({ key: r.rule, label: <Mono title={ruleDescription(r.rule)}>{r.rule}</Mono>, value: r.rows, to: to('/conciliacion', { regla: r.rule }) }))} />
             ) : (
               <EmptyState size="sm" title="Sin filas" />
             )}

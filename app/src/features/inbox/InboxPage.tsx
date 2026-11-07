@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from 'react'
 import { CircleAlert, CircleCheck } from 'lucide-react'
-import { Amount, Badge, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, type Column, type SortState } from '@/components'
-import { useActiveRun, useCases, useRunStats } from '@/data'
-import { CASE_STATUS_LABEL, INBOX_STATUSES, PRIORITY_LABEL, caseKindLabel, type CasePriority, type CaseRow } from '@/domain'
+import { Amount, Badge, Button, DataTable, EmptyState, FilterBar, FilterChip, Mono, Page, PageHeader, Skeleton, TabPanel, Tabs, type Column, type SortState } from '@/components'
+import { useActiveRun, useCases, useQueueTotals, useRunStats } from '@/data'
+import { PRIORITY_LABEL, QUEUES, caseKindLabel, firstActionable, queueFilter, queueOfKind, type CasePriority, type CaseRow } from '@/domain'
 import { formatNumber } from '@/lib/format'
 import { useEntityScope, useListParam, useOpenObject, useTextParam } from '@/lib/urlState'
 import { ACTION_LABEL, TextField } from '@/features/shared'
 import { CasePanel } from './CasePanel'
-import { DEFAULT_SORT, ageDays, ageLabel, queueStatuses, sortFromParam, sortToParam } from './model'
+import { DEFAULT_SORT, ageDays, ageLabel, sortFromParam, sortToParam } from './model'
 import styles from './InboxPage.module.css'
 
 const PRIORITY_TONE = { 1: 'danger', 2: 'warn', 3: 'neutral' } as const
@@ -15,14 +15,14 @@ const ROW_HEIGHT = 60
 const SEARCH_DEBOUNCE_MS = 300
 
 const PRIORITY_OPTIONS = (['1', '2', '3'] as const).map((p) => ({ value: p, label: PRIORITY_LABEL[Number(p) as CasePriority] }))
-const STATE_OPTIONS = INBOX_STATUSES.map((s) => ({ value: s, label: CASE_STATUS_LABEL[s] }))
+const ID_PREFIX = 'inbox'
 
 export function InboxPage() {
   const { runId, run } = useActiveRun()
   const [entity] = useEntityScope()
-  const [kinds, setKinds] = useListParam('kind')
+  const [chosenKinds, setKinds] = useListParam('kind')
   const [priorities, setPriorities] = useListParam('prioridad')
-  const [states, setStates] = useListParam('estado')
+  const [vista, setVista] = useTextParam('vista')
   const [q, setQ] = useTextParam('q')
   const [orden, setOrden] = useTextParam('orden')
   const [open, setOpen] = useOpenObject()
@@ -36,10 +36,16 @@ export function InboxPage() {
     timer.current = window.setTimeout(() => setQ(value.trim() || null), SEARCH_DEBOUNCE_MS)
   }
 
+  const queue = QUEUES.find((t) => t.id === vista) ?? QUEUES[0]
+  // A kind left in the URL by another tab does not filter this one.
+  const kinds = queue.id === 'decidir' ? [] : chosenKinds.filter((k) => queueOfKind(k) === queue.id)
+  const filter = queueFilter(queue.id)
+
   const stats = useRunStats(runId, entity).data
+  const totals = useQueueTotals(runId, entity)
   const cases = useCases(runId, {
-    status: queueStatuses(states),
-    kind: kinds.join(','),
+    status: filter.status,
+    kind: kinds.join(',') || filter.kind,
     priority: priorities.join(','),
     entity,
     q,
@@ -47,9 +53,9 @@ export function InboxPage() {
   })
 
   const kindOptions = useMemo(() => {
-    const known = (stats?.byKind ?? []).map((k) => k.kind)
+    const known = (stats?.byKind ?? []).map((k) => k.kind).filter((k) => queueOfKind(k) === queue.id)
     return [...new Set([...known, ...kinds])].map((kind) => ({ value: kind, label: caseKindLabel(kind) }))
-  }, [stats, kinds])
+  }, [stats, kinds, queue.id])
 
   const asOf = stats?.periodTo ?? run.createdAt
   const columns = useMemo<Column<CaseRow>[]>(
@@ -104,16 +110,16 @@ export function InboxPage() {
     [asOf],
   )
 
-  const filtered = kinds.length > 0 || priorities.length > 0 || states.length > 0 || q != null
+  const filtered = kinds.length > 0 || priorities.length > 0 || q != null
   const clear = () => {
     setKinds([])
     setPriorities([])
-    setStates([])
     setQ(null)
     setTyped('')
     window.clearTimeout(timer.current)
   }
   const onSortChange = (sort: SortState | null) => setOrden(sortToParam(sort))
+  const first = firstActionable(queue.id, cases.rows)
 
   let body
   if (cases.error) {
@@ -160,17 +166,28 @@ export function InboxPage() {
     <Page fill>
       <PageHeader
         title="Te necesitan"
-        subtitle="Los casos que esperan a una persona, por prioridad e importe."
-        filters={
-          <FilterBar onClear={filtered ? clear : undefined} end={cases.total != null && <span className="tabular">{formatNumber(cases.total)} casos</span>}>
-            <TextField label="Buscar casos" hideLabel type="search" placeholder="Buscar por caso, resumen o tercero" value={typed} onChange={search} className={styles.search} />
-            <FilterChip label="Tipo" options={kindOptions} selected={kinds} onChange={setKinds} />
-            <FilterChip label="Prioridad" options={PRIORITY_OPTIONS} selected={priorities} onChange={setPriorities} />
-            <FilterChip label="Estado" options={STATE_OPTIONS} selected={states} onChange={setStates} />
-          </FilterBar>
+        subtitle={queue.description}
+        actions={
+          <Button variant="primary" disabled={!first} onClick={() => first && setOpen(first.caseId)}>
+            {queue.primary}
+          </Button>
         }
       />
-      {body}
+      <Tabs
+        aria-label="Tipo de trabajo"
+        tabs={QUEUES.map((t) => ({ id: t.id, label: t.label, count: totals?.[t.id].cases }))}
+        value={queue.id}
+        onChange={setVista}
+        idPrefix={ID_PREFIX}
+      />
+      <TabPanel idPrefix={ID_PREFIX} id={queue.id} className={styles.panel}>
+        <FilterBar onClear={filtered ? clear : undefined} end={cases.total != null && <span className="tabular">{formatNumber(cases.total)} casos</span>}>
+          <TextField label="Buscar casos" hideLabel type="search" placeholder="Buscar por caso, resumen o tercero" value={typed} onChange={search} className={styles.search} />
+          {queue.id !== 'decidir' && <FilterChip label="Tipo" options={kindOptions} selected={kinds} onChange={setKinds} />}
+          <FilterChip label="Prioridad" options={PRIORITY_OPTIONS} selected={priorities} onChange={setPriorities} />
+        </FilterBar>
+        {body}
+      </TabPanel>
       <CasePanel runId={runId} caseId={open} onClose={() => setOpen(null)} />
     </Page>
   )

@@ -1,5 +1,6 @@
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
+import { formatNumber } from '@/lib/format'
 import styles from './Tabs.module.css'
 
 export interface TabItem {
@@ -60,7 +61,7 @@ export function Tabs({ tabs, value, onChange, idPrefix, className, ...aria }: Ta
             onClick={() => onChange(t.id)}
           >
             {t.label}
-            {t.count != null && <span className={clsx(styles.count, 'tabular')}>{t.count}</span>}
+            {t.count != null && <span className={clsx(styles.count, 'tabular')}>{formatNumber(t.count)}</span>}
           </button>
         )
       })}

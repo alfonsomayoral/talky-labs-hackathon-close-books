@@ -24,7 +24,7 @@ Con `live-final-a`, la ejecución definitiva de LIVE. **Si se graba con otra, lo
 
 | Paso | Qué | Enlace (añade `?…` a la dirección de Vite) |
 | --- | --- | --- |
-| 1 | 87,0 % de los movimientos cerrados sin intervención; 33.558 **casos** en cola; 0 llamadas a modelo | `/` |
+| 1 | 87,0 % de los movimientos cerrados sin intervención; 235 **decisiones**, 18.018 por revisar y 15.305 de cobros; 0 llamadas a modelo | `/` |
 | 2 | Aviso de remesa de Villar Mantenimientos S.A., 826,93 EUR, 2 facturas, una con pago parcial | `/conciliacion?ver=BT-2025-0200180` |
 | 3 | Pregunta `Q-000128`: cobro de 1.035,17 EUR de Wellness Navarro S.L. con dos opciones y regla propuesta | `/bandeja?ver=CASE-BT-2025-0378685` |
 | 4 | Montalbar Hidrotecnia S.L., 138 facturas vencidas por 418.279,57 EUR, borrador en español `D-000050` con 2 adjuntos | `/cobros?ver=CES01000094` |
@@ -45,7 +45,7 @@ Abiertos uno a uno en el navegador con esta ejecución. Dos cosas que se ven en 
 
 | # | Tiempo | Pantalla | Qué se hace | Qué se dice |
 | --- | --- | --- | --- | --- |
-| 1 | 0:00–0:40 | **Resumen** `/` | Se abre con LIVE cargada. Se pasa por la franja de cifras y se señala el gráfico por día | «Un grupo de 17 sociedades, 12 divisas y 203.083 movimientos en seis meses. El sistema ha cerrado solo el 87 % de los movimientos, y 33.558 casos esperan a una persona. Todo determinista: los parsers leen los documentos y las reglas deciden; el modelo queda como residuo opcional, hoy sin usar» |
+| 1 | 0:00–0:40 | **Resumen** `/` | Se abre con LIVE cargada. Se pasa por la franja de cifras y se señala el gráfico por día | «Un grupo de 17 sociedades, 12 divisas y 203.083 movimientos en seis meses. El sistema ha cerrado solo el 87 % de los movimientos, y lo que queda se separa: 235 decisiones, 18.018 casos por revisar y 15.305 de cobros. Todo determinista: los parsers leen los documentos y las reglas deciden; el modelo queda como residuo opcional, hoy sin usar» |
 | 2 | 0:40–1:40 | **Conciliación** `/conciliacion` | Se abre el movimiento del aviso de Villar Mantenimientos y se ve el panel: partidas, regla, evidencia con el aviso abierto en línea, tercero, línea del banco | «Cada fila de la entrega dice qué regla la produjo y en qué se apoya. Aquí está el aviso que llegó, y qué factura liquida cada línea. Si no hay evidencia, no se fuerza: sale como no identificado» |
 | 3 | 1:40–2:40 | **Te necesitan** `/bandeja` | Se abre una pregunta, se elige una opción, se marca «Guardar como regla» y se responde | «Dos facturas iguales y un pagador desconocido: en lugar de adivinar, pregunta. La respuesta se convierte en memoria, y la próxima ejecución ya no preguntará» |
 | 4 | 2:40–3:20 | **Cobros** `/cobros` | Se abre Montalbar Hidrotecnia S.L., se edita una línea del correo y se envía | «La misma bandeja lleva el cobro: tramos de vencimiento, disputas y un correo preparado con las facturas vencidas y sus PDF adjuntos. Una persona lo revisa. En esta demo se registra: no sale ningún correo» |

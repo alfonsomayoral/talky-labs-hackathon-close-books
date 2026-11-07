@@ -1,0 +1,47 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  text-decoration: none;
+  transition: box-shadow var(--duration-fast) ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 2px;
+}
+
+.label {
+  font-size: var(--text-13);
+  font-weight: var(--weight-medium);
+}
+
+.figures {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  color: var(--ink-2);
+  font-size: var(--text-14);
+}
+
+.count {
+  font-family: var(--font-display);
+  font-size: var(--text-32);
+  font-weight: var(--weight-light);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-strong);
+}
+
+.description {
+  font-size: var(--text-12);
+  color: var(--ink-2);
+}
