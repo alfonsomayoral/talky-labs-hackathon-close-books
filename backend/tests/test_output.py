@@ -8,7 +8,7 @@ import polars as pl
 
 from closebooks.evaluate import validate_file
 from closebooks.model import Row
-from closebooks.output import _gzip_bytes, write_explanations
+from closebooks.output import _gzip_bytes, write_explanations, write_submission
 from closebooks.pipeline import run_pipeline
 
 
@@ -25,6 +25,13 @@ def test_sample_run_covers_every_line_and_is_byte_identical(tmp_path, sample):
 
     report = validate_file(a / "submission.csv.gz", sample)
     assert report["ok"], report["errors"]
+
+
+def test_amounts_are_written_by_sign_and_absolute_value(tmp_path):
+    rows = [Row(f"BT-{cents}", "ARI-1", cents, "EUR", None, None, "REF-TEXT", 1.0) for cents in (-1050, -5, 1050)]
+    write_submission(tmp_path, rows)
+    assert gzip.decompress((tmp_path / "submission.csv.gz").read_bytes()).decode().splitlines()[1:] == [
+        "BT--1050,ARI-1,-10.50,,", "BT--5,ARI-1,-0.05,,", "BT-1050,ARI-1,10.50,,"]
 
 
 def test_every_contract_file_is_written_with_one_explanation_per_row(tmp_path, sample):
