@@ -12,7 +12,7 @@ import duckdb
 import orjson
 
 from ..load import prior_dirs
-from ..paths import masters_dir, phase_dir
+from ..paths import master_path, phase_dir
 from .fsafe import safe_join
 from .human import HumanFiles, answered_questions, apply_outbox, case_statuses, read_jsonl
 from .sqlutil import create_party, lit, read_csv
@@ -70,13 +70,13 @@ class RunData:
     # ── build ────────────────────────────────────────────────────────────────
 
     def _build(self) -> None:
-        c, masters = self.con, masters_dir(self.phase_dir)
+        c, phase = self.con, self.phase_dir
         c.execute(f"CREATE TABLE fx AS SELECT CAST(date AS DATE) AS date, currency, "
-                  f"CAST(units_per_eur AS DOUBLE) AS rate FROM {read_csv(masters / 'fx_rates.csv')}")
+                  f"CAST(units_per_eur AS DOUBLE) AS rate FROM {read_csv(master_path(phase, 'fx_rates.csv'))}")
         c.execute(f"CREATE TABLE entities AS SELECT entity AS code, legal_name AS name "
-                  f"FROM {read_csv(masters / 'entities.csv')}")
-        create_party(c, masters)
-        c.execute(f"CREATE TABLE categories AS SELECT category FROM {read_csv(masters / 'categories.csv')}")
+                  f"FROM {read_csv(master_path(phase, 'entities.csv'))}")
+        create_party(c, phase)
+        c.execute(f"CREATE TABLE categories AS SELECT category FROM {read_csv(master_path(phase, 'categories.csv'))}")
         c.execute(f"""CREATE TABLE bank AS
             SELECT t.bank_txn_id AS "bankTxnId", t.account_id AS "accountId", t.entity, t.bank,
                    t.statement_format AS "statementFormat", t.statement_file AS "statementFile",
