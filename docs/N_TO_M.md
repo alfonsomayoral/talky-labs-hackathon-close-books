@@ -181,5 +181,6 @@ Ejecución real de la unión, sobre main a5c8ca8: 161 de 163 = 0,988 en holdout 
 | Parejas de homónimos | Más cobertura, filtro post-hoc | 163 parejas más, 1–2 falsas |
 | Revisar `PARTY-FRACTION` en una fase ajena | Sin documento, lookalike < 1,000 | 0,9785 en holdout |
 | Reconciliar los dos censos de citas y los 150 movimientos con avisos sin enlazar | Abierto en §7 | 150 movimientos |
+| J4 de Jev en lote de 1, en un banco con vocabulario nuevo | No integrado; `docs/JEV_PLAN.md` §10.1 | 0,748 → 0,908 en contrafactual, 3,7 % de falsos |
 | Fuente nueva para parejas sin cita y dispersos | Sin señal en los datos | 806 + 2.435 líneas |
 | Cobros sueltos de `ar_n_to_m` y `PARTIAL` con segundo cobro fuera de fase | Sin explicar | 120 · 163 líneas |
