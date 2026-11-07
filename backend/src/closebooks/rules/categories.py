@@ -68,8 +68,37 @@ def propose_supplier_refunds(phase: Phase) -> dict[str, Proposal]:
     }
 
 
+def propose_supplier_debits(phase: Phase) -> dict[str, Proposal]:
+    """SUPPLIER-DD: a debit naming the supplier, of the exact total of one of its invoices it collects by direct debit
+    (payment method dd), settles that invoice. The entity may differ: the payment factory and the parent are charged
+    for their subsidiaries. Two candidates are not guessed; an invoice charged twice stays with the first debit."""
+    names = phase.masters["suppliers"].select(
+        pl.col("supplier_id").alias("party_id"), pl.col("name").alias("master_name")).unique("party_id")
+    bills = phase.items.filter((pl.col("item_type") == "API") & (pl.col("payment_method") == "dd")).join(
+        names, on="party_id", how="left").select(
+        "item_id", "party_id", "currency", "total_cents", "issue_date",
+        pl.coalesce("party_name", "master_name").alias("name"))
+    debits = phase.txns.filter(pl.col("amount_cents") < 0).select(
+        "bank_txn_id", "currency", (-pl.col("amount_cents")).alias("cents"), "booking_date",
+        pl.concat_str(["text", "counterparty_name", "remittance_info"], separator=" ", ignore_nulls=True)
+        .alias("all_text"))
+    pairs = debits.join(bills, left_on=["currency", "cents"], right_on=["currency", "total_cents"]).filter(
+        pl.col("issue_date") <= pl.col("booking_date"))
+    found = [pair for pair in pairs.iter_rows(named=True)
+             if len(name := _norm(pair["name"])[:NAME_PREFIX]) >= 5 and name in _norm(pair["all_text"])]
+    if not found:
+        return {}
+    found = pl.DataFrame(found, schema=pairs.schema).filter(pl.len().over("bank_txn_id") == 1).sort(
+        "booking_date", "bank_txn_id").unique("item_id", keep="first")
+    return {
+        r["bank_txn_id"]: Proposal(rule="SUPPLIER-DD", lines=[(r["item_id"], None)], confidence=0.5,
+                                   party_id=r["party_id"], sources=[{"kind": "supplier", "ref": r["party_id"]}])
+        for r in found.iter_rows(named=True)
+    }
+
+
 def propose(phase: Phase) -> dict[str, Proposal]:
-    proposals = propose_supplier_refunds(phase)
+    proposals = {**propose_supplier_debits(phase), **propose_supplier_refunds(phase)}
     codes = load_codes()
     for txn in phase.txns.select("bank_txn_id", "bank", "bank_code", "bank_subcode", "amount_cents", "text",
                                   "remittance_info").iter_rows(
