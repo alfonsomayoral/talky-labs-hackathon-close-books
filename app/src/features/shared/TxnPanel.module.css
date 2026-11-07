@@ -208,3 +208,17 @@
 .relatedRow > :last-child {
   text-align: right;
 }
+
+/* Exactly what the CSV carries: up to ~1.5 k lines, so the box has a fixed height and scrolls. */
+.submission {
+  max-height: 160px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow: auto;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  color: var(--ink);
+}

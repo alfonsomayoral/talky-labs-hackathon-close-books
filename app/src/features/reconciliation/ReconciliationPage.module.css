@@ -28,3 +28,10 @@
   font-size: var(--text-13);
   font-variant-numeric: tabular-nums;
 }
+
+.evidence {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+}

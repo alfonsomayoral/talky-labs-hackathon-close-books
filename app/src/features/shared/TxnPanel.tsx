@@ -9,7 +9,7 @@ import { formatDate, formatNumber, formatPercent } from '@/lib/format'
 import { useScopedTo } from '@/lib/urlState'
 import { TxnEvidence } from './TxnEvidence'
 import { TxnRows } from './TxnRows'
-import { decisionOf, distinctParties, soleParty } from './txnPanelModel'
+import { decisionOf, distinctParties, soleParty, submissionLines } from './txnPanelModel'
 import styles from './TxnPanel.module.css'
 
 export interface TxnPanelProps {
@@ -142,6 +142,12 @@ function Content({ detail, onOpen }: { detail: TxnDetail; onOpen: (id: string) =
 
       <PanelSection title="Partidas asignadas" count={rows.length}>
         {rows.length > 0 ? <TxnRows rows={rows} /> : <p className={styles.none}>Ninguna fila para este movimiento.</p>}
+      </PanelSection>
+
+      <PanelSection title="Fila de la entrega" count={rows.length}>
+        <pre className={styles.submission} tabIndex={0} aria-label="Líneas de este movimiento en el CSV que se entrega">
+          {submissionLines(txn.bankTxnId, rows).join('\n')}
+        </pre>
       </PanelSection>
 
       <PanelSection title="Evidencia" count={evidence.length}>
