@@ -369,6 +369,27 @@ def test_no_month_keeps_fifo_among_equal_amounts():
     assert lines(rule(txn(1000, NAME, date="2025-07-01"), balances)) == {"ARI-1"}
 
 
+RIEGOS = (("C1", "E1", "Riegos Mar S.L.", None, "ES11", None, None, None),)
+
+
+def test_a_month_word_of_the_party_name_without_a_year_is_not_a_month():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2024-02-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2024-04-01")], customers=RIEGOS)
+    assert lines(rule(txn(1000, "TRANSFERENCIA DE RIEGOS MAR S.L.", date="2024-07-01"), balances)) == {"ARI-1"}
+
+
+def test_the_same_word_with_a_year_after_the_party_name_is_the_month():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2024-02-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2024-04-01")], customers=RIEGOS)
+    assert lines(rule(txn(1000, "RIEGOS MAR MAR 24", date="2024-07-01"), balances)) == {"ARI-2"}
+
+
+def test_a_month_word_outside_the_party_name_is_the_month_without_a_year():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2024-02-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2024-04-01")])
+    assert lines(rule(txn(1000, NAME + "MANT. MAR", date="2024-07-01"), balances)) == {"ARI-2"}
+
+
 def test_instalment_from_the_plan_of_the_pdf():
     rule, balances = engine([item("ARI-1", "C1", "F1", 30000), item("ARI-2", "C1", "F2", 50000)])
     rule.clauses = {"ARI-2": {"instalments": {"amounts": [20000, 15000, 15000]}}}
