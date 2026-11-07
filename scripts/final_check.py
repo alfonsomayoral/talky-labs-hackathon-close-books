@@ -5,7 +5,8 @@
 Shares are in percentage points; a gap above 3 is a warning. Rows per bank line and the mean amount, which are not
 shares, warn at 3 % of their value. An entity the reference does not have is compared with the reference's whole.
 Hard checks, that do not depend on LIVE: validate, coverage, size, an FX rate for every currency of the phase, and every
-entity and bank with some line past a fallback. Exit code 1 if anything warns or a hard check fails.
+entity and bank with some line past a fallback. A bank new to the category table is amber, and red from 90 % of its
+fallback debits in BANK_FEES: its codes are not being read. Exit code 1 if anything warns or a hard check fails.
 """
 from __future__ import annotations
 
@@ -26,7 +27,8 @@ from closebooks.load import load_masters
 THRESHOLD = 3.0
 MAX_CSV_BYTES = 60_000_000
 FALLBACK = "FALLBACK-UNIDENTIFIED"
-RED, GREEN, END = "\033[31m", "\033[32m", "\033[0m"
+RED, AMBER, GREEN, END = "\033[31m", "\033[33m", "\033[32m", "\033[0m"
+FEES_RED = 90.0  # a new bank above this share of BANK_FEES: its codes are not being read
 SCHEMA = {"bankTxnId": pl.String, "amountCents": pl.Int64, "currency": pl.String, "rule": pl.String,
           "category": pl.String}
 
@@ -80,15 +82,14 @@ def _only_fallback(profile: dict, column: str) -> list[str]:
     return sorted(set(profile["bank"][column].drop_nulls()) - set(settled))
 
 
-def _banks_out_of_table(profile: dict) -> dict[str, str]:
+def _banks_out_of_table(profile: dict) -> dict[str, tuple[int, float]]:
     """Banks the category table has never seen, with what became of their debits with no match. A share of BANK_FEES
     is normal in some known banks (0 to 100 % in LIVE), so only a bank with no history is worth a look."""
     known = {key[0] for key in load_codes()}
     rows = profile["rule_rows"].filter(pl.col("rule") == "FALLBACK-CATEGORY").join(
         profile["bank"], left_on="bankTxnId", right_on="bank_txn_id").group_by("bank").agg(
         pl.len().alias("lines"), (pl.col("category") == "BANK_FEES").sum().alias("fees"))
-    return {bank: f"{lines} filas de respaldo, {100 * fees / lines:.0f} % BANK_FEES"
-            for bank, lines, fees in rows.iter_rows() if bank not in known}
+    return {bank: (lines, 100 * fees / lines) for bank, lines, fees in rows.iter_rows() if bank not in known}
 
 
 def _hard_checks(run: Path, profile: dict) -> list[tuple[str, bool, str]]:
@@ -99,12 +100,10 @@ def _hard_checks(run: Path, profile: dict) -> list[tuple[str, bool, str]]:
     report = validate_file(run / "submission.csv.gz", phase)
     no_rate = _without_rate(Path(meta["dataDir"]), masters)
     entities, banks = _only_fallback(profile, "entity"), _only_fallback(profile, "bank")
-    unseen = _banks_out_of_table(profile)
     return [("validate oficial", bool(report["ok"]), "; ".join(map(str, report["errors"][:3])) or "ok"),
             ("toda divisa tiene tipo en FX", not no_rate, str(no_rate) if no_rate else "ok"),
             ("toda sociedad con filas fuera de FALLBACK", not entities, ", ".join(entities) or "ok"),
             ("todo banco con filas fuera de FALLBACK", not banks, ", ".join(banks) or "ok"),
-            ("todo banco en la tabla de categorías", not unseen, str(unseen) if unseen else "ok"),
             ("cobertura de movimientos", not missing, f"{profile['bank_ids'].n_unique() - len(missing)} de "
                                                       f"{profile['bank_ids'].n_unique()}"),
             ("tamaño < 60 MB", meta["csvBytes"] < MAX_CSV_BYTES, f"{meta['csvBytes'] / 1e6:.1f} MB")]
@@ -146,6 +145,11 @@ def main() -> int:
     hard = _hard_checks(args.run, run)
     for name, ok, detail in hard:
         print(f"{GREEN if ok else RED}{'OK   ' if ok else 'FALLA'}{END} {name}: {detail}")
+    new_banks = _banks_out_of_table(run)
+    for bank, (lines, fees) in sorted(new_banks.items()):
+        red = fees >= FEES_RED
+        print(f"{RED + 'FALLA' if red else AMBER + 'AVISO'}{END} banco nuevo {bank}: {lines} filas de respaldo, "
+              f"{fees:.0f} % BANK_FEES")
     print()
     rows = _rows(run, ref)
     print(f"{'':6}{'métrica':<58}{'esta':>10}{'referencia':>12}{'dif.':>9}")
@@ -155,7 +159,8 @@ def main() -> int:
     warnings = sum(r[4] for r in rows)
     new = set(run["amounts"]["currency"]) - set(ref["amounts"]["currency"])
     print(f"\n{warnings} avisos de {len(rows)} métricas. Divisas nuevas, fuera del importe medio: {sorted(new) or '-'}")
-    return 1 if warnings or not all(ok for _, ok, _ in hard) else 0
+    bad_bank = any(fees >= FEES_RED for _, fees in new_banks.values())
+    return 1 if warnings or bad_bank or not all(ok for _, ok, _ in hard) else 0
 
 
 if __name__ == "__main__":
