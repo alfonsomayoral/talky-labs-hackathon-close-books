@@ -693,11 +693,14 @@ def test_a_unique_set_among_twenty_open_invoices_settles():
     assert ids(found) == ["ARI-01", "ARI-03", "ARI-09", "ARI-14", "ARI-17"]
 
 
-def test_a_unique_set_among_many_small_invoices_means_nothing_and_is_not_taken():
-    # 2^17 sets over a sum of about 1 M cents. That only one adds up to this cash is no proof of anything.
+def test_a_unique_set_among_many_small_invoices_is_taken_wide_and_sent_to_review():
+    # 2^17 sets over a sum of about 1 M cents: `_subset` abstains by chance, and the wide search proposes the only
+    # exact set with low confidence, so it goes to review (PR 150).
     values = [40000 + (n ** 3 * 7919 + n * 104729) % 40000 for n in range(17)]
     rows = [item(f"ARI-{n:02d}", "C1", f"N{n}", v, issued=f"2024-02-{n + 1:02d}") for n, v in enumerate(values)]
-    assert pay(rows, sum(values[n] for n in (0, 1, 2, 3, 4, 5, 6, 7, 11))) is None
+    found = pay(rows, sum(values[n] for n in (0, 1, 2, 3, 4, 5, 6, 7, 11)))
+    assert found.rule == "PARTY-SUBSET-WIDE" and found.confidence == 0.85
+    assert ids(found) == [f"ARI-{n:02d}" for n in (0, 1, 2, 3, 4, 5, 6, 7, 11)]
 
 
 def test_chance_of_a_set_grows_with_the_sets_searched_and_falls_with_the_cents_they_spread_over():

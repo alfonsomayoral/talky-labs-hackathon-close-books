@@ -46,6 +46,7 @@ MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
 # on holdout, unique sets and errors: 1,548 and 7 at +7 days, 1,528 and 2 at +10.
 DUE_TOLERANCE_DAYS = 7
 MAX_DUE_SEARCH_BYTES = 200_000_000  # the search holds one big integer per item, of as many bits as cents in the cash
+MAX_WIDE_SEARCH = 30  # a bound on the work per line: 2**15 sums per half of the search
 NUMBER_ALONE_TOLERANCE = 0.05
 MONTHS = {name: number for number, names in enumerate((
     "ENERO JANUARY JANVIER JANUAR GENNAIO JANEIRO ENE JAN", "FEBRERO FEBRUARY FEVRIER FEBRUAR FEBBRAIO FEVEREIRO FEB",
@@ -548,6 +549,9 @@ class PartyAmount:
         due_set = self._due_subset(free, cash, party, date)
         if due_set:
             return due_set
+        wide = self._wide_subset(free, cash, party) if not strong and not weak else None
+        if wide:
+            return wide
         # Last: what open documents can explain is more certain than a second payment of a closed one.
         return self._paid_again(mine, open_now, cash, party, balances)
 
@@ -564,6 +568,27 @@ class PartyAmount:
             return None
         found = self._proposal("PARTY-SUBSET-DUE", party, [pool[k][0] for k in sets[0]], confidence=0.85)
         found.sources = [{"kind": "customer", "ref": party, "label": f"{len(pool)} facturas vencidas en el conjunto"}]
+        return found
+
+    def _wide_subset(self, free: list, cash: int, party: str) -> Proposal | None:
+        """A receipt citing nothing, from a customer with more open items than `_subset` searches whole: the only set of
+        its invoices, each net of its own open credit notes (POLICIES §5.9), that adds up to the cash."""
+        invoices = {i[6]: i[0] for i, _ in free if i[0][:3] == "ARI"}
+        notes: dict[str, list[tuple[str, int]]] = defaultdict(list)
+        for i, o in free:
+            if i[0][:3] in CREDIT_NOTES and (invoice := invoices.get(self.related.get(i[0], ""))):
+                notes[invoice].append((i[0], o))
+        pool = [(i[0], o - sum(v for _, v in notes[i[0]])) for i, o in sorted(free, key=lambda x: (x[0][2], x[0][0]))
+                if i[0][:3] == "ARI"]
+        pool = [(i, v) for i, v in pool if 0 < v <= cash]
+        if len(pool) > MAX_WIDE_SEARCH:
+            return None
+        chosen = _unique_subset(pool, cash, 2)
+        if not chosen:
+            return None
+        found = self._proposal("PARTY-SUBSET-WIDE", party, [*chosen, *(n for i in chosen for n, _ in notes[i])],
+                               confidence=0.85)
+        found.sources = [{"kind": "customer", "ref": party, "label": f"única suma exacta entre {len(pool)} facturas"}]
         return found
 
     @staticmethod
