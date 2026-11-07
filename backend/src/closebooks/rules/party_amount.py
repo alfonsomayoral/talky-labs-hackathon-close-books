@@ -330,6 +330,7 @@ class PartyAmount:
         invoices = sorted((x for x in free if x[0][0][:3] not in CREDIT_NOTES), key=lambda x: (x[0][2], x[0][0]))
         notes = [x for x in free if x[0][0][:3] in CREDIT_NOTES]
         targets = {cash: None, **{cash + o: i[0] for i, o in notes}}
+        ceiling = cash + sum(o for _, o in notes)
         found = []
         for start in range(len(invoices)):
             total = 0
@@ -337,7 +338,7 @@ class PartyAmount:
                 total += invoices[end][1]
                 if total in targets and end > start:
                     found.append((start, end, targets[total]))
-                if total > cash + sum(o for _, o in notes):
+                if total > ceiling:
                     break
         if len(found) != 1:
             return None
