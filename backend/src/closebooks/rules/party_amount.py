@@ -15,7 +15,10 @@ from ..model import Proposal
 from ..policy import (
     FEE_LIMIT_EUR_CENTS,
     FEE_LIMIT_RATIO,
+    MAX_CHANCE,
+    ROUND_FRACTIONS,
     SEPA_COUNTRIES,
+    SHARE_WINDOW,
     WITHHOLDING_COUNTRIES,
     WITHHOLDING_RATES,
     Terms,
@@ -36,7 +39,6 @@ MAX_SUBSET_ITEMS = 24
 MAX_FULL_SEARCH = 22  # a bound on the search per line; what a unique subset means is `_chance`
 ALWAYS_SEARCHED = 16  # up to here a unique subset has always been taken, whatever its chance
 MAX_SKIPPED = 2  # invoices a customer leaves out of the run it pays
-MAX_CHANCE = 0.05  # sets we expect to add up to any cash by chance: above this, one that does proves nothing
 NUMBER_ALONE_TOLERANCE = 0.05
 MONTHS = {name: number for number, names in enumerate((
     "ENERO JANUARY JANVIER JANUAR GENNAIO JANEIRO ENE JAN", "FEBRERO FEBRUARY FEVRIER FEBRUAR FEBBRAIO FEVEREIRO FEB",
@@ -50,8 +52,6 @@ _MONTH = re.compile(r"\b(" + "|".join(sorted(MONTHS, key=len, reverse=True)) + r
 MAX_TIED_SUBSETS = 5
 CREDIT_NOTES = ("ARC", "APC")
 _WITHHOLDING = (0.0125, 0.015, 0.10)
-ROUND_FRACTIONS = 20  # a partial pays a round share of the invoice: a multiple of 5 %
-SHARE_WINDOW = 3  # cents a round share may be off by: one either way
 ROUNDING_CENTS = (0, -1, 1)  # each invoice rounds its tax apart: the sum may miss the cash by a cent
 OWN_SHORTFALL = frozenset(("retention", "advance_deduction", "instalments"))  # the PDF says why less is paid
 

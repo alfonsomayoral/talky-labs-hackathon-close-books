@@ -24,10 +24,9 @@ FEE_LIMIT_EUR_CENTS = 6000
 FEE_LIMIT_RATIO = 0.02
 DISCOUNT_WORDS = ("DISCOUNT", "DESCUENTO", "DTO", "SKONTO", "ESCOMPTE", "SCONTO")
 WITHHOLDING_WORDS = ("RET", "RETENCION", "RETENCIÓN", "WITHHOLDING", "WHT", "ISR", "IRRF")
-# As in rules/party_amount.py, which imports this module: a partial pays a round share, a multiple of 5 %, to the cent.
-ROUND_FRACTIONS = 20
-SHARE_WINDOW = 3
-MAX_CHANCE = 0.05
+ROUND_FRACTIONS = 20  # a partial pays a round share of the invoice: a multiple of 5 %
+SHARE_WINDOW = 3  # cents a round share may be off by: one either way
+MAX_CHANCE = 0.05  # sets we expect to add up to any cash by chance: above this, one that does proves nothing
 
 
 def cross_border(bank_code: str | None, text: str | None) -> bool:
