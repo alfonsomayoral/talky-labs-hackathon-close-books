@@ -133,7 +133,7 @@ def test_oldest_invoices_summing_to_the_cash_are_not_replaced_by_an_overpayment(
 def test_of_several_customers_named_the_owner_of_the_only_invoice_the_cash_overpays_is_the_payer():
     # BT-2025-0011894: 2,246.03 for 2,146.03 (+100), a cut name that several customers start with.
     items = [invoice("ARI-OTHER", 50000, "2024-11-01"), invoice("ARI-2024-6925362", 214603, "2024-12-30", party="C2")]
-    rows, balances = run(items, [line(cents=224603, text=BOTH)])
+    rows, balances = run(items, [line(cents=224603, text=BOTH, date="2024-12-31")])
     assert [(r.item_id, r.amount_cents, r.exception, r.party_id, r.rule) for r in rows] == [
         ("ARI-2024-6925362", 214603, "OVERPAYMENT", "C2", "PARTY-GUESS")]
     assert rows[0].confidence < 0.5 and "inferred" in rows[0].candidates[0]["why"]
@@ -142,11 +142,29 @@ def test_of_several_customers_named_the_owner_of_the_only_invoice_the_cash_overp
 
 def test_two_customers_named_with_an_invoice_the_cash_overpays_stay_unidentified():
     items = [invoice("ARI-1", 214603, "2024-12-30"), invoice("ARI-2", 214603, "2024-12-30", party="C2")]
-    rows, _ = run(items, [line(cents=224603, text=BOTH)])
+    rows, _ = run(items, [line(cents=224603, text=BOTH, date="2024-12-31")])
     assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
 
 
 def test_of_several_customers_named_a_cash_that_overpays_nothing_stays_unidentified():
     items = [invoice("ARI-1", 100000, "2024-12-30"), invoice("ARI-2", 50000, "2024-12-30", party="C2")]
     rows, _ = run(items, [line(cents=130017, text=BOTH)])
+    assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
+
+
+def test_of_several_customers_named_an_invoice_not_yet_due_is_no_evidence_of_the_payer():
+    items = [invoice("ARI-OTHER", 50000, "2024-11-01"), invoice("ARI-2024-6925362", 214603, "2025-01-30", party="C2")]
+    rows, _ = run(items, [line(cents=224603, text=BOTH, date="2024-12-31")])
+    assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
+
+
+def test_of_several_customers_named_a_round_excess_above_a_hundred_and_ten_per_cent_is_no_evidence():
+    items = [invoice("ARI-OTHER", 50000, "2024-11-01"), invoice("ARI-1", 100000, "2024-11-30", party="C2")]
+    rows, _ = run(items, [line(cents=120000, text=BOTH, date="2024-12-31")])
+    assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
+
+
+def test_of_several_customers_named_a_second_invoice_not_yet_due_that_also_fits_ties():
+    items = [invoice("ARI-1", 214603, "2024-12-30", party="C2"), invoice("ARI-2", 214103, "2025-01-30")]
+    rows, _ = run(items, [line(cents=224603, text=BOTH, date="2024-12-31")])
     assert [r.rule for r in rows] == ["FALLBACK-UNIDENTIFIED"]
