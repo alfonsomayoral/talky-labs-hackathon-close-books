@@ -1,6 +1,7 @@
 """Walk the bank lines by booking date, apply the best proposal, fix amount and exception, update balances."""
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
 
 from .categories import fallback
@@ -35,8 +36,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
         if proposal is None and stateful is not None:
             proposal = stateful(txn, balances)
         if proposal is None:
-            out = fallback(txn)
-            rows.append(Row(txn_id, None, None, None, out.category, out.exception or None, out.rule, out.confidence))
+            rows.append(_fallback_row(txn))
             continue
         if proposal.category:
             exception = "UNIDENTIFIED" if proposal.category == "UNIDENTIFIED" else None
@@ -45,6 +45,7 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                             proposal.candidates))
             continue
         decided = _by_cash(proposal, txn, currency, balances, terms_of, plans) if proposal.by_cash else None
+        rows_before = len(rows)
         for item_id, applied in proposal.lines:
             if decided is not None:
                 if item_id not in decided:
@@ -56,6 +57,10 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                     applied if proposal.settles_rest else balances.open(item_id), applied, proposal.returned,
                     deduction=proposal.deductions.get(item_id), terms=terms_of(item_id),
                     booking_date=txn["booking_date"])
+            if amount < 0:  # FORMAT.md: one negative amount invalidates the whole CSV
+                print(f"warning: negative amount {amount} on {item_id} of {txn_id} by {proposal.rule}: line left out",
+                      file=sys.stderr)
+                continue
             exception = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception)
             balance_effect = exception
             doubts_first = item_id in settled_uncited and proposal.rule != "PARTY-DUPLICATE"
@@ -70,7 +75,14 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
             rows.append(Row(txn_id, item_id, amount, currency[item_id], None, exception or None, proposal.rule,
                             proposal.confidence, party[item_id], proposal.reference, proposal.sources,
                             proposal.candidates))
+        if len(rows) == rows_before:
+            rows.append(_fallback_row(txn))
     return rows, balances
+
+
+def _fallback_row(txn: dict) -> Row:
+    out = fallback(txn)
+    return Row(txn["bank_txn_id"], None, None, None, out.category, out.exception or None, out.rule, out.confidence)
 
 
 def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: str) -> str:
