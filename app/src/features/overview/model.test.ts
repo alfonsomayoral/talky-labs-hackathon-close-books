@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DayStats, RunStats } from '@/domain'
+import type { DayStats } from '@/domain'
 import { dayChart, headline, amountSplit, modelTotals, monthTicks, nearestIndex, scoreMetrics, segmentsWorstFirst } from './model'
 
 const day = (date: string, txns: number, txnsAuto: number): DayStats => ({ date, txns, txnsAuto, reviewQueue: txns - txnsAuto, identifiedEur: 0 })
@@ -83,7 +83,7 @@ describe('amountSplit', () => {
     expect(amountSplit({ identifiedEur: 312, reviewQueueEur: 34, totalEur: 1000 })).toEqual({ items: 0.312, categories: 0.654, queue: 0.034 })
   })
   it('never gives a negative share if the queue and the items overlap', () => {
-    expect(amountSplit({ identifiedEur: 700, reviewQueueEur: 400, totalEur: 1000 }).categories).toBe(0)
+    expect(amountSplit({ identifiedEur: 700, reviewQueueEur: 400, totalEur: 1000 })?.categories).toBe(0)
   })
   it('gives nothing with no amount', () => {
     expect(amountSplit({ identifiedEur: 0, reviewQueueEur: 0, totalEur: 0 })).toBeNull()
