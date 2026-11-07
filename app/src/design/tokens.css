@@ -3,44 +3,51 @@
 :root {
   color-scheme: light;
 
-  /* Brand: forest green as the accent; navy and ink from Talky (usetalky.com CSS: --marino, --tinta). */
-  /* Same hue (142°) as the dark theme, darkened for white: --brand reaches 3.6:1 (large areas, icons). */
-  --brand: #2e9a5c;
-  --brand-hover: #278a50;
-  --brand-soft: #e8f5ed;
-  --brand-border: #b7e0c5;
-  /* Green for small text: 5.4:1 on --bg, 4.7:1 on --bg-muted. */
-  --brand-ink: #1f7a45;
+  /* Brand: deep green (hue 162°) for the main figure, selection and focus: 9.9:1 on --bg. */
+  --brand: #0f4c3a;
+  --brand-hover: #0b3d2e;
+  --brand-soft: #e7f1ec;
+  --brand-border: #b5d3c6;
+  /* Green for small text: 9.9:1 on --bg, 8.4:1 on --bg-muted. */
+  --brand-ink: #0f4c3a;
   /* Green for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
-  --brand-line: #278a50;
-  --brand-strong: #1b6b3d;
+  --brand-line: #0f4c3a;
+  --brand-strong: #04242b;
 
-  /* Ink: Talky's blue-black, not neutral black */
-  --ink: #101938;
-  --ink-strong: #0f1838;
-  --ink-2: #5e6377;
-  --ink-3: #646979;
-  --ink-4: #a2a5b2;
-  --ink-inverse: #ffffff;
+  /* The primary action: deep teal with bone text, 15.4:1. */
+  --action: #04242b;
+  --action-ink: #faf9f6;
+  --gradient-action: linear-gradient(135deg, #04242b, #0f4c3a);
+
+  /* Large-figure surfaces (the only gradient areas): see [data-surface='feature'] below. */
+  --gradient-feature: linear-gradient(135deg, #04242b, #0f4c3a);
+
+  /* Ink: near-black, with a muted teal for secondary text */
+  --ink: #141415;
+  --ink-strong: #141415;
+  --ink-2: #47585c;
+  --ink-3: #55676b;
+  --ink-4: #a3a8a6;
+  --ink-inverse: #faf9f6;
 
   /* Lines and surfaces */
-  --line: #d0d3dc;
-  --line-soft: #eff0f4;
-  --line-strong: #bfc3cf;
-  /* App ground: a low-chroma stone from Talky's paper; sidebar and canvas sit on it, cards are white. */
-  --ground: #f4f3f0;
-  --ground-hover: rgb(16 25 56 / 0.045);
-  --ground-active: rgb(16 25 56 / 0.07);
+  --line: #e3e1dc;
+  --line-soft: #efede8;
+  --line-strong: #cfcfcf;
+  /* App ground: warm bone; sidebar and canvas sit on it, cards are white. */
+  --ground: #faf9f6;
+  --ground-hover: rgb(4 36 43 / 0.045);
+  --ground-active: rgb(4 36 43 / 0.07);
   --sheet-gap: 8px;
   --sheet-radius: 12px;
-  --shadow-sheet: 0 1px 2px rgb(16 25 56 / 0.05), 0 2px 8px rgb(16 25 56 / 0.04);
+  --shadow-sheet: 0 1px 2px rgb(60 48 32 / 0.05), 0 2px 8px rgb(60 48 32 / 0.04);
   /* Every card at rest, and the lift on hover (as in the Kalmora app): cards read apart from the white sheet. */
-  --shadow-card: 0 1px 2px rgb(16 25 56 / 0.06), 0 2px 6px rgb(16 25 56 / 0.05);
-  --shadow-card-hover: 0 2px 4px rgb(16 25 56 / 0.07), 0 8px 20px rgb(16 25 56 / 0.08);
+  --shadow-card: 0 1px 2px rgb(60 48 32 / 0.06), 0 2px 6px rgb(60 48 32 / 0.05);
+  --shadow-card-hover: 0 2px 4px rgb(60 48 32 / 0.07), 0 8px 20px rgb(60 48 32 / 0.08);
   --bg: #ffffff;
-  --bg-subtle: #f6f7f9;
-  --bg-muted: #eef0f4;
-  --bg-overlay: rgb(15 24 56 / 0.32);
+  --bg-subtle: #f5f4f0;
+  --bg-muted: #eeece7;
+  --bg-overlay: rgb(4 36 43 / 0.32);
 
   /* Status: base (dots, bars, icons), bg (soft fills), border, ink (text on bg / white, AA). */
   /* ok is teal, not green, so it never reads as the brand green (as in the dark theme). */
@@ -51,7 +58,7 @@
   --warn: #d97706;
   --warn-bg: #fffbeb;
   --warn-border: #fde68a;
-  --warn-ink: #b45309;
+  --warn-ink: #a34a07;
   --danger: #dc2626;
   --danger-bg: #fef2f2;
   --danger-border: #fecaca;
@@ -146,32 +153,37 @@
   /* Native controls, scrollbars and form widgets render dark too. */
   color-scheme: dark;
 
-  /* Brand: forest green as the accent; navy and ink from Talky (usetalky.com CSS: --marino, --tinta).
-     Classic forest green (#228b22) only reaches 3.9:1 on --bg, so the hue (142°) is kept and lightened. */
-  --brand: #46a86a;
-  --brand-hover: #52b476;
-  --brand-soft: #182d3d;
-  --brand-border: #254f4a;
-  /* Green for small text on the dark surfaces: 8.9:1 on --bg, 7.7:1 on --bg-muted (--brand reaches 5.8:1). */
-  --brand-ink: #7ccb95;
+  /* Brand: green (hue 150°) for data and focus: 5.6:1 on --bg. */
+  --brand: #3fa673;
+  --brand-hover: #4cb381;
+  --brand-soft: #1f3027;
+  --brand-border: #28513c;
+  /* Green for small text on the dark surfaces: 8.9:1 on --bg, 7.1:1 on --bg-muted. */
+  --brand-ink: #7ccba4;
   /* Green for non-text indicators (focus ring, selected underline, checks): ≥ 3:1. */
-  --brand-line: #46a86a;
-  --brand-strong: #8fd5a6;
+  --brand-line: #3fa673;
+  --brand-strong: #8fd5b2;
 
-  /* Ink: light text tinted towards Talky's blue, not neutral white. --ink-inverse is Talky's navy (marino),
-     the text on light fills: the primary button and green checks. */
-  --ink: #e6e8f0;
-  --ink-strong: #f5f6fa;
-  --ink-2: #aeb3c7;
-  --ink-3: #9499b0;
-  --ink-4: #5d6484;
-  --ink-inverse: #16224f;
+  /* The primary action: the one light block on the dark sheet, 16.4:1. */
+  --action: #f2f1ec;
+  --action-ink: #121413;
+  --gradient-action: linear-gradient(135deg, #f2f1ec, #cfe6da);
 
-  /* Lines and surfaces: Talky's blue-black (tinta) as the ground; the sheet and its cards sit one step lighter. */
-  --line: #2e3a63;
-  --line-soft: #1c2545;
-  --line-strong: #3f4c80;
-  --ground: #0a0f24;
+  --gradient-feature: linear-gradient(135deg, #0f2e27, #1a1d1b);
+
+  /* Ink: bone white; --ink-inverse is the text on light fills, such as green checks. */
+  --ink: #f2f1ec;
+  --ink-strong: #f2f1ec;
+  --ink-2: #afb8b3;
+  --ink-3: #98a29d;
+  --ink-4: #5f6762;
+  --ink-inverse: #121413;
+
+  /* Lines and surfaces: neutral dark grey as the ground; the sheet and its cards sit one step lighter. */
+  --line: #2e3331;
+  --line-soft: #232724;
+  --line-strong: #3f4541;
+  --ground: #121413;
   --ground-hover: rgb(255 255 255 / 0.05);
   --ground-active: rgb(255 255 255 / 0.08);
   --sheet-gap: 8px;
@@ -180,34 +192,34 @@
   /* Every card at rest, and the lift on hover (as in the Kalmora app): on dark the edge does most of the work. */
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.2);
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.35), 0 8px 20px rgb(0 0 0 / 0.4);
-  --bg: #111936;
-  --bg-subtle: #151e3e;
-  --bg-muted: #1b2547;
-  --bg-overlay: rgb(3 6 18 / 0.6);
+  --bg: #1a1d1b;
+  --bg-subtle: #222623;
+  --bg-muted: #2a2f2c;
+  --bg-overlay: rgb(0 0 0 / 0.6);
 
   /* Status: base (dots, bars, icons), bg (soft fills, 14 % of base over --bg), border (38 %), ink (text on
      bg / --bg, AA). */
-  /* ok is teal, not green, so it never reads as the brand green: 30° of hue apart, more saturated and lighter. */
+  /* ok is teal, not green, so it never reads as the brand green: 23° of hue apart, more saturated and lighter. */
   --ok: #2dd4bf;
-  --ok-bg: #153349;
-  --ok-border: #1c606a;
+  --ok-bg: #1d3732;
+  --ok-border: #216359;
   --ok-ink: #5eead4;
   --warn: #f59e0b;
-  --warn-bg: #312c30;
-  --warn-border: #684c26;
+  --warn-bg: #392f19;
+  --warn-border: #6d4e15;
   --warn-ink: #fbbf24;
   --danger: #ef4444;
-  --danger-bg: #301f38;
-  --danger-border: #65293b;
+  --danger-bg: #382221;
+  --danger-border: #6b2c2b;
   --danger-ink: #f87171;
   --info: #6b8af0;
-  --info-bg: #1e2950;
-  --info-border: #33447d;
+  --info-bg: #252c39;
+  --info-border: #39466c;
   --info-ink: #9db1f7;
-  --neutral: #8b93a8;
-  --neutral-bg: #222a46;
-  --neutral-border: #3f4761;
-  --neutral-ink: #b4bacb;
+  --neutral: #8f9792;
+  --neutral-bg: #2a2e2c;
+  --neutral-border: #464b48;
+  --neutral-ink: #b3bab6;
 
   /* Elevation — hairlines first; on dark, shadows need more weight to read at all */
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.25);
@@ -215,6 +227,24 @@
   --shadow-popover: 0 8px 24px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
   --shadow-panel: -12px 0 32px rgb(0 0 0 / 0.4);
   --shadow-dialog: 0 24px 64px rgb(0 0 0 / 0.55), 0 4px 12px rgb(0 0 0 / 0.3);
+}
+
+/* A surface on the feature gradient, dark in both themes: its contents take light ink from these tokens.
+   Secondary text reaches 6.6:1 on the lightest stop of the gradient. */
+/* The doubled selector beats a component's own background, whatever the stylesheet order. */
+[data-surface='feature'][data-surface] {
+  background: var(--gradient-feature);
+  border-color: transparent;
+  --ink: #faf9f6;
+  --ink-strong: #faf9f6;
+  --ink-2: #c9d6d2;
+  --ink-3: #c9d6d2;
+  --line: rgb(250 249 246 / 0.24);
+  --line-strong: rgb(250 249 246 / 0.4);
+  --brand-line: #faf9f6;
+  --action: #faf9f6;
+  --action-ink: #04242b;
+  --gradient-action: linear-gradient(135deg, #faf9f6, #d7e6df);
 }
 
 /* Reduced motion keeps the durations: colour and opacity changes still confirm state. Each component that

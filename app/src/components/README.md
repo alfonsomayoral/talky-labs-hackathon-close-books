@@ -4,14 +4,14 @@ Import everything from `@/components`. Tokens: `src/design/tokens.css` (Talky br
 
 ## Rules
 
-- **Colour carries meaning only.** Forest green (`--brand`) = main data, selection, focus. Status colours = status. Everything else is ink on the surfaces with hairline borders (`--line`). Light and dark themes (`data-theme` on `<html>`, `@/lib/theme`); the values below are the dark theme's.
-- **One primary button per view** (light fill, navy text). The rest: `secondary` (bordered) or `ghost`.
-- **Small green text** uses `--brand-ink` (#7CCB95, 8.9:1 on `--bg`). Status text on tinted fills uses `--ok-ink`, `--warn-ink`, `--danger-ink`, `--info-ink`.
-- **Green indicators** (selected border or underline, focus ring, check) use `--brand-line` (#46A86A, ≥ 3:1). Green fills take `--ink-inverse` (navy) text, as the checked filter box does. `--brand` stays for large areas and icons next to a label.
+- **Colour carries meaning only.** Deep green (`--brand`) = main data, selection, focus. Status colours = status. Everything else is ink on the surfaces with hairline borders (`--line`). Light and dark themes (`data-theme` on `<html>`, `@/lib/theme`); the values below are the dark theme's.
+- **One primary button per view** (`--action`: deep teal on light, a light block on dark). The rest: `secondary` (bordered) or `ghost`.
+- **Small green text** uses `--brand-ink` (AA on `--bg` in both themes). Status text on tinted fills uses `--ok-ink`, `--warn-ink`, `--danger-ink`, `--info-ink`.
+- **Green indicators** (selected border or underline, focus ring, check) use `--brand-line` (≥ 3:1). Green fills take `--ink-inverse` text, as the checked filter box does. `--brand` stays for large areas and icons next to a label.
 - **Grey text** is `--ink-3` at least (AA on `--bg` and `--bg-muted`); `--ink-4` is only for disabled text and decorative icons.
 - **Ids, accounts, codes, policy refs** → `Mono`. **Money** → `Amount` (never format cents by hand), right-aligned in tables. Dates/percent/durations → `@/lib/format`.
 - **Density:** rows 36px, 13px text, 16px lucide icons with 1.5 stroke (set globally by `LucideProvider` in `main.tsx`; just render `<Icon />`).
-- No banners, illustrations, gradients or heavy shadows. Empty states: an icon, a sentence, one action.
+- No banners, illustrations or heavy shadows. Gradients only on `[data-surface='feature']` (the Overview header and large-figure cards) and the primary button on hover. Empty states: an icon, a sentence, one action.
 - Copy in Spanish; identifiers in English.
 
 ## Tones (`status.ts`)
