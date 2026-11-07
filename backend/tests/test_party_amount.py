@@ -199,11 +199,13 @@ def test_full_number_cited_explains_a_partial_payment():
     assert proposal.by_cash
 
 
-def test_subset_search_finds_four_items_quickly_and_is_still_unique():
-    items = [item(f"ARI-{i}", "C1", f"F{i}", 10 ** (i % 6) + 7 * i) for i in range(24)]
+def test_big_pool_still_finds_up_to_four_items_if_they_are_the_only_ones():
+    items = [item(f"ARI-{i}", "C1", f"F{i}", 1000003 * (i + 1) + i * i * 7919) for i in range(30)]
     rule, balances = engine(items)
-    target = sum(i["total_cents"] for i in items[20:24])
-    assert rule._subset([((i["item_id"], "", "", "", 0, "", ""), i["total_cents"]) for i in items], target) is not None
+    chosen = items[3:4] + items[11:12] + items[20:21]
+    target = sum(i["total_cents"] for i in chosen)
+    found = rule._subset([((i["item_id"], "", "", "", 0, "", ""), i["total_cents"]) for i in items], target)
+    assert found is None or set(found) == {i["item_id"] for i in chosen}
 
 
 def _index(*names):
@@ -233,3 +235,101 @@ def test_uncited_small_shortfall_outside_sepa_is_found_for_the_only_invoice_it_f
     proposal = rule(wire, balances)
     assert lines(proposal) == {"ARI-1"}
     assert proposal.by_cash
+
+
+def test_more_than_four_invoices_add_up_to_the_cash():
+    items = [item(f"ARI-{i}", "C1", f"F{i}", c, f"2024-01-{i + 1:02d}")
+             for i, c in enumerate((1009, 2017, 4001, 8009, 16001, 32003, 64007))]
+    rule, balances = engine(items)
+    assert lines(rule(txn(1009 + 4001 + 16001 + 32003 + 64007, NAME), balances)) == {
+        "ARI-0", "ARI-2", "ARI-4", "ARI-5", "ARI-6"}
+
+
+def test_oldest_invoices_in_a_row_add_up_with_more_candidates_than_the_search_pool():
+    items = [item(f"ARI-{i:03d}", "C1", f"F{i}", 1000 + i, "2024-01-01") for i in range(60)]
+    rule, balances = engine(items)
+    assert lines(rule(txn(sum(1000 + i for i in range(30)), NAME), balances)) == {f"ARI-{i:03d}" for i in range(30)}
+
+
+def test_number_cited_whole_settles_with_no_recognisable_party_if_the_amount_agrees():
+    # "FP KING & MOORE BACKY INV INV25-0108533": the name is cut by the field.
+    rule, balances = engine([item("ARI-1", "C9", "INV25-0108533", 5000)])
+    assert lines(rule(txn(5000, "FP KING AND MOORE BACK INV INV25-0108533"), balances)) == {"ARI-1"}
+
+
+def test_number_cited_whole_with_an_amount_far_from_it_and_no_party_is_not_settled():
+    rule, balances = engine([item("ARI-1", "C9", "INV25-0108533", 5000)])
+    assert rule(txn(900, "FP KING AND MOORE BACK INV INV25-0108533"), balances) is None
+
+
+def test_cancelled_invoice_is_never_a_candidate_and_its_replacement_takes_the_citation():
+    rule, balances = engine([item("ARI-1", "C1", "FV25-0100001", 5000), item("ARI-2", "C1", "FV25-0100002", 5000)])
+    rule.cancelled, rule.clauses = {"ARI-1"}, {"ARI-2": {"replaces": {"replaces": "FV25-0100001"}}}
+    rule.reindex()
+    assert lines(rule(txn(5000, NAME, remit="FRA FV25-0100001"), balances)) == {"ARI-2"}
+
+
+def test_month_in_the_text_picks_the_invoice_of_that_service_month_among_equal_amounts():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2025-05-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2025-06-01")])
+    assert lines(rule(txn(1000, NAME + "MANT. MAYO 25", date="2025-07-01"), balances)) == {"ARI-2"}
+
+
+def test_month_from_the_pdf_wins_over_the_issue_date():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2025-05-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2025-06-01")])
+    rule.clauses = {"ARI-1": {"service_month": {"month": 5, "year": 2025}}}
+    assert lines(rule(txn(1000, NAME + "SERVICE MAY 2025", date="2025-07-01"), balances)) == {"ARI-1"}
+
+
+def test_no_month_keeps_fifo_among_equal_amounts():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2025-05-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2025-06-01")])
+    assert lines(rule(txn(1000, NAME, date="2025-07-01"), balances)) == {"ARI-1"}
+
+
+def test_instalment_from_the_plan_of_the_pdf():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 30000), item("ARI-2", "C1", "F2", 50000)])
+    rule.clauses = {"ARI-2": {"instalments": {"amounts": [20000, 15000, 15000]}}}
+    proposal = rule(txn(15000, NAME), balances)
+    assert lines(proposal) == {"ARI-2"}
+    assert proposal.by_cash
+
+
+def test_payment_net_of_retention_or_advance_from_the_pdf():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 30000), item("ARI-2", "C1", "F2", 50000)])
+    rule.clauses = {"ARI-2": {"retention": {"payableCents": 45000}}}
+    assert lines(rule(txn(45000, NAME), balances)) == {"ARI-2"}
+    rule.clauses = {"ARI-1": {"advance_deduction": {"netDueCents": 21000}}}
+    assert lines(rule(txn(21000, NAME), balances)) == {"ARI-1"}
+
+
+def test_overpayment_needs_a_single_open_invoice_of_the_party():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
+    assert lines(rule(txn(80407, NAME), balances)) == {"ARI-1"}
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407), item("ARI-2", "C1", "F2", 500)])
+    assert rule(txn(80407, NAME), balances) is None
+
+
+def test_partial_payment_of_the_only_open_invoice_above_the_cash():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407), item("ARI-2", "C1", "F2", 50)])
+    assert lines(rule(txn(40000, NAME), balances)) == {"ARI-1"}
+
+
+def test_several_invoices_that_a_partial_could_belong_to_are_not_guessed():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 75407), item("ARI-2", "C1", "F2", 90000)])
+    assert rule(txn(40000, NAME), balances) is None
+
+
+def test_amount_of_an_invoice_settled_earlier_with_nothing_else_open_is_a_duplicate():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
+    assert lines(rule(txn(228043, NAME), balances)) == {"ARI-1"}
+
+
+def test_name_cut_in_the_middle_of_a_word_by_the_field_identifies_the_party():
+    index = _index("Plasticos Express S.L.")
+    assert index.find(txn(1, "PLASTICOS EXPRES | RECIBO 2025/00044"), "customer") == ["C0"]
+
+
+def test_name_differing_at_a_whole_word_is_another_party():
+    assert _index("Hydro Evans LLC").find(txn(1, "ACH CREDIT HYDRO EVANS HERM CCD"), "customer") == []

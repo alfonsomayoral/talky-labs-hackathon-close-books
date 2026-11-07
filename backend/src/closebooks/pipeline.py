@@ -8,9 +8,11 @@ from datetime import datetime
 from pathlib import Path
 
 import orjson
+import polars as pl
 
 from .cases import build_cases
 from .documents.advices import documents_frame, phase_advices, residue
+from .documents.pdfs import clauses_frame, phase_clauses
 from .evaluate import score_file
 from .load import load_phase
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
@@ -42,6 +44,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     phase = load_phase(phase_name)
     lap("load")
     advices = phase_advices(phase)
+    phase_clauses(phase)
     lap("documents")
     proposals = propose(phase)
     lap("rules")
@@ -55,7 +58,7 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
         "counterparty_name").iter_rows(named=True)}
     cases = build_cases(rows, txns, started.isoformat(timespec="seconds"))
     write_cases(run, cases)
-    write_facts(run, documents_frame(advices), None)
+    write_facts(run, pl.concat([documents_frame(advices), clauses_frame(phase_clauses(phase))]), None)
     write_open_items(run, phase, balances)
     write_jsonl(run / "questions.jsonl", [])
     write_jsonl(run / "drafts.jsonl", [])
