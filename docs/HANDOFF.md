@@ -75,7 +75,12 @@ PLAYWRIGHT=<dir>/node_modules/playwright/index.mjs node app/mock/capture.mjs htt
 
 ## Qué no está probado
 
-- Pregunta y correo con datos reales: solo con el servidor de prueba, hasta que haya una ejecución con preguntas y borradores.
 - Una regla aplicada en una ejecución posterior (`--memory`).
-- Consola FINAL: subir un zip real, una ejecución fallida y una validación con errores.
+- Consola FINAL: una ejecución fallida y una validación con errores.
 - Lector de pantalla real.
+
+## Qué está probado con datos reales
+
+- Las tres interacciones con `live-kpi6-cases` (copia), 14 de 14 con `interactions.mjs`: pregunta con regla, correo editado y «enviado», marcar gestionado. Lo escrito en `human/` se comprobó línea a línea.
+- Consola FINAL con un zip: el contenido de `sample` en un zip, subido, ejecutado en 3,8 s y validado (8.499 de 8.499 movimientos, 1,1 MB de 60 MB). Sale el nombre del zip como fase. Lo escrito en `db/<zip>/` y `runs/<zip>-…/` se queda: hay que borrarlo a mano tras ensayar.
+- `Draft.to` es `null` porque el maestro no trae correos: «Para» enseña el nombre y avisa. No se puede corregir la dirección: `PUT …/drafts` solo guarda asunto y cuerpo.

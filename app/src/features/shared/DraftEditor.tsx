@@ -4,6 +4,7 @@ import { Badge, Button, Pill, toast } from '@/components'
 import { useDraftActions } from '@/data'
 import type { CaseDetail, Draft } from '@/domain'
 import { TextField } from './TextField'
+import { recipientLine } from './model'
 import styles from './DraftEditor.module.css'
 
 interface DraftEditorProps {
@@ -58,7 +59,7 @@ function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
     try {
       if (dirty) await actions.save.mutateAsync({ draftId: draft.draftId, subject, body })
       await actions.send.mutateAsync(draft.draftId)
-      toast.success('Envío registrado', { description: `Para ${draft.toName}. No ha salido ningún correo.` })
+      toast.success('Envío registrado', { description: `Para ${draft.toName ?? 'el destinatario'}. No ha salido ningún correo.` })
     } catch (error) {
       fail('No se ha podido enviar')(error as Error)
     }
@@ -77,7 +78,8 @@ function DraftForm({ draft, runId }: { draft: Draft; runId: string }) {
           <Badge tone={draft.status === 'sent' ? 'ok' : 'neutral'}>{SENT_LABEL[draft.status as keyof typeof SENT_LABEL]}</Badge>
         </div>
       )}
-      <TextField label="Para" value={`${draft.toName} <${draft.to}>`} onChange={() => {}} readOnly />
+      <TextField label="Para" value={recipientLine(draft)} onChange={() => {}} readOnly />
+      {!draft.to && <p className={styles.note}>Sin dirección en el maestro: el envío queda registrado igual.</p>}
       <TextField label="Asunto" value={subject} onChange={setSubject} readOnly={closed} />
       <TextField label="Mensaje" value={body} onChange={setBody} rows={10} readOnly={closed} />
       {draft.attachments && draft.attachments.length > 0 && (

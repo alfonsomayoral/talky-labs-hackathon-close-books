@@ -27,3 +27,9 @@ export function primaryAction(c: ActionInput): PrimaryAction {
   }
   return 'done'
 }
+
+/** Who a draft goes to. The address may be missing (CONTRACT.md §2.7): the masters carry no emails. */
+export function recipientLine({ toName, to }: { toName?: string | null; to: string | null }): string {
+  if (!to) return toName ?? ''
+  return toName ? `${toName} <${to}>` : to
+}
