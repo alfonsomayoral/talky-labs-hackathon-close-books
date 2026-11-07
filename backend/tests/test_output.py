@@ -5,6 +5,7 @@ import gzip
 import polars as pl
 
 from closebooks.evaluate import validate_file
+from closebooks.output import PARTY_SCHEMA
 from closebooks.pipeline import run_pipeline
 
 
@@ -70,3 +71,27 @@ def test_open_items_hold_every_issued_item_but_not_those_closed_in_earlier_phase
     assert set(rows) == {"NEW-UNPAID", "PAID", "CARRIED"}
     assert (rows["NEW-UNPAID"]["status"], rows["NEW-UNPAID"]["openAtEndCents"]) == ("open", 1000)
     assert rows["PAID"]["status"] == "cleared" and rows["CARRIED"]["openAtStartCents"] == 400
+
+
+def test_parties_facts_say_who_was_resolved_and_how(tmp_path):
+    from closebooks.model import Row
+    from closebooks.output import parties_frame
+
+    rows = [
+        Row("BT-1", "ARI-1", 100, "EUR", None, None, "PARTY-AMOUNT", 0.95, party_id="C1"),
+        Row("BT-1", "ARI-2", 100, "EUR", None, None, "PARTY-AMOUNT", 0.95, party_id="C1"),
+        Row("BT-2", "API-1", 100, "EUR", None, None, "FILE-PAYMENT-RUN", 1.0, party_id="S1"),
+        Row("BT-3", "ARI-3", 100, "EUR", None, None, "ADVICE-CSV", 1.0, party_id="C2"),
+        Row("BT-3", "ARI-4", 100, "EUR", None, None, "ADVICE-CSV", 1.0, party_id="C3"),
+        Row("BT-4", "ARI-5", 100, "EUR", None, None, "MEMORY-RULE", 1.0, party_id="C4"),
+        Row("BT-5", None, None, None, "BANK_FEES", None, "CAT-CODE", 1.0),
+    ]
+    frame = parties_frame(rows, {"BT-1": {"counterparty_name": "Acme"}, "BT-2": {"counterparty_name": None},
+                                 "BT-3": {"counterparty_name": None}, "BT-4": {"counterparty_name": None}})
+    got = {r["bankTxnId"]: r for r in frame.iter_rows(named=True)}
+    assert set(got) == {"BT-1", "BT-2", "BT-4"}  # BT-3 pays several parties: it has no single one
+    assert (got["BT-1"]["partyId"], got["BT-1"]["partyKind"], got["BT-1"]["payerName"], got["BT-1"]["how"]) == (
+        "C1", "customer", "Acme", "name")
+    assert (got["BT-2"]["partyKind"], got["BT-2"]["how"]) == ("supplier", "file")
+    assert got["BT-4"]["how"] == "memoryRule"
+    assert frame.schema == pl.Schema(PARTY_SCHEMA)
