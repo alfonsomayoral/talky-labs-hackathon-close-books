@@ -6,7 +6,7 @@ import clsx from 'clsx'
 import { Menu as MenuIcon, Search } from 'lucide-react'
 import { IconButton, TalkyMark } from '@/components'
 import { SCREENS } from '@/data'
-import { useGlobalShortcuts } from '@/lib/keyboard'
+import { getFocusable, trapTabKey, useGlobalShortcuts, useLayer } from '@/lib/keyboard'
 import { CommandPalette } from './CommandPalette'
 import { Sidebar } from './Sidebar'
 import { useShellUi } from './uiStore'
@@ -46,6 +46,16 @@ export function AppShell() {
     setDrawer(false)
   }, [title])
 
+  // The drawer is modal: Esc closes it, Tab stays inside, focus goes in and comes back to the menu button.
+  const drawerRef = useRef<HTMLDivElement>(null)
+  useLayer(drawer && !desktop, () => setDrawer(false))
+  useEffect(() => {
+    if (!drawer) return
+    const previous = document.activeElement as HTMLElement | null
+    if (drawerRef.current) getFocusable(drawerRef.current)[0]?.focus()
+    return () => previous?.focus()
+  }, [drawer])
+
   useGlobalShortcuts({ onPalette: togglePalette, onHelp: togglePalette, onGo: () => false })
 
   return (
@@ -63,7 +73,12 @@ export function AppShell() {
       <div className={styles.shell}>
         <div className={clsx(styles.rail, desktop && expanded && styles.railExpanded)}>
           <div
+            ref={drawerRef}
+            inert={!desktop && !drawer}
             className={clsx(styles.sidebarWrap, drawer && styles.drawerOpen)}
+            onKeyDown={(e) => {
+              if (drawer) trapTabKey(e, drawerRef.current)
+            }}
             onMouseEnter={() => hoverTo(true)}
             onMouseLeave={() => hoverTo(false)}
             onFocus={(e) => setFocusIn(e.target.matches(':focus-visible'))}
