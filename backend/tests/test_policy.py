@@ -164,3 +164,29 @@ def test_an_advice_without_reason_is_not_withholding_outside_those_countries():
     terms = Terms(None, None, "2025-01-01", 100000, "BR")
     assert decide("ARI-1", "EUR", "EUR", 100000, 90000, deduction=(-10000, None), terms=terms,
                   booking_date="2025-02-01") == (100000, "SHORT_WITHHOLDING")
+
+
+def _terms(pct=None, total=100000, issued="2025-06-01", country="ES"):
+    return Terms(pct, 10 if pct else None, issued, total, country)
+
+
+def test_a_gap_that_is_the_discount_of_one_invoice_of_several_is_that_invoice_within_terms():
+    # BT-2025-0000118: only one of the invoices paid carries a discount, and it is taken.
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(None, 50000))]
+    assert allocate(148000, items, "2025-06-05", False) == {"ARI-1": (100000, "SHORT_DISCOUNT"), "ARI-2": (50000, "")}
+
+
+def test_the_same_gap_out_of_terms_leaves_that_invoice_partial():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(None, 50000))]
+    assert allocate(148000, items, "2025-07-05", False) == {"ARI-1": (98000, "PARTIAL"), "ARI-2": (50000, "")}
+
+
+def test_a_gap_that_is_the_discount_of_one_of_two_invoices_with_terms_goes_to_that_one():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(2.0, 50000))]
+    assert allocate(149000, items, "2025-06-05", False) == {"ARI-1": (100000, ""), "ARI-2": (50000, "SHORT_DISCOUNT")}
+
+
+def test_two_invoices_whose_discount_is_the_gap_are_not_guessed():
+    items = [("ARI-1", 50000, _terms(2.0, 50000)), ("ARI-2", 50000, _terms(2.0, 50000))]
+    out = allocate(99000, items, "2025-06-05", False)
+    assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}

@@ -147,6 +147,15 @@ def _explain(gap: int, cash: int, invoices: list, notes: list, booking_date: str
             else:
                 out[i] = (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")
         return out
+    only = [i for i, d in discounts.items() if abs(d - gap) <= 1]
+    if len(only) == 1:  # the discount of one invoice of several, the rest paid as they are
+        out = {}
+        for i, o, t in invoices:
+            if i != only[0]:
+                out[i] = (o, "")
+            else:
+                out[i] = (o, "SHORT_DISCOUNT") if _in_terms(t, booking_date) else (o - discounts[i], "PARTIAL")
+        return out
     if len(full) == len(invoices) and all(t.country in WITHHOLDING_COUNTRIES for _, _, t in invoices):
         for rate in WITHHOLDING_RATES:
             if abs(sum(round(t.total_cents * rate) for _, _, t in invoices) - gap) <= len(invoices):

@@ -10,7 +10,16 @@ import polars as pl
 from ..documents.pdfs import phase_clauses
 from ..load import cancelled_item_ids
 from ..model import Proposal
-from ..policy import FEE_LIMIT_EUR_CENTS, FEE_LIMIT_RATIO, SEPA_COUNTRIES, cross_border
+from ..policy import (
+    FEE_LIMIT_EUR_CENTS,
+    FEE_LIMIT_RATIO,
+    SEPA_COUNTRIES,
+    WITHHOLDING_COUNTRIES,
+    WITHHOLDING_RATES,
+    Terms,
+    _in_terms,
+    cross_border,
+)
 from ..state import OpenBalances
 from .parties import PartyIndex, normalize
 
@@ -117,6 +126,15 @@ def _small_subset(signed: list, cash: int, min_size: int) -> list[str] | None:
     return sorted(found.pop()) if len(found) == 1 else None
 
 
+def _discount_days(phase) -> dict[str, int]:
+    if "payment_terms" not in phase.masters or "payment_terms" not in phase.items.columns:
+        return {}
+    rows = phase.masters["payment_terms"].iter_rows(named=True)
+    days = {r["code"]: int(r["discount_days"]) for r in rows if r["early_payment_discount_pct"]}
+    with_terms = phase.items.filter(pl.col("payment_terms").is_in(list(days)))
+    return {i: days[c] for i, c in with_terms.select("item_id", "payment_terms").iter_rows()}
+
+
 def _net(pairs: list) -> int:
     return sum(-o if i[0][:3] in CREDIT_NOTES else o for i, o in pairs)
 
@@ -171,6 +189,7 @@ class PartyAmount:
         # TRAIN has no opening balances: items issued before its first line are candidates only if something cites them.
         self.unknown_before = phase.start if getattr(phase, "name", "") == "train" else ""
         self.terms_pct = _discount_pct(phase)
+        self.discount_days = _discount_days(phase)
         customers = phase.masters["customers"]
         self.countries = dict(customers.select("customer_id", "country").iter_rows()) if (
             "country" in customers.columns) else {}
@@ -318,6 +337,9 @@ class PartyAmount:
         run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
         if run:
             return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
+        net = self._net_of_terms(free, cash, party, txn["booking_date"])
+        if net:
+            return self._proposal("PARTY-NET-SUBSET", party, net, by_cash=True, confidence=0.85)
         # Last: what open documents can explain is more certain than a second payment of a closed one.
         return self._paid_again(mine, open_now, cash, party, balances)
 
@@ -457,6 +479,40 @@ class PartyAmount:
     @staticmethod
     def _is_month(clause: dict | None, month: int, year: int | None) -> bool:
         return bool(clause) and clause["month"] == month and (year is None or clause["year"] == year)
+
+    def _net_of_terms(self, free: list, cash: int, party: str, booked: str) -> list[str] | None:
+        """Several invoices, each net of what POLICIES §3 lets the customer keep: its early-payment discount within
+        terms, or a rate withheld where they withhold. One unique set under one explanation; two explanations tie."""
+        credit = sum(o for i, o in free if i[0][:3] in CREDIT_NOTES)
+        found = []
+        for paid in self._ways_of_paying(free, party, booked):
+            signed = [(i[0], -o if i[0][:3] in CREDIT_NOTES else paid(i, o)) for i, o in free]
+            signed = [(i, v) for i, v in signed if v <= cash + credit]
+            if not 2 <= len(signed) <= MAX_FULL_SEARCH or (
+                    _chance(2 ** len(signed), [v for _, v in signed]) > MAX_CHANCE):
+                continue
+            subset = _unique_subset(signed, cash, 2)
+            if subset:
+                found.append(subset)
+        return found[0] if len(found) == 1 else None
+
+    def _ways_of_paying(self, free: list, party: str, booked: str) -> list:
+        """What each invoice would pay under each explanation the terms and the country allow."""
+
+        def discounted(item: tuple, open_cents: int) -> int:
+            pct = self.terms_pct.get(item[0])
+            terms = Terms(pct, self.discount_days.get(item[0]), item[2], item[4])
+            if open_cents != item[4] or not _in_terms(terms, booked):
+                return open_cents
+            return open_cents - round(item[4] * pct / 100)
+
+        def withheld(rate: float):
+            return lambda item, open_cents: open_cents - round(item[4] * rate)
+
+        ways = [discounted] if any(discounted(i, o) != o for i, o in free) else []
+        if self.countries.get(party) in WITHHOLDING_COUNTRIES:
+            ways += [withheld(rate) for rate in WITHHOLDING_RATES]
+        return ways
 
     def _paid_again(self, mine: list, open_now: dict, cash: int, party: str, balances) -> Proposal | None:
         """A whole party, nothing open that the cash explains, and one invoice with exactly that total that a line of

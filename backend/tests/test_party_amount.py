@@ -625,3 +625,36 @@ def test_of_two_customers_named_the_same_a_citation_that_explains_nothing_settle
     rule, balances = engine([item("ARI-1", "C1", "INV24-0223583", 80000), item("ARI-2", "C2", "INV24-0223999", 90000)],
                             customers=HOMONYMS)
     assert rule(txn(171730, HOMONYM, name="Hydro Port Ellery Pty Ltd"), balances) is None
+
+
+def discounted(*rows):
+    rule, balances = engine(list(rows))
+    rule.terms_pct = {r["item_id"]: 2.0 for r in rows}
+    rule.discount_days = {r["item_id"]: 10 for r in rows}
+    return rule, balances
+
+
+def test_several_invoices_each_net_of_its_discount_add_up_to_the_cash():
+    # BT-2025-0000118: a customer takes its early-payment discount on every invoice it pays, with no citation.
+    rule, balances = discounted(item("ARI-1", "C1", "F1", 100003, issued="2024-05-28"),
+                                item("ARI-2", "C1", "F2", 50011, issued="2024-05-28"),
+                                item("ARI-3", "C1", "F3", 700013, issued="2024-05-28"))
+    found = rule(txn(98003 + 49011, NAME), balances)
+    assert found.rule == "PARTY-NET-SUBSET" and lines(found) == {"ARI-1", "ARI-2"}
+
+
+def test_invoices_out_of_terms_are_not_net_of_their_discount():
+    rule, balances = discounted(item("ARI-1", "C1", "F1", 100003, issued="2024-01-01"),
+                                item("ARI-2", "C1", "F2", 50011, issued="2024-01-01"))
+    assert rule(txn(98003 + 49011, NAME), balances) is None
+
+
+def test_several_invoices_net_of_a_rate_withheld_in_a_country_that_withholds():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 100000), item("ARI-2", "C1", "F2", 50000),
+                             item("ARI-3", "C1", "F3", 700013)])
+    rule.countries = {"C1": "MX"}
+    found = rule(txn(90000 + 45000, NAME), balances)
+    assert found.rule == "PARTY-NET-SUBSET" and lines(found) == {"ARI-1", "ARI-2"}
+    rule, balances = engine([item("ARI-1", "C1", "F1", 100000), item("ARI-2", "C1", "F2", 50000)])
+    rule.countries = {"C1": "ES"}
+    assert rule(txn(90000 + 45000, NAME), balances) is None
