@@ -10,6 +10,8 @@ export interface Paged<T> {
   total: number
   page: number
   size: number
+  /** Only in `GET …/cases`: sum of the whole filter, not of this page. */
+  sumAmountEur?: number
 }
 
 export type RunSummary = Schemas['RunSummary']
@@ -18,8 +20,7 @@ export type DayStats = Schemas['DayStats']
 /** The schema leaves the scorer's metrics and segments untyped. */
 export type RunStats = Omit<Schemas['RunStats'], 'score'> & { score: Score | null }
 export type RunStatus = Schemas['RunStatus']
-/** The schema's `errors` point at FastAPI's own ValidationError by a name clash: CONTRACT.md §5.1 is what it sends. */
-export type ValidationResult = Omit<Schemas['ValidationResult'], 'errors'> & { errors: { row: number | null; message: string }[] }
+export type ValidationResult = Schemas['ValidationResult']
 export type UploadResult = Schemas['UploadResult']
 export type Assignment = Schemas['Assignment']
 export type TxnRow = Schemas['TxnRow']

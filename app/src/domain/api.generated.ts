@@ -757,6 +757,22 @@ export interface components {
             question: components["schemas"]["Question"] | null;
             draft: components["schemas"]["Draft"] | null;
         };
+        /**
+         * CasePage
+         * @description Sum of amountEur over every case matching the filter, not only this page.
+         */
+        CasePage: {
+            /** Items */
+            items: components["schemas"]["CaseRow"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Sumamounteur */
+            sumAmountEur: number;
+        };
         /** CaseRow */
         CaseRow: {
             /** Caseid */
@@ -1328,17 +1344,6 @@ export interface components {
             /** History */
             history: components["schemas"]["ItemHistoryEntry"][];
         };
-        /** Paged[CaseRow] */
-        Paged_CaseRow_: {
-            /** Items */
-            items: components["schemas"]["CaseRow"][];
-            /** Total */
-            total: number;
-            /** Page */
-            page: number;
-            /** Size */
-            size: number;
-        };
         /** Paged[DataItem] */
         Paged_DataItem_: {
             /** Items */
@@ -1711,6 +1716,8 @@ export interface components {
             modelCostUsd: number;
             /** Score */
             score: number | null;
+            /** Served */
+            served: boolean;
         };
         /** Score */
         Score: {
@@ -1809,12 +1816,19 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** ValidationIssue */
+        ValidationIssue: {
+            /** Row */
+            row: number | null;
+            /** Message */
+            message: string;
+        };
         /** ValidationResult */
         ValidationResult: {
             /** Ok */
             ok: boolean;
             /** Errors */
-            errors: components["schemas"]["ValidationError"][];
+            errors: components["schemas"]["ValidationIssue"][];
             /** Sizebytes */
             sizeBytes: number;
             /** Uncompressedbytes */
@@ -2148,7 +2162,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Paged_CaseRow_"];
+                    "application/json": components["schemas"]["CasePage"];
                 };
             };
             /** @description Validation Error */

@@ -42,6 +42,8 @@ const data = (phase: string) => `/api/data/${encodeURIComponent(phase)}`
 export interface PagedList<T> {
   rows: T[]
   total: number | null
+  /** Sum of the whole filter, where the endpoint gives it. */
+  sumAmountEur: number | null
   loading: boolean
   error: Error | null
   loadMore: () => void
@@ -63,6 +65,7 @@ export function usePagedList<T>(path: string | null, params: QueryParams = {}, s
   return {
     rows,
     total: q.data?.pages[0]?.total ?? null,
+    sumAmountEur: q.data?.pages[0]?.sumAmountEur ?? null,
     loading: q.isPending && path != null,
     error: q.error,
     loadMore: () => {
