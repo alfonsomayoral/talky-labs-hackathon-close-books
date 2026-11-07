@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import polars as pl
 
+from closebooks.documents.advices import phase_advices
 from closebooks.load import load_table
 from closebooks.paths import phase_dir
 from closebooks.rules import advices
@@ -181,3 +182,35 @@ def test_a_reference_cut_by_the_bank_still_pairs_when_the_date_fits_but_not_othe
     late = make_phase(tmp_path / "late", {"RA_a.csv": ("Industrias Zeta", "2024-03-12", ADVICE)},
                       [("BT-1", 32946, "2024-04-30", cut)], ITEMS)
     assert advices.propose(late) == {}
+
+
+def with_prior_advices(phase, tmp_path, files, start):
+    """The phase starts on `start`; `files` are the advices of the previous phase, like make_phase's."""
+    older = make_phase(tmp_path / "prior", files, [], [])
+    phase.prior, phase.start = [older.dir], start
+    return phase
+
+
+def test_an_advice_received_the_day_before_the_phase_in_the_previous_one_pairs_with_the_first_day_cash(tmp_path):
+    phase = make_phase(tmp_path, {}, [("BT-1", 32946, "2024-03-11", "TRANSFERENCIA ARENAL DEL SUR S.L. PAGO FACTURAS")],
+                       ITEMS)
+    with_prior_advices(phase, tmp_path, {"RA_a.csv": ("Arenal del Sur S.L.", "2024-03-10", ADVICE)}, "2024-03-11")
+    proposal = advices.propose(phase)["BT-1"]
+    assert [i for i, _ in proposal.lines] == ["ARI-1", "ARC-1"]
+    assert proposal.sources[0]["ref"] == "remittance_advices/ES01/RA_a.csv"
+
+
+def test_previous_phase_advices_outside_the_window_are_not_even_parsed(tmp_path):
+    # An unreadable file only shows up as a failure if somebody parsed it.
+    phase = make_phase(tmp_path, {}, [("BT-1", 32946, "2024-03-11", "AVISO 240308783211")], ITEMS)
+    with_prior_advices(phase, tmp_path, {"RA_in.csv": ("Arenal", "2024-03-08", ADVICE),
+                                         "RA_out.csv": ("Arenal", "2024-03-07", "not an advice")}, "2024-03-11")
+    batch = phase_advices(phase)
+    assert [a.path for a in batch.advices] == ["remittance_advices/ES01/RA_in.csv"] and batch.failures == []
+
+
+def test_an_advice_received_outside_the_window_before_the_phase_is_not_its_cash_by_name(tmp_path):
+    phase = make_phase(tmp_path, {}, [("BT-1", 32946, "2024-03-11", "TRANSFERENCIA ARENAL DEL SUR S.L. PAGO FACTURAS")],
+                       ITEMS)
+    with_prior_advices(phase, tmp_path, {"RA_a.csv": ("Arenal del Sur S.L.", "2024-03-07", ADVICE)}, "2024-03-11")
+    assert advices.propose(phase) == {}

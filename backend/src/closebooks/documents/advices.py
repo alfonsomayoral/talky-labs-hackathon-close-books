@@ -9,7 +9,7 @@ import os
 import re
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from pathlib import Path
@@ -633,14 +633,17 @@ def parse_advices(files: list[tuple], workers: int | None = None) -> AdviceBatch
     return batch
 
 
-@lru_cache(maxsize=4)
-def _parse_folder(folder: str) -> AdviceBatch:
+@lru_cache(maxsize=8)
+def _parse_folder(folder: str, since: str = "", until: str = "") -> AdviceBatch:
+    """A folder of advices; with since/until, only those received in [since, until) are parsed (per the index)."""
     root = Path(folder)
     index_path = root / "index.csv"
     meta: dict[str, dict] = {}
     if index_path.exists():
         meta = {r["file"]: r for r in pl.read_csv(index_path, infer_schema_length=0).iter_rows(named=True)}
     names = sorted(meta) or sorted(str(p.relative_to(root)) for p in root.glob("*/*") if p.suffix.lower() in KINDS)
+    if until:
+        names = [n for n in names if n in meta and since <= meta[n]["received_date"] < until]
     files = [(root / n, f"{FOLDER}/{n}", date.fromisoformat(meta[n]["received_date"]) if n in meta else None)
              for n in names]
     batch = parse_advices(files)
@@ -653,9 +656,23 @@ def _parse_folder(folder: str) -> AdviceBatch:
 
 
 def phase_advices(phase) -> AdviceBatch:
-    """Every advice of the phase, parsed once per process (the rules and the facts share it)."""
+    """Every advice of the phase, parsed once per process (the rules and the facts share it). The phase folder only
+    holds what was received inside the period, and an advice may come days before the cash: those of the previous
+    phases that the advice rule still accepts for the first day (its WINDOW) are added, chosen by the index."""
+    from ..rules.advices import WINDOW  # the rule imports this module
+
     folder = Path(phase.dir) / FOLDER
-    return _parse_folder(str(folder)) if folder.is_dir() else AdviceBatch()
+    batch = _parse_folder(str(folder)) if folder.is_dir() else AdviceBatch()
+    start = getattr(phase, "start", "")
+    if not start:
+        return batch
+    since = (date.fromisoformat(start) - timedelta(days=WINDOW[1])).isoformat()
+    older = [_parse_folder(str(Path(p) / FOLDER), since, start)
+             for p in getattr(phase, "prior", []) if (Path(p) / FOLDER).is_dir()]
+    seen = {a.path for a in batch.advices}
+    return AdviceBatch(
+        advices=batch.advices + [a for o in older for a in o.advices if a.path not in seen],
+        failures=batch.failures + [f for o in older for f in o.failures])
 
 
 def documents_frame(batch: AdviceBatch) -> pl.DataFrame:

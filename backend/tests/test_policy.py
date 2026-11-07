@@ -13,6 +13,7 @@ from closebooks.policy import (
     cross_border,
     decide,
     fee_fits,
+    fee_stated,
     search,
     weighed,
 )
@@ -153,7 +154,7 @@ def test_a_gap_that_is_a_discount_stays_a_discount_even_on_a_listing():
 
 def test_a_huge_excess_is_not_an_overpayment_of_that_invoice_but_an_incomplete_citation():
     # Real overpayments stay under 32 % of the invoice (p99 in the holdout); false ones have a median excess of x5.
-    assert allocate(500317, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
+    assert allocate(500000, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
 
 
 def test_cross_border_signal_comes_from_the_iso_code_or_the_bank_text():
@@ -190,13 +191,7 @@ def test_overpayment_only_for_the_excess_real_ones_show():
     # Holdout: excess <= 2 % is 96.6 % right and exactly 10 % is a real pattern; else, an incomplete citation.
     assert allocate(101000, [facts("ARI-1", 100000)], "2025-06-05", False)["ARI-1"][1] == "OVERPAYMENT"
     assert allocate(110000, [facts("ARI-1", 100000)], "2025-06-05", False)["ARI-1"][1] == "OVERPAYMENT"
-    assert allocate(117043, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
-
-
-def test_a_round_excess_over_a_single_invoice_is_an_overpayment_whatever_its_size():
-    # Invented: 100.00 more than a 604.38 invoice. The balance of another invoice would carry cents (POLICIES §3).
-    assert allocate(70438, [facts("ARI-1", 60438)], "2025-06-05", False) == {"ARI-1": (60438, "OVERPAYMENT")}
-    assert allocate(70439, [facts("ARI-1", 60438)], "2025-06-05", False) == {"ARI-1": (60438, "")}
+    assert allocate(117013, [facts("ARI-1", 100000)], "2025-06-05", False) == {"ARI-1": (100000, "")}
 
 
 def test_discount_on_the_invoices_that_have_it_and_full_on_the_rest():
@@ -369,3 +364,69 @@ def test_a_deduction_that_leaves_nothing_to_explain_weighs_nothing():
     assert weighed("ARI-1", False, 100000, 100000, (-5000, None), PLAIN, "2025-06-05") == []
     assert weighed("ARI-1", False, 100000, 95000, (0, None), PLAIN, "2025-06-05") == []
     assert weighed("ARI-1", False, 0, 95000, (-5000, None), PLAIN, "2025-06-05") == []
+
+
+def test_cash_beyond_what_is_cited_leaves_each_invoice_as_its_terms_say():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(2.0, 50000, "2025-05-01")),
+             ("ARI-3", 40000, _terms(None, 40000)), ("ARI-4", 30000, _terms(2.0, 90000))]
+    assert allocate(900000, items, "2025-06-05", False) == {
+        "ARI-1": (100000, "SHORT_DISCOUNT"), "ARI-2": (50000, ""), "ARI-3": (40000, ""), "ARI-4": (30000, "")}
+
+
+def test_one_invoice_in_terms_inside_a_larger_payment_took_its_discount():
+    assert allocate(200000, [("ARI-1", 100000, _terms(2.0, 100000))], "2025-06-05", False) == {
+        "ARI-1": (100000, "SHORT_DISCOUNT")}
+
+
+def test_cash_a_little_over_the_invoices_is_no_sign_of_more_invoices():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(2.0, 50000))]
+    assert allocate(150100, items, "2025-06-05", False) == {"ARI-1": (100000, ""), "ARI-2": (50000, "")}
+
+
+def _plain(total, country="ES"):
+    return Terms(None, None, "2025-06-01", total, country)
+
+
+def test_a_round_amount_paid_over_a_single_invoice_is_an_overpayment():
+    # POLICIES §3: more than the open amount of one invoice. A round excess is what someone rounding up sends.
+    for excess in (10000, 500, 50000):
+        assert allocate(120000 + excess, [("ARI-1", 120000, _plain(120000))], "2025-06-05", False)["ARI-1"] == (
+            120000, "OVERPAYMENT")
+
+
+def test_an_excess_that_is_not_round_means_the_text_cited_part_of_what_the_cash_pays():
+    assert allocate(120000 + 3713 * 10, [("ARI-1", 120000, _plain(120000))], "2025-06-05", False)["ARI-1"][1] == ""
+
+
+def test_a_round_excess_not_smaller_than_the_invoice_is_not_an_overpayment_of_it():
+    assert allocate(120000 + 120000, [("ARI-1", 120000, _plain(120000))], "2025-06-05", False)["ARI-1"][1] == ""
+
+
+def test_a_fee_the_bank_states_is_bank_charges_whatever_the_country():
+    items = [("ARI-1", 100000, _plain(100000))]
+    assert allocate(98000, items, "2025-06-05", False, 1.0, fee_stated=True)["ARI-1"] == (100000, "SHORT_BANK_CHARGES")
+
+
+def test_with_no_fee_stated_a_customer_in_sepa_is_still_partial():
+    items = [("ARI-1", 100000, _plain(100000))]
+    assert allocate(98000, items, "2025-06-05", False, 1.0)["ARI-1"] == (98000, "PARTIAL")
+
+
+def test_a_stated_fee_past_the_limits_of_the_policy_is_not_bank_charges():
+    items = [("ARI-1", 100000, _plain(100000))]
+    assert allocate(90000, items, "2025-06-05", False, 1.0, fee_stated=True)["ARI-1"] == (90000, "PARTIAL")
+
+
+def test_fee_is_stated_only_with_the_amount_and_currency_of_the_shortfall():
+    assert fee_stated("X /CHGS/EUR20,00", "EUR", 2000)
+    assert not fee_stated("X /CHGS/EUR20,00", "EUR", 2100)
+    assert not fee_stated("X /CHGS/USD20,00", "EUR", 2000)
+    assert not fee_stated("X", "EUR", 2000)
+
+
+def test_discount_and_withholding_are_read_in_portuguese_and_french():
+    terms = Terms(2.0, 10, "2025-06-01", 100000, "ES")
+    assert line(100000, 98000, (-2000, "DESCONTO"), terms=terms)[1] == "SHORT_DISCOUNT"
+    for word in ("RETENÇÃO", "RETENCAO", "RETENUE"):
+        assert line(100000, 90000, (-10000, word))[1] == "SHORT_WITHHOLDING"
+

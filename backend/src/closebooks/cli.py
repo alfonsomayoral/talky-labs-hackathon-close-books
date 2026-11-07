@@ -64,9 +64,14 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 
 def _cmd_holdout(args: argparse.Namespace) -> int:
-    from .holdout import build_drift, build_holdout
+    from .holdout import build_drift, build_holdout, period_dest
 
-    print(build_drift() if args.drift else build_holdout())
+    if args.name or args.start or args.end:
+        if args.drift or not (args.name and args.start and args.end):
+            raise SystemExit("a period needs --name, --start and --end, and no --drift")
+        print(build_holdout(period_dest(args.name), args.start, args.end))
+    else:
+        print(build_drift() if args.drift else build_holdout())
     return 0
 
 
@@ -117,6 +122,9 @@ def main(argv: list[str] | None = None) -> int:
     holdout_sub = holdout.add_subparsers(dest="action", required=True)
     build = holdout_sub.add_parser("build")
     build.add_argument("--drift", action="store_true")
+    build.add_argument("--name", help="another period, into a new db/<name> (holdout-*); needs --start and --end")
+    build.add_argument("--start")
+    build.add_argument("--end")
     build.set_defaults(func=_cmd_holdout)
 
     serve = sub.add_parser("serve")
