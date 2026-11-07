@@ -1,6 +1,7 @@
 """Walk the bank lines by booking date, apply the best proposal, fix amount and exception, update balances."""
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import replace
 
@@ -10,6 +11,8 @@ from .model import Proposal, Row
 from .policy import CREDIT_NOTES, Terms, as_candidates, cross_border, decide, fee_fits, search
 from .rules.party_amount import document_says
 from .state import OpenBalances
+
+_OF_A_PLAN = re.compile(r"(?<![\d/.\-])(\d{1,2})\s*/\s*(\d{1,2})(?![\d/.\-])")
 
 
 def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tuple[list[Row], OpenBalances]:
@@ -64,7 +67,8 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                 print(f"warning: negative amount {amount} on {item_id} of {txn_id} by {proposal.rule}: line left out",
                       file=sys.stderr)
                 continue
-            exception = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception)
+            exception = _as_the_plan_says(plans.get(item_id), amount, len(proposal.lines), exception, txn,
+                                          currency[item_id] != txn["currency"])
             balance_effect = exception
             doubts_first = item_id in settled_uncited and proposal.rule != "PARTY-DUPLICATE"
             if exception == "DUPLICATE_PAYMENT" and doubts_first:
@@ -88,11 +92,24 @@ def _fallback_row(txn: dict) -> Row:
     return Row(txn["bank_txn_id"], None, None, None, out.category, out.exception or None, out.rule, out.confidence)
 
 
-def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: str) -> str:
-    """POLICIES §3: every instalment but the last is PARTIAL, whatever our balance says (we may have missed one). Only
-    instalments of different amounts say which one is being paid."""
+def _instalment_cited(txn: dict, plan_size: int) -> int | None:
+    """The instalment the bank line names: one k/n whose n is the size of the plan the invoice's PDF prints."""
+    text = f"{txn['text'] or ''} {txn['remittance_info'] or ''}"
+    cited = {int(k) for k, n in _OF_A_PLAN.findall(text) if int(n) == plan_size and 1 <= int(k) <= plan_size}
+    return cited.pop() if len(cited) == 1 else None
+
+
+def _as_the_plan_says(clauses: dict | None, amount: int, lines: int, exception: str, txn: dict, foreign: bool) -> str:
+    """POLICIES §3: every instalment but the last is PARTIAL, whatever our balance says (we may have missed one) and in
+    whatever order they arrive. The bank line may name which one it is; failing that, only instalments of different
+    amounts say it."""
     amounts = (clauses or {}).get("instalments", {}).get("amounts", ())
-    if lines != 1 or exception not in ("", "PARTIAL") or len(set(amounts)) < 2 or amount not in amounts:
+    if lines != 1 or not amounts:
+        return exception
+    cited = _instalment_cited(txn, len(amounts)) if exception in ("", "PARTIAL", "FX_DIFFERENCE") else None
+    if cited is not None:
+        return "PARTIAL" if cited < len(amounts) else "FX_DIFFERENCE" if foreign else ""
+    if exception not in ("", "PARTIAL") or len(set(amounts)) < 2 or amount not in amounts:
         return exception
     return "" if amount == amounts[-1] else "PARTIAL"
 
