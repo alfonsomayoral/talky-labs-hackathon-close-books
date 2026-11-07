@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from fractions import Fraction
 from itertools import combinations
+from math import floor
 
 import polars as pl
 
@@ -137,6 +139,21 @@ def _net(pairs: list) -> int:
     return sum(-o if i[0][:3] in CREDIT_NOTES else o for i, o in pairs)
 
 
+def document_says(clauses: dict | None, total: int, cash: int) -> str | None:
+    """The exception of a cash the invoice's own PDF foresees, or None. Why it generalizes: the official example of
+    ar_retention pays the PDF's amount without citing the invoice and its row is PARTIAL, and POLICIES §3 lists the
+    first payment of a guarantee retention and of an invoice net of an advance as PARTIAL, and the release as empty.
+
+    The percentage gives the retained part, rounded half up, whatever the total: the PDF prints it cut, so what it says
+    is payable can be a cent above the cash. The advance is an amount, so its net is the one printed."""
+    clauses = clauses or {}
+    if retention := clauses.get("retention"):
+        retained = floor(Fraction(total) * Fraction(str(retention["pct"])) / 100 + Fraction(1, 2))
+        if cash in (retained, total - retained):
+            return "" if cash == retained else "PARTIAL"
+    return "PARTIAL" if cash == clauses.get("advance_deduction", {}).get("netDueCents") else None
+
+
 def _clauses(phase) -> dict[str, dict[str, dict]]:
     """Facts of the invoice PDFs per item. Parsers extract them; only the rules below decide with them."""
     if not hasattr(phase, "dir") or not (phase.dir / "pdfs" / "index.csv").exists():
@@ -146,10 +163,12 @@ def _clauses(phase) -> dict[str, dict[str, dict]]:
             for item, doc in facts._by_item.items() if doc.clauses}
 
 
-def _month_of(text: str) -> tuple[int, int | None] | None:
+def _month_of(text: str, party_words: set[str]) -> tuple[int, int | None] | None:
+    """A month word of the party's own name is the name, unless a year follows it."""
     for match in _MONTH.finditer(text):
         year = match[2]
-        return MONTHS[match[1]], (2000 + int(year) % 100) if year else None
+        if year or match[1] not in party_words:
+            return MONTHS[match[1]], (2000 + int(year) % 100) if year else None
     return None
 
 
@@ -381,7 +400,7 @@ class PartyAmount:
             return by_reference
         same = [i for i, o in free if o == cash and i[0][:3] not in CREDIT_NOTES]
         if same:
-            picked = self._of_month(same, txn) or min(same, key=lambda i: (i[2], i[0]))
+            picked = self._of_month(same, txn, party) or min(same, key=lambda i: (i[2], i[0]))
             return self._proposal("PARTY-AMOUNT", party, [picked[0]], confidence=0.95 if len(same) == 1 else 0.9)
         tied: list[list[str]] = []
         subset = self._subset(free, cash, ambiguous=tied) if self.parties.certain else None
@@ -527,9 +546,10 @@ class PartyAmount:
         positive = [((n[0][0], "", "", "", 0, "", "", "", ""), n[1]) for n in notes]
         return _unique_subset([(i[0], o) for i, o in positive], gap, 2) if positive else None
 
-    def _of_month(self, same: list, txn: dict) -> tuple | None:
+    def _of_month(self, same: list, txn: dict, party: str) -> tuple | None:
         """Equal amounts: the text names a month. The PDF names the invoice's; else it is issued the month after."""
-        named = _month_of(normalize(f"{txn['text'] or ''} {txn['remittance_info'] or ''}"))
+        party_words = {word for name in self.parties.names_of[party] for word in name.split()}
+        named = _month_of(normalize(f"{txn['text'] or ''} {txn['remittance_info'] or ''}"), party_words)
         if named is None or len(same) < 2:
             return None
         month, year = named
@@ -577,20 +597,22 @@ class PartyAmount:
     def _explained_by_state(self, free: list, cash: int, party: str) -> Proposal | None:
         """No exact amount: only what the invoice's own PDF expects. Anything looser was measured and rejected."""
         invoices = [(i, o) for i, o in free if i[0][:3] not in CREDIT_NOTES]
-        planned = [i for i, _ in invoices if self._plan_expects(i[0], cash)]
+        planned = [i for i, _ in invoices if self._plan_expects(i, cash)]
         if planned:
-            return self._proposal("PARTY-PLAN", party, [min(planned, key=lambda i: (i[2], i[0]))[0]], by_cash=True,
-                                  confidence=0.9)
+            item_id = min(planned, key=lambda i: (i[2], i[0]))[0]
+            found = self._proposal("PARTY-PLAN", party, [item_id], by_cash=True, confidence=0.9)
+            if pdf := self.clauses[item_id].get("_pdf"):
+                found.sources.append({"kind": "pdf", "ref": pdf["path"]})
+            return found
         return None
 
-    def _plan_expects(self, item_id: str, cash: int) -> bool:
-        clauses = self.clauses.get(item_id)
+    def _plan_expects(self, item: tuple, cash: int) -> bool:
+        clauses = self.clauses.get(item[0])
         if not clauses:
             return False
         if cash in clauses.get("instalments", {}).get("amounts", ()):
             return True
-        return cash in (clauses.get("retention", {}).get("payableCents"),
-                        clauses.get("advance_deduction", {}).get("netDueCents"))
+        return document_says(clauses, item[4], cash) is not None
 
     def _by_number_alone(self, txn: dict, cash: int, currency: str, balances) -> Proposal | None:
         """A whole number in the text and an amount that agrees: enough without knowing who paid."""
@@ -642,6 +664,9 @@ class PartyAmount:
         eur_per_cent = abs(txn["amount_eur_cents"]) / abs(txn["amount_cents"]) if txn.get("amount_eur_cents") else 1.0
         for item, open_cents in free:
             if item[0][:3] in CREDIT_NOTES or open_cents != item[4]:
+                continue
+            # Its PDF says what is short and why: only `_plan_expects` can read that cash.
+            if {"retention", "advance_deduction"} & self.clauses.get(item[0], {}).keys():
                 continue
             pct = self.terms_pct.get(item[0])
             if pct and abs(item[4] - round(item[4] * pct / 100) - cash) <= 1:

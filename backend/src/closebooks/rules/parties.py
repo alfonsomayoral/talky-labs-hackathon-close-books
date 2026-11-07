@@ -109,22 +109,25 @@ class PartyIndex:
         # N43 cuts a word at the 38-character boundary and joins the fields with " | ".
         glued = normalize(raw.replace(" | ", ""))
         spaced = normalize(raw)
-        best: dict[str, int] = {}
+        best: dict[str, tuple[int, bool]] = {}
         whole: dict[str, int] = {}
         for text in {glued, spaced}:
             for position in _word_starts(text):
                 for norm, party in self.by_prefix.get((kind, entity, text[position:position + PREFIX_CHARS]), ()):
                     length = _common_prefix(norm, text, position)
                     if length == len(norm) or (not whole_only and _identifies(norm, text, position, length)):
-                        best[party] = max(best.get(party, 0), length)
+                        # The space after a word is no more of the name. At equal length, a name missing only its legal
+                        # form beats one left halfway; still tied, both go on and the caller abstains.
+                        found = (len(norm[:length].rstrip()), _only_legal_form(norm[length:]))
+                        best[party] = max(best.get(party, (0, False)), found)
                         if length == len(norm):
                             whole[party] = max(whole.get(party, 0), length)
         if not best:
             return []
         top = max(best.values())
-        self.certain = all(top == w for p, w in whole.items() if best.get(p) == top) and any(
-            best.get(p) == top for p in whole)
-        return sorted(p for p, length in best.items() if length == top)
+        named = sorted(p for p, found in best.items() if found == top)
+        self.certain = all(whole.get(p) == top[0] for p in named)
+        return named
 
 
 def _word_starts(text: str) -> list[int]:
@@ -140,6 +143,10 @@ def _common_prefix(a: str, b: str, start: int) -> int:
     return n
 
 
+def _only_legal_form(rest: str) -> bool:
+    return all(word in LEGAL_FORMS for word in rest.split())
+
+
 def _identifies(norm: str, text: str, position: int, length: int) -> bool:
     """The whole name; one the bank cut, the text ending or starting another word where the name stops mid-word
     ("PLASTICOS EXPRES | RECIBO"); or the name without its legal form."""
@@ -148,6 +155,6 @@ def _identifies(norm: str, text: str, position: int, length: int) -> bool:
     if length < MIN_NAME_CHARS:
         return False
     end = position + length
-    if end == len(text) or all(word in LEGAL_FORMS for word in norm[length:].split()):
+    if end == len(text) or _only_legal_form(norm[length:]):
         return True
     return norm[length - 1] != " " and text[end] == " "

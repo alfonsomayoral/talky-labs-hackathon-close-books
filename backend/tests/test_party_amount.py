@@ -277,6 +277,35 @@ def test_unknown_ordering_party_still_finds_the_whole_name_of_who_it_pays_for():
     assert _index("Rubio Aguas S.A.").find(moved, "customer") == ["C0"]
 
 
+def test_the_space_after_a_whole_name_does_not_make_a_longer_name_win():
+    # "S.L." is whole here; "S.L.U." only gets further by the space after the word. Both are real customers: abstain.
+    moved = txn(1, "TRANSF. A SU FAVOR | 75081474-MOLINOS ARRAYAN S.L. | PLAZO 4/4")
+    index = _index("Molinos Arrayan S.L.", "Molinos Arrayan S.L.U.")
+    assert index.find(moved, "customer") == ["C0", "C1"]
+    assert not index.certain
+
+
+def test_a_whole_name_beats_a_longer_one_the_bank_would_have_cut_mid_name():
+    moved = txn(1, "TRANSF. 75081474-MOLINOS ARRAYAN S.L.")
+    index = _index("Molinos Arrayan S.L.", "Molinos Arrayan S.L. Export")
+    assert index.find(moved, "customer") == ["C0"]
+    assert index.certain
+
+
+def test_a_customer_with_its_legal_form_cut_by_the_bank_is_still_found_but_not_certain():
+    moved = txn(1, "TRANSF. A SU FAVOR | MOLINOS ARRAYAN S.L. | PLAZO 4/4")
+    index = _index("Molinos Arrayan S.L.U.")
+    assert index.find(moved, "customer") == ["C0"]
+    assert not index.certain
+
+
+def test_the_longer_name_written_whole_wins_over_the_shorter_one():
+    moved = txn(1, "TRANSF. A SU FAVOR | MOLINOS ARRAYAN S.L.U. | PLAZO 4/4")
+    index = _index("Molinos Arrayan S.L.", "Molinos Arrayan S.L.U.")
+    assert index.find(moved, "customer") == ["C1"]
+    assert index.certain
+
+
 def test_uncited_small_shortfall_outside_sepa_is_found_for_the_only_invoice_it_fits():
     rule, balances = engine([item("ARI-1", "C1", "FV1234", 2556975), item("ARI-2", "C1", "FV1235", 9000)],
                             customers=(("C1", "E1", "Wellness Garrido S.L.", None, None, None, None, None),))
@@ -340,6 +369,27 @@ def test_no_month_keeps_fifo_among_equal_amounts():
     assert lines(rule(txn(1000, NAME, date="2025-07-01"), balances)) == {"ARI-1"}
 
 
+RIEGOS = (("C1", "E1", "Riegos Mar S.L.", None, "ES11", None, None, None),)
+
+
+def test_a_month_word_of_the_party_name_without_a_year_is_not_a_month():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2024-02-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2024-04-01")], customers=RIEGOS)
+    assert lines(rule(txn(1000, "TRANSFERENCIA DE RIEGOS MAR S.L.", date="2024-07-01"), balances)) == {"ARI-1"}
+
+
+def test_the_same_word_with_a_year_after_the_party_name_is_the_month():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2024-02-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2024-04-01")], customers=RIEGOS)
+    assert lines(rule(txn(1000, "RIEGOS MAR MAR 24", date="2024-07-01"), balances)) == {"ARI-2"}
+
+
+def test_a_month_word_outside_the_party_name_is_the_month_without_a_year():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 1000, "2024-02-01"),
+                             item("ARI-2", "C1", "F2", 1000, "2024-04-01")])
+    assert lines(rule(txn(1000, NAME + "MANT. MAR", date="2024-07-01"), balances)) == {"ARI-2"}
+
+
 def test_instalment_from_the_plan_of_the_pdf():
     rule, balances = engine([item("ARI-1", "C1", "F1", 30000), item("ARI-2", "C1", "F2", 50000)])
     rule.clauses = {"ARI-2": {"instalments": {"amounts": [20000, 15000, 15000]}}}
@@ -350,7 +400,7 @@ def test_instalment_from_the_plan_of_the_pdf():
 
 def test_payment_net_of_retention_or_advance_from_the_pdf():
     rule, balances = engine([item("ARI-1", "C1", "F1", 30000), item("ARI-2", "C1", "F2", 50000)])
-    rule.clauses = {"ARI-2": {"retention": {"payableCents": 45000}}}
+    rule.clauses = {"ARI-2": {"retention": {"pct": 10}}}
     assert lines(rule(txn(45000, NAME), balances)) == {"ARI-2"}
     rule.clauses = {"ARI-1": {"advance_deduction": {"netDueCents": 21000}}}
     assert lines(rule(txn(21000, NAME), balances)) == {"ARI-1"}
