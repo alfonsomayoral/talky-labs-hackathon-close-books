@@ -3,16 +3,20 @@ They sit in fixed sentences of the generated documents, in Spanish or English wh
 Parsers only: nothing here decides a match, and what does not read is recorded and skipped (ARCHITECTURE §7)."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import pickle
 import re
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from importlib.metadata import version
 from pathlib import Path
 
 import polars as pl
 
+from .. import paths
 from .advices import AdviceError, money, normalize_number, parse_date
 
 FOLDER = "pdfs"
@@ -23,10 +27,15 @@ DOC_KIND = {"invoice": "invoicePdf", "supplier_invoice": "invoicePdf", "credit_n
 # Only the documents that can carry a clause are read from an earlier phase; the rest is not an item that can be paid.
 ALWAYS_READ = {"proforma", "bank_account_notice"}
 RETENTION_DAYS = 365
+HASH_THREADS = 3  # measured on small PDFs: more threads only fight for the GIL
 
 
 class PdfError(ValueError):
     """The file is not a PDF this module can read."""
+
+
+class _Unexpected(str):
+    """A failure that says nothing about the file (out of memory, say): reported, but never cached."""
 
 
 @dataclass(slots=True)
@@ -244,7 +253,7 @@ def _parse_chunk(chunk: list[tuple[str, str | None]]) -> list[tuple[list[Clause]
         except PdfError as err:
             out.append(str(err))
         except Exception as err:  # a dirty document must never take the run down
-            out.append(f"{type(err).__name__}: {err}")
+            out.append(_Unexpected(f"{type(err).__name__}: {err}"))
     return out
 
 
@@ -315,7 +324,59 @@ def _wanted(phase) -> pl.DataFrame:
     return pl.concat([own, needed])
 
 
+def _cache_version() -> str:
+    """What the facts of a file depend on besides the file: this parser, the helpers it imports and pypdf."""
+    code = b"".join(Path(__file__).with_name(name).read_bytes() for name in ("pdfs.py", "advices.py"))
+    return hashlib.sha256(code + version("pypdf").encode()).hexdigest()[:16]
+
+
+def _cache_file() -> Path:
+    return paths.RUNS / "cache" / FOLDER / f"{_cache_version()}.pkl"
+
+
+def _read_cache() -> dict:
+    try:
+        return pickle.loads(_cache_file().read_bytes())
+    except Exception:  # missing, cut or from another Python: whatever it is, it only means reading the files again
+        return {}
+
+
+def _write_cache(entries: dict) -> None:
+    path = _cache_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_suffix(f".{os.getpid()}.tmp")
+    partial.write_bytes(pickle.dumps(entries, protocol=pickle.HIGHEST_PROTOCOL))
+    partial.replace(path)
+
+
+def _cache_key(job: tuple[str, str | None]) -> tuple[str, str | None] | None:
+    """The file's content and its date, which fixes the year of a date printed without one."""
+    try:
+        return hashlib.sha256(Path(job[0]).read_bytes()).hexdigest(), job[1]
+    except OSError:
+        return None
+
+
 def _parse_all(jobs: list[tuple[str, str | None]], workers: int | None = None) -> list:
+    """Facts per file in the order given. A file read by an earlier run, here or in another phase, is not read again."""
+    known = _read_cache()
+    with ThreadPoolExecutor(HASH_THREADS) as threads:
+        keys = list(threads.map(_cache_key, jobs))
+    fresh = iter(_parse_missing([job for job, key in zip(jobs, keys, strict=True) if key not in known], workers))
+    results, new = [], {}
+    for key in keys:
+        if key in known:
+            results.append(known[key])
+            continue
+        results.append(next(fresh))
+        if key is not None and not isinstance(results[-1], _Unexpected):
+            new[key] = results[-1]
+    if new:
+        _write_cache({**known, **new})
+    return results
+
+
+def _parse_missing(jobs: list[tuple[str, str | None]], workers: int | None = None) -> list:
     workers = workers or min(6, os.cpu_count() or 1)
     if workers == 1 or len(jobs) < 2 * workers:
         return _parse_chunk(jobs)

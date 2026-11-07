@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import polars as pl
 import pytest
 
+from closebooks.documents import pdfs
 from closebooks.documents.pdfs import (
     PdfError,
     clauses_frame,
@@ -245,3 +246,121 @@ def test_residue_counts_documents_with_a_hint_and_no_clause(tmp_path):
     pdf_folder(root, [("A/ok.pdf", "invoice", "1", "A", "C", "2023-01-01")], {"A/ok.pdf": "instalments_en"})
     facts = phase_clauses(SimpleNamespace(name="r", dir=root, prior=[], items=items([])))
     assert residue(facts) == {"invoice": {"read": 1, "with_clause": 1, "hinted_unextracted": 0, "failed": 0}}
+
+
+# --- cache of the parsed files -----------------------------------------------------------------------------------
+
+
+@pytest.fixture
+def parsed(monkeypatch):
+    """The paths the parser really opened; the rest came from the cache."""
+    opened: list[str] = []
+    real = pdfs._parse_chunk
+
+    def chunk(jobs):
+        opened.extend(Path(path).name for path, _ in jobs)
+        return real(jobs)
+
+    monkeypatch.setattr(pdfs, "_parse_chunk", chunk)
+    return opened
+
+
+@pytest.fixture
+def jobs(tmp_path):
+    """A document with a clause and a file that is not a PDF."""
+    good = tmp_path / "good.pdf"
+    shutil.copy(FIXTURES / "instalments_en.pdf", good)
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"not a pdf")
+    return [(str(good), "2024-05-01"), (str(bad), None)]
+
+
+def test_the_second_read_opens_no_file_and_gives_the_same_facts(jobs, parsed):
+    first = pdfs._parse_all(jobs)
+    assert sorted(parsed) == ["bad.pdf", "good.pdf"]
+    parsed.clear()
+    second = pdfs._parse_all(jobs)
+    assert parsed == []
+    assert second == first
+    assert second[0][0], "the document has a clause"
+    assert isinstance(second[1], str), "a file that does not read stays recorded as such"
+
+
+def test_a_file_with_new_content_is_read_again(jobs, parsed):
+    pdfs._parse_all(jobs)
+    parsed.clear()
+    shutil.copy(FIXTURES / "retention_en.pdf", jobs[0][0])
+    pdfs._parse_all(jobs)
+    assert parsed == ["good.pdf"]
+
+
+def test_the_same_file_with_another_document_date_is_read_again(jobs, parsed):
+    """The date decides the year of a date without one: the facts depend on it."""
+    pdfs._parse_all(jobs)
+    parsed.clear()
+    pdfs._parse_all([(jobs[0][0], "2019-05-01"), jobs[1]])
+    assert parsed == ["good.pdf"]
+
+
+def test_another_version_of_the_parser_reads_everything_again(jobs, parsed, monkeypatch):
+    pdfs._parse_all(jobs)
+    parsed.clear()
+    monkeypatch.setattr(pdfs, "_cache_version", lambda: "another")
+    pdfs._parse_all(jobs)
+    assert sorted(parsed) == ["bad.pdf", "good.pdf"]
+
+
+def test_the_version_covers_the_modules_the_parser_uses_and_pypdf(monkeypatch, tmp_path):
+    base = pdfs._cache_version()
+    monkeypatch.setattr(pdfs, "version", lambda name: "0.0.0")
+    assert pdfs._cache_version() != base
+    monkeypatch.undo()
+    real_read = Path.read_bytes
+
+    def changed(path):
+        return b"changed" if path.name == "advices.py" else real_read(path)
+
+    monkeypatch.setattr(Path, "read_bytes", changed)
+    assert pdfs._cache_version() != base
+
+
+def test_a_broken_cache_is_an_empty_one(jobs, parsed):
+    first = pdfs._parse_all(jobs)
+    pdfs._cache_file().write_bytes(b"not a pickle")
+    parsed.clear()
+    assert pdfs._parse_all(jobs) == first
+    assert sorted(parsed) == ["bad.pdf", "good.pdf"]
+
+
+def test_a_run_that_finds_everything_does_not_rewrite_the_cache(jobs):
+    pdfs._parse_all(jobs)
+    written = pdfs._cache_file().stat().st_mtime_ns
+    pdfs._parse_all(jobs)
+    assert pdfs._cache_file().stat().st_mtime_ns == written
+
+
+def test_a_new_file_keeps_what_the_cache_already_had(jobs, parsed):
+    pdfs._parse_all(jobs[:1])
+    pdfs._parse_all(jobs[1:])
+    parsed.clear()
+    pdfs._parse_all(jobs)
+    assert parsed == []
+
+
+def test_an_unexpected_failure_is_reported_but_not_remembered(jobs, parsed, monkeypatch):
+    real = pdfs._parse_one
+
+    def broken(path, doc_date):
+        raise MemoryError("out of memory")
+
+    monkeypatch.setattr(pdfs, "_parse_one", broken)
+    assert isinstance(pdfs._parse_all(jobs)[0], str)
+    monkeypatch.setattr(pdfs, "_parse_one", real)
+    parsed.clear()
+    assert pdfs._parse_all(jobs)[0][0], "it reads once the failure is gone"
+    assert "good.pdf" in parsed
+
+
+def test_a_file_that_is_missing_is_a_failure_and_not_an_error(tmp_path):
+    results = pdfs._parse_all([(str(tmp_path / "gone.pdf"), None)])
+    assert isinstance(results[0], str)
