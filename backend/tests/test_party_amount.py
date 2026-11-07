@@ -305,12 +305,33 @@ def test_payment_net_of_retention_or_advance_from_the_pdf():
 
 
 def test_amount_that_nothing_explains_is_not_guessed_even_with_a_known_party():
-    # Measured on the holdout: guessing a partial was right 12 % of the time, an overpayment 22 %, a duplicate 77 %.
+    # Measured on the holdout: guessing a partial was right 12 % of the time, an overpayment 22 %.
     rule, balances = engine([item("ARI-1", "C1", "F1", 75407)])
     assert rule(txn(40000, NAME), balances) is None
     assert rule(txn(80407, NAME), balances) is None
+
+
+def test_exact_total_of_the_one_invoice_of_the_party_already_settled_is_a_duplicate():
+    # BT-2025-0080327: paid twice with no reference. Nothing is open for that amount and only one closed item has it.
     rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
+    found = rule(txn(228043, NAME), balances)
+    assert found.rule == "PARTY-DUPLICATE" and lines(found) == {"ARI-1"}
+
+
+def test_two_settled_invoices_with_that_total_are_not_guessed():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0),
+                             item("ARI-2", "C1", "F2", 228043, open_cents=0)])
     assert rule(txn(228043, NAME), balances) is None
+
+
+def test_settled_credit_note_of_that_amount_is_not_a_duplicate():
+    rule, balances = engine([item("ARC-1", "C1", "A1", 228043, open_cents=0)])
+    assert rule(txn(228043, NAME), balances) is None
+
+
+def test_duplicate_needs_a_whole_party_name():
+    rule, balances = engine([item("ARI-1", "C1", "F1", 228043, open_cents=0)])
+    assert rule(txn(228043, "WELLNESS GARRIDO"), balances) is None
 
 
 def test_debit_citing_a_customer_invoice_is_not_settled_by_the_number_alone():

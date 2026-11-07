@@ -286,8 +286,13 @@ class PartyAmount:
         planned = self._explained_by_state(free, cash, party)
         if planned:
             return planned
-        run = self._consecutive(free, cash, skipped=MAX_SKIPPED) if self.parties.certain else None
-        return self._proposal("PARTY-WINDOW", party, run, confidence=0.85) if run else None
+        if not self.parties.certain:
+            return None
+        run = self._consecutive(free, cash, skipped=MAX_SKIPPED)
+        if run:
+            return self._proposal("PARTY-WINDOW", party, run, confidence=0.85)
+        # Last: what open documents can explain is more certain than a second payment of a closed one.
+        return self._paid_again(mine, open_now, cash, party)
 
     @staticmethod
     def _tokens(txn: dict) -> set[str]:
@@ -425,6 +430,13 @@ class PartyAmount:
     @staticmethod
     def _is_month(clause: dict | None, month: int, year: int | None) -> bool:
         return bool(clause) and clause["month"] == month and (year is None or clause["year"] == year)
+
+    def _paid_again(self, mine: list, open_now: dict, cash: int, party: str) -> Proposal | None:
+        """A whole party, nothing open that the cash explains, and one settled invoice with exactly that total."""
+        settled = [i for i in mine if open_now[i[0]] <= 0 and i[4] == cash and i[0][:3] not in CREDIT_NOTES]
+        if len(settled) != 1:
+            return None
+        return self._proposal("PARTY-DUPLICATE", party, [settled[0][0]], by_cash=True, confidence=0.85)
 
     def _explained_by_state(self, free: list, cash: int, party: str) -> Proposal | None:
         """No exact amount: only what the invoice's own PDF expects. Anything looser was measured and rejected."""

@@ -328,3 +328,9 @@ def test_paying_again_what_an_uncited_rule_settled_is_not_a_duplicate_but_the_fi
                  "BT-3": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)}
     rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), proposals)
     assert [r.exception for r in rows] == [None, None, "DUPLICATE_PAYMENT"]
+    # BT-2025-0165470: no citation the second time either, so nothing says the first match was the wrong one.
+    proposals = {"BT-1": Proposal("PARTY-AMOUNT", [("ARI-1", None)], by_cash=True),
+                 "BT-2": Proposal("PARTY-DUPLICATE", [("ARI-1", None)], by_cash=True),
+                 "BT-3": Proposal("REF-TEXT", [("ARI-1", None)], by_cash=True)}
+    rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), proposals)
+    assert [r.exception for r in rows][:2] == [None, "DUPLICATE_PAYMENT"]

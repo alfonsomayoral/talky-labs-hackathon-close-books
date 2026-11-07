@@ -50,7 +50,8 @@ def resolve(phase: Phase, proposals: dict[str, Proposal], stateful=None) -> tupl
                     deduction=proposal.deductions.get(item_id), terms=terms_of(item_id),
                     booking_date=txn["booking_date"])
             balance_effect = exception
-            if exception == "DUPLICATE_PAYMENT" and item_id in settled_uncited:
+            doubts_first = item_id in settled_uncited and proposal.rule != "PARTY-DUPLICATE"
+            if exception == "DUPLICATE_PAYMENT" and doubts_first:
                 exception = ""
                 settled_uncited.discard(item_id)
             elif proposal.rule.startswith("PARTY-"):
