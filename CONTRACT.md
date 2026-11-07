@@ -613,6 +613,7 @@ Fijadas al integrar la API; mandan sobre lo que §4 y §5 dejaban abierto.
 9. Relaciones entre movimientos en el detalle: `returnOf`, `returnedBy`, `duplicateOf`, `duplicatedBy`, `sameItem`.
 10. En `documents`, la fecha y el `partyName` de un PDF se deducen del nombre del fichero y de su partida; en avisos, `partyName` es `null`.
 11. `POST …/drafts` responde 501 hasta que exista el generador de borradores.
+17. El `runId` que sirve la API es el **nombre de la carpeta** en `runs/`, no el campo de `run.json` (una copia de ensayo con `cp -R` no choca con la original).
 12. `closebooks serve <run>` marca esa ejecución con `served: true` en `RunSummary` (las demás `false`) y es la única que precarga; la plataforma la elige por defecto. Las demás se abren bajo demanda (primera apertura, segundos).
 13. `GET …/cases` devuelve además `sumAmountEur`: suma de `amountEur` de todos los casos que cumplen el filtro, no solo de la página.
 15. `serve` no acepta conexiones hasta terminar la precarga de la ejecución servida (la primera petición nunca paga los ~30 s de apertura).
