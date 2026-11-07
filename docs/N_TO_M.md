@@ -1,6 +1,6 @@
 # N_TO_M.md — qué es `ar_n_to_m` y qué se puede casar sin forzar (7 nov 2026)
 
-Resultado de la sesión N a M (`docs/briefs/n_to_m.md`). Las cifras son del holdout; las de drift salen iguales o casi, así que drift **no es prueba independiente** en esta estructura. Lo marcado **[Inferencia]** es estimación. Base: `runs/acc-group-holdout`. Con las reglas: `runs/acc-integ-holdout` y `-drift` (PR 99).
+Resultado de la sesión N a M (`docs/briefs/n_to_m.md`). Las cifras son del holdout salvo donde se indica; las de drift salen iguales o casi, así que drift **no es prueba independiente** en esta estructura. Lo marcado **[Inferencia]** es estimación. Base: `runs/acc-group-holdout`. Con las reglas: `runs/acc-integ-holdout` y `-drift` (PR 99).
 
 ## 1. Resultado
 
@@ -150,3 +150,36 @@ Las hipótesis que superan 0,98 suman 44 líneas, y casi todas ya están resuelt
 | V2, partición exacta sin constantes | 247 | 0 / 0 | 4 | 0,992 |
 
 V2 solo acierta pares de una sola factura, sobre todo `ar_partial`, y no resuelve N a M. Sin fracción, la suma no dice qué factura se parte: 733 abstenciones por varias particiones. V1 no llega al umbral y sus constantes están retiradas.
+
+## 11. Líneas sueltas sin tercero resuelto: `PARTY-AMOUNT-LATE` (PR 120)
+
+Cobros en fallback donde el texto nombra al pagador de forma parcial y el importe es el saldo exacto de una única factura abierta. Con la PR 105 de `parties`, de las 391 líneas sueltas de `ar_ref_noise` siguen en fallback 113.
+
+| Variante (replay sobre todos los cobros en fallback) | Holdout | Drift | LIVE (recuento) | Falsos `unidentified`/`lookalike` |
+| --- | --- | --- | --- | --- |
+| Un solo tercero, por prefijo | 61/61 | 61/61 | 64 | 0 |
+| Unión con varios candidatos (post-hoc) | 162/162 | 167/167 | 166 | 0 |
+| Sin tercero, factura única de sociedad y divisa | 356/982 | 359/999 | 940 | 477 · 488 |
+
+Ejecución real de la unión, sobre main a5c8ca8: 161 de 163 = 0,988 en holdout y 170 de 172 = 0,988 en drift, 0 falsos en `unidentified` y `unidentified_lookalike`. Los 2 fallos son `ar_same_amount_fifo` con mismo importe y mismo saldo.
+
+- **Primera medida real: 0,895 en drift.** Cerraba por saldo final un cobro anterior a otro que ya había dejado `PARTIAL` la factura. El orden por fecha lo corrigió: el anterior es el parcial y el último cierra.
+- **Justificación:** ejemplo oficial de referencia ruidosa (hackathon.usetalky.com/ejemplos). POLICIES §3 advierte de no identificados con el importe exacto de otra factura; por eso se exige tercero, partida única y revisión por una persona.
+- **Límite:** corre tras la cascada y no libera cobros posteriores que dependan de ese saldo.
+
+## 12. Otras cifras de la tarde
+
+- **`PARTY-FRACTION` (PR 109, de otra sesión), holdout sobre 45236d1:** 456 de 466 = 0,9785. De los 10 fallos, 8 tienen factura e importe bien y excepción mal, y 2 casan un cobro sin partida (1 `unidentified_lookalike`, 1 `customer_advance`). Múltiplos del 5 % sin documento que los nombre: es la excepción conocida a la puerta.
+- **Coste de `REF-SPLIT`:** 29,7 s en holdout, pico 4,1 GB, casi todo en un segundo `PartyAmount` y `parties._in_text`. El reorden de la rama `KPI-11_n_to_m-speed` no ahorró nada medible y no se fusionó.
+
+## 13. Para después del evento
+
+| Qué | Por qué | Cifra de partida |
+| --- | --- | --- |
+| Reutilizar el motor de `PartyAmount` en `REF-SPLIT` y etapas tras `resolve` | Lo que de verdad cuesta | ~30 s por fase |
+| Medir `PAIRED-PARTIAL` en una fase de 2024 con código actual | El 0,966 de TRAIN usa estado antiguo | Marginal hoy: 30 líneas |
+| Parejas de homónimos | Más cobertura, filtro post-hoc | 163 parejas más, 1–2 falsas |
+| Revisar `PARTY-FRACTION` en una fase ajena | Sin documento, lookalike < 1,000 | 0,9785 en holdout |
+| Reconciliar los dos censos de citas y los 150 movimientos con avisos sin enlazar | Abierto en §7 | 150 movimientos |
+| Fuente nueva para parejas sin cita y dispersos | Sin señal en los datos | 806 + 2.435 líneas |
+| Cobros sueltos de `ar_n_to_m` y `PARTIAL` con segundo cobro fuera de fase | Sin explicar | 120 · 163 líneas |
