@@ -34,6 +34,7 @@ class Terms:
     issue_date: str | None
     total_cents: int
     country: str | None = None
+    listed_at: int | None = None
 
 
 def _in_terms(terms: Terms | None, booking_date: str | None) -> bool:
@@ -169,8 +170,10 @@ def _explain(gap: int, cash: int, invoices: list, notes: list, booking_date: str
 
 
 def _oldest_first(available: int, invoices: list) -> dict[str, tuple[int, str]]:
+    """Cash no clause explains: by age, unless a document lists the items. Then in its order, because the payer wrote
+    what it applied the payment to: what the money does not reach is the end of its own list (POLICIES §5.4)."""
     out = {}
-    for item, open_cents, _ in sorted(invoices, key=lambda i: (i[2].issue_date or "", i[0])):
+    for item, open_cents, _ in sorted(invoices, key=lambda i: (i[2].listed_at or 0, i[2].issue_date or "", i[0])):
         applied = min(available, open_cents)
         if applied > 0:
             out[item] = (open_cents, "") if applied == open_cents else (applied, "PARTIAL")

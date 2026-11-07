@@ -340,6 +340,32 @@ def test_paying_again_what_an_uncited_rule_settled_is_not_a_duplicate_but_the_fi
     assert [r.exception for r in rows][:2] == [None, "DUPLICATE_PAYMENT"]
 
 
+def test_cash_short_of_an_advice_leaves_its_last_printed_line_partial_with_the_advice_as_evidence():
+    items = pl.DataFrame({"item_id": ["ARI-OLD", "ARI-NEW"], "open_cents": [1000, 1000], "total_cents": [1000, 1000],
+                          "currency": ["EUR", "EUR"], "party_id": ["C1", "C1"], "payment_terms": ["T30", "T30"],
+                          "issue_date": ["2025-01-01", "2025-02-01"]})
+    masters = {"payment_terms": pl.DataFrame({"code": ["T30"], "early_payment_discount_pct": [None],
+                                              "discount_days": [None]},
+                                             schema_overrides={"early_payment_discount_pct": pl.String,
+                                                               "discount_days": pl.String}),
+               "customers": pl.DataFrame({"customer_id": ["C1"], "country": ["ES"]})}
+    t = pl.DataFrame({"bank_txn_id": ["BT-1"], "booking_date": ["2025-03-01"], "amount_cents": [1500],
+                      "currency": ["EUR"], "bank": ["B"], "bank_code": [""], "bank_subcode": [""], "text": ["X"],
+                      "orig_cents": [None], "orig_currency": [None], "amount_eur_cents": [1500], "entity": ["E1"],
+                      "counterparty_name": [None], "counterparty_account": [None], "remittance_info": [None],
+                      "ref1": [None], "ref2": [None], "end_to_end_id": [None]},
+                     schema_overrides={c: pl.String for c in ("orig_currency", "counterparty_name",
+                                                              "counterparty_account", "remittance_info", "ref1", "ref2",
+                                                              "end_to_end_id")} | {"orig_cents": pl.Int64})
+    source = {"kind": "remittanceAdvice", "ref": "remittance_advices/E1/RA_a.txt", "label": "REF"}
+    proposal = Proposal("ADVICE-TXT", [("ARI-NEW", None), ("ARI-OLD", None)], by_cash=True, in_listed_order=True,
+                        sources=[source])
+    rows, _ = resolve(SimpleNamespace(items=items, txns=t, masters=masters), {"BT-1": proposal})
+    assert [(r.item_id, r.amount_cents, r.exception) for r in rows] == [("ARI-NEW", 1000, None),
+                                                                        ("ARI-OLD", 500, "PARTIAL")]
+    assert rows[1].sources == [source]
+
+
 def test_cancelled_invoice_paid_by_a_file_with_nothing_before_is_not_a_duplicate():
     # BT-2025-0009286: the lockbox lists an invoice cancelled by a credit note; it opens at 0 but was never paid.
     items = pl.DataFrame({"item_id": ["ARI-1", "ARC-1"], "item_type": ["ARI", "ARC"], "entity": ["E1", "E1"],
