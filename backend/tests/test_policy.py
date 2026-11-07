@@ -226,3 +226,20 @@ def test_many_small_discounts_that_could_add_up_to_any_gap_prove_nothing():
     gap = round(2000 * 0.02) + round(2001 * 0.02)  # any two of them would do: nothing says it was these
     out = allocate(sum(o for _, o, _ in items) - gap, items, "2025-06-05", False)
     assert "SHORT_DISCOUNT" not in {e for _, e in out.values()}
+
+
+def test_cash_beyond_what_is_cited_leaves_each_invoice_as_its_terms_say():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(2.0, 50000, "2025-05-01")),
+             ("ARI-3", 40000, _terms(None, 40000)), ("ARI-4", 30000, _terms(2.0, 90000))]
+    assert allocate(900000, items, "2025-06-05", False) == {
+        "ARI-1": (100000, "SHORT_DISCOUNT"), "ARI-2": (50000, ""), "ARI-3": (40000, ""), "ARI-4": (30000, "")}
+
+
+def test_one_invoice_in_terms_inside_a_larger_payment_took_its_discount():
+    assert allocate(200000, [("ARI-1", 100000, _terms(2.0, 100000))], "2025-06-05", False) == {
+        "ARI-1": (100000, "SHORT_DISCOUNT")}
+
+
+def test_cash_a_little_over_the_invoices_is_no_sign_of_more_invoices():
+    items = [("ARI-1", 100000, _terms(2.0, 100000)), ("ARI-2", 50000, _terms(2.0, 50000))]
+    assert allocate(150100, items, "2025-06-05", False) == {"ARI-1": (100000, ""), "ARI-2": (50000, "")}
