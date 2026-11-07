@@ -18,7 +18,7 @@ RUN_REF = re.compile(r"\b((?:PR|CF)\d{12})(?:-(\d{4}))?\b")
 RUN_REF_CUT = re.compile(r"\b((?:PR|CF)\d{4,11}) \| (\d{1,8})\b")
 REASON_CODE = re.compile(r"\b[A-Z]{2}\d{2}\b")  # ISO 20022 return reason: AC01, MD07, BE04
 SUPPLIERS_IN_TEXT = re.compile(r"\b(\d{1,4}) [A-Z]")  # "8 PROVEEDORES": how many transfers the debit says it pays
-MAX_LEFT_OUT = 2  # transfers of a maturity paid apart; more and the exact sum would prove little
+MAX_LEFT_OUT = 3  # transfers of a maturity paid apart; more and the exact sum would prove little
 NAME_CHARS = 20  # the bank cuts a beneficiary's name; the first characters are what survives
 
 
@@ -57,10 +57,13 @@ def _documents(phase: Phase) -> pl.DataFrame:
     in_payer = by_number.join(settled, on="_row", how="anti").filter(
         pl.col("entity") == pl.col("_payer"), pl.col("total_cents") >= pl.col("doc_cents"), pl.col("open_cents") > 0
     )
-    # Tied on the number: the item whose balance is exactly what was paid. Otherwise no guess.
+    # Tied on the number: the item whose balance is exactly what was paid, or, as a factor pays in two halves, the one
+    # whose total is twice the document to the cent. Otherwise no guess.
     pays_balance = in_payer.filter(pl.col("open_cents") == pl.col("doc_cents"))
-    in_payer = pl.concat([pays_balance, in_payer.join(pays_balance.select("_row"), on="_row", how="anti")]).filter(
-        pl.len().over("_row") == 1)
+    untied = in_payer.join(pays_balance.select("_row"), on="_row", how="anti")
+    pays_half = untied.filter((pl.col("total_cents") - 2 * pl.col("doc_cents")).abs() <= 1)
+    untied = untied.join(pays_half.select("_row"), on="_row", how="anti")
+    in_payer = pl.concat([pays_balance, pays_half, untied]).filter(pl.len().over("_row") == 1)
     keep = ("_row", "item_id", "party_id", "due_date")
     found = pl.concat([by_name.select(keep), by_amount.select(keep), in_payer.select(keep)])
     return runs.join(found, on="_row", how="left").sort("_row")
@@ -210,9 +213,12 @@ def _due_group(txn: dict, rows: list[dict], target: int, by_transfer: dict, tran
         if kept:
             used.update((account, e) for e in kept)
             return [row for e in kept for row in by_transfer[account, e]]
-    if re.search(r"\b1 [A-Z]", txn["text"]):
-        late = [e for es in groups.values() for e in es if transfers[e]["transfer_cents"] == target]
-        if len(late) == 1:
-            used.add((account, late[0]))
-            return by_transfer[account, late[0]]
+    # The transfers left out of their maturity are paid later, together: the only set of as many as the debit says.
+    said = SUPPLIERS_IN_TEXT.search(txn["text"] or "")
+    if said and 1 <= int(said[1]) <= MAX_LEFT_OUT:
+        late = [e for es in groups.values() for e in es]
+        sets = [c for c in combinations(late, int(said[1])) if sum(transfers[e]["transfer_cents"] for e in c) == target]
+        if len(sets) == 1:
+            used.update((account, e) for e in sets[0])
+            return [row for e in sets[0] for row in by_transfer[account, e]]
     return []
