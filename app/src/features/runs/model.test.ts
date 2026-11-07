@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RunSummary, Score } from '@/domain'
-import { consoleStep, defaultPair, eventClock, failureCause, isRise, diffCounts, diffMetrics, diffSegments, isDrop, scoreReference, stageList } from './model'
+import { consoleStep, defaultPair, eventClock, failureCause, officialResultOf, isRise, diffCounts, diffMetrics, diffSegments, isDrop, scoreReference, stageList } from './model'
 
 const score = (metrics: Record<string, number>, segments: Score['segments'] = {}): Score => ({ score: 0, metrics, segments })
 const run = (runId: string, phase: string, createdAt: string, s: number | null) => ({ runId, phase, createdAt, score: s }) as RunSummary
@@ -157,5 +157,18 @@ describe('scoreReference', () => {
   it('is null when the served run has no score', () => {
     const served = { ...run('c', 'live', '2026-11-07T10:00', null), served: true }
     expect(scoreReference([run('a', 'holdout', '2026-11-07T12:00', 99), served])).toBeNull()
+  })
+})
+
+describe('officialResultOf', () => {
+  const official = { score: 90.69, createdAt: '2026-11-07T09:43:20Z', metrics: { txn_accuracy: 0.934 } }
+
+  it('finds the result of that run', () => {
+    expect(officialResultOf([{ ...run('a', 'live', '', null), officialResult: official }], 'a')).toBe(official)
+  })
+
+  it('is null for another run, and for an API that does not send the field yet', () => {
+    expect(officialResultOf([{ ...run('a', 'live', '', null), officialResult: official }], 'b')).toBeNull()
+    expect(officialResultOf([run('a', 'live', '', null)], 'a')).toBeNull()
   })
 })

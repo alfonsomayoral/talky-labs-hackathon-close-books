@@ -5,6 +5,7 @@ import { useCurrentRun, useRun, useRuns } from '@/data'
 import { INBOX_STATUSES, type RunSummary } from '@/domain'
 import { formatDateTime, formatDuration, formatNumber } from '@/lib/format'
 import { useOpenObject } from '@/lib/urlState'
+import { officialResultOf } from './model'
 import { RunPanel } from './RunPanel'
 import { ScoreExplainer } from './ScoreExplainer'
 import styles from './RunsPage.module.css'
@@ -42,7 +43,7 @@ export function HistoryTab({ onGoToConsole }: { onGoToConsole: () => void }) {
   return (
     <>
       <Card className={styles.score}>
-        <ScoreExplainer score={current?.score ?? null} runs={rows} />
+        <ScoreExplainer score={current?.score ?? null} official={officialResultOf(rows, current?.runId)} runs={rows} />
       </Card>
       <DataTable
         aria-label="Historial de ejecuciones"

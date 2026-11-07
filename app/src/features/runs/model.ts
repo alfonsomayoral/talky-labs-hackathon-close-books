@@ -1,6 +1,6 @@
 // Pure logic of the Ejecuciones screen: differences between two runs, the default pair to compare,
 // the FINAL console's current step and the stage list. No React, no I/O.
-import type { RunSummary, RunState, Score } from '@/domain'
+import type { OfficialResult, RunSummary, RunState, Score } from '@/domain'
 import { formatNumber } from '@/lib/format'
 
 /** The official submission limit, uncompressed (`MAX_UNCOMPRESSED` in bankrec_score.py). */
@@ -141,3 +141,6 @@ export function eventClock(now: Date): string {
 
 /** The score of the run the API serves: the others are experiments. */
 export const scoreReference = (runs: RunSummary[]): RunSummary | null => runs.find((r) => r.served && r.score != null) ?? null
+
+/** The official result of a run, if the API sends one. */
+export const officialResultOf = (runs: RunSummary[], runId: string | null | undefined): OfficialResult | null => runs.find((r) => r.runId === runId)?.officialResult ?? null

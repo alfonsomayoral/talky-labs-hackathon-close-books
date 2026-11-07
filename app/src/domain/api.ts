@@ -14,7 +14,13 @@ export interface Paged<T> {
   sumAmountEur?: number
 }
 
-export type RunSummary = Schemas['RunSummary']
+/** The phase's result on the leaderboard, from the run's `live_result.json`. The API does not send it yet. */
+export interface OfficialResult {
+  score: number
+  createdAt: string
+  metrics: Record<string, number>
+}
+export type RunSummary = Schemas['RunSummary'] & { officialResult?: OfficialResult | null }
 export type EntityStats = Schemas['EntityStats']
 export type DayStats = Schemas['DayStats']
 /** The schema leaves the scorer's metrics and segments untyped. */
