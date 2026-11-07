@@ -44,6 +44,13 @@
   gap: var(--space-4);
 }
 
+/* On a phone the title takes the full width, with the action under it. */
+@media (max-width: 640px) {
+  .titleRow {
+    flex-direction: column;
+  }
+}
+
 .heading {
   display: flex;
   flex-direction: column;
