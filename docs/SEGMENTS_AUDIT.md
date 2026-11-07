@@ -177,3 +177,21 @@ Sin comprobar: LIVE y FINAL, que no tienen golden; el efecto real de apagar cada
 | Un cobro anterior la cerró con un subconjunto que sí cuadra (`PARTY-WINDOW`, `PARTY-SUBSET`) | 3 | Ninguna | | |
 
 El replay solo mide la excepción sobre las 681 filas marcadas en holdout y las 678 de drift (`seg-main-6c6c9b7-drift`); no ejecuta el pipeline. [Inferencia] La línea en `BANK_FEES` (BT-2025-0082726) es la segunda devolución del mismo lote y mandato que BT-2025-0082693, y `_returns` usa (lote, mandato) como clave de lo ya usado. No se trazó la ejecución.
+
+## 7. Empujón final: lo que entró y lo que no
+
+Puerta relajada para este tramo, fijada antes de medir: precisión ≥ 0,95 de las filas que cambia, en holdout y drift, con 0 falsos en `unidentified` y `unidentified_lookalike`.
+
+| Regla | Resultado | Decisión |
+| --- | --- | --- |
+| `/CHGS/` declarado en el texto, con importe y moneda iguales al faltante | 19/19 líneas; `ar_short_bank_charges` 0,8580 → 0,9704; holdout 93,72 → 93,85; 180,30 s | Entra, PR 126 |
+| Sobrepago sin cita (tercero seguro, una factura, ningún subconjunto) | Replay: 127/246 = 0,516; 9 falsos en `unidentified` y 3 en `lookalike`; clase 0,976 → 0,702 | Fuera |
+| Descuento B: cobro mayor que lo citado, en plazo | 69/70 = 0,986. Inferencia: `cash = total − dto` no se puede comprobar. Apoyo: 9.179/9.180 | Fuera, decisión de la orquestadora: mueve excepciones sin mover segmentos |
+| Descuento C: subconjunto único de descuentos | 54/54 en excepción; 59/66 = 0,894 contando todas las filas; 4 filas falsas nuevas en BT-2025-0182905 | Fuera; pasada a KPI-15 con el test negativo |
+| Descuento A: aceptar lo pasado de gracia | 58/201 = 0,29 | Fuera. POLICIES dice PARTIAL y el golden SHORT_DISCOUNT; separarlas exigiría un corte de días mirando el golden |
+| PR 117, `PARTY-NETTED` | 847/880 = 0,9625 frente a 0,98; holdout 93,72 → 93,77; sin drift | Recomendada fuera. `holdout build --name` borra `db/<name>` sin protección, y hay dos variables de entorno sin documentar |
+| Referencia cortada (rama `KPI-12_advice_cut`) | Holdout 93,60 → 93,62 | Fuera, §5 |
+
+Lo primero que hay que medir después del evento: `dd_batches._returns` usa (lote, mandato) como clave de `used`. Encaja con BT-2025-0082726, y quizá con las otras 13 devoluciones mal imputadas de los falsos `DUPLICATE_PAYMENT`. Sin trazar.
+
+La cifra de `/CHGS/` se midió sobre el árbol sin commit, y su base de drift es antigua. `SEPA_COUNTRIES` no incluye Malta, aunque el golden marca CHARGES en un cliente de allí: hoy ayuda y contradice la lista.
