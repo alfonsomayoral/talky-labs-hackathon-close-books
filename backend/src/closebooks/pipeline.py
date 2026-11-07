@@ -10,11 +10,12 @@ from pathlib import Path
 import orjson
 import polars as pl
 
-from .cases import build_cases
+from .cases import attach_questions, build_cases, overdue_cases
 from .documents.advices import documents_frame, phase_advices, residue
 from .documents.pdfs import clauses_frame, phase_clauses
+from .drafts import render, top_per_template
 from .evaluate import score_file
-from .load import load_phase
+from .load import cancelled_item_ids, load_phase
 from .output import write_cases, write_explanations, write_facts, write_jsonl, write_open_items, write_submission
 from .paths import ROOT, RUNS
 from .resolve import resolve
@@ -24,6 +25,59 @@ from .rules import propose, stateful
 def _git_commit() -> str | None:
     done = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True)
     return done.stdout.strip() or None
+
+
+def _party_book(phase) -> tuple[dict[str, str], dict[str, str]]:
+    """Name and country of every customer and supplier of the masters."""
+    names, countries = {}, {}
+    for table, key in (("customers", "customer_id"), ("suppliers", "supplier_id")):
+        for party, name, country in phase.masters[table].select(key, "name", "country").iter_rows():
+            names[party], countries[party] = name, country
+    return names, countries
+
+
+def _rates(phase, cutoff: str) -> dict[str, float]:
+    """Units per EUR of each currency on the last day with a rate up to the cutoff."""
+    fx = phase.masters["fx_rates"].filter(pl.col("date") <= cutoff).sort("date")
+    return dict(fx.group_by("currency", maintain_order=True).last().select(
+        "currency", pl.col("units_per_eur").cast(pl.Float64)).iter_rows())
+
+
+def _overdue_inputs(phase, balances, cutoff: str) -> list[dict]:
+    """Customer invoices past due at the cutoff, with their balance at the end of the phase."""
+    cancelled = list(cancelled_item_ids(phase.items))
+    late = phase.items.filter(pl.col("item_type") == "ARI", pl.col("due_date") < cutoff,
+                              ~pl.col("item_id").is_in(cancelled))
+    return [{"item_id": i, "entity": e, "party_id": p, "due_date": d, "currency": c, "open_cents": balances.open(i)}
+            for i, e, p, d, c in late.select("item_id", "entity", "party_id", "due_date", "currency").iter_rows()]
+
+
+def _item_info(phase, ids: list[str], names: dict[str, str]) -> dict[str, dict]:
+    got = phase.items.filter(pl.col("item_id").is_in(list(set(ids))))
+    return {r["item_id"]: {"number": r["document_number"], "party_name": r["party_name"] or names.get(r["party_id"]),
+                           "due_date": r["due_date"], "currency": r["currency"]}
+            for r in got.select("item_id", "document_number", "party_id", "party_name", "due_date",
+                                "currency").iter_rows(named=True)}
+
+
+def _drafts(cases, rows, phase, balances, names, countries, created_at: str) -> list[dict]:
+    """The biggest cases of every template, written from fixed text. Cases get their draftId."""
+    keys = {(c["bankTxnId"], c["itemIds"][0]): c["caseId"] for c in cases
+            if c["kind"] == "supplier_invoice_mismatch"}
+    exceptions = {keys[k]: r.exception for r in rows if (k := (r.bank_txn_id, r.item_id)) in keys}
+    chosen = top_per_template(cases, exceptions)
+    info = _item_info(phase, [i for c in chosen for i in c["itemIds"]], names)
+    senders = dict(phase.masters["entities"].select("entity", "legal_name").iter_rows())
+    drafts = []
+    for case in chosen:
+        facts = {"partyName": names.get(case["partyId"]), "country": countries.get(case["partyId"]), "email": None,
+                 "sender": senders.get(case["entity"]),
+                 "items": [{**info[i], "open_cents": balances.open(i)} for i in case["itemIds"] if i in info]}
+        draft = render(case, facts, exceptions.get(case["caseId"]))
+        if draft:
+            case["draftId"] = f"D-{len(drafts) + 1:06d}"
+            drafts.append({"draftId": case["draftId"], **draft, "createdAt": created_at})
+    return drafts
 
 
 def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -> Path:
@@ -48,7 +102,8 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     lap("documents")
     proposals = propose(phase)
     lap("rules")
-    rows, balances = resolve(phase, proposals, stateful(phase, proposals))
+    engine = stateful(phase, proposals)
+    rows, balances = resolve(phase, proposals, engine)
     lap("resolve")
 
     csv_bytes = write_submission(run, rows)
@@ -56,12 +111,19 @@ def run_pipeline(phase_name: str, out: Path | None = None, score: bool = True) -
     txns = {t["bank_txn_id"]: t for t in phase.txns.select(
         "bank_txn_id", "entity", "booking_date", "amount_cents", "currency", "amount_eur_cents", "text",
         "counterparty_name").iter_rows(named=True)}
-    cases = build_cases(rows, txns, started.isoformat(timespec="seconds"))
+    created_at = started.isoformat(timespec="seconds")
+    cases = build_cases(rows, txns, created_at)
+    names, countries = _party_book(phase)
+    cutoff = phase.txns["booking_date"].max()
+    cases += overdue_cases(_overdue_inputs(phase, balances, cutoff), cutoff, _rates(phase, cutoff), names, created_at)
+    questions = attach_questions(cases, engine.abstentions, txns, lambda ids: _item_info(phase, ids, names), names,
+                                 created_at)
+    drafts = _drafts(cases, rows, phase, balances, names, countries, created_at)
     write_cases(run, cases)
     write_facts(run, pl.concat([documents_frame(advices), clauses_frame(phase_clauses(phase))]), None)
     write_open_items(run, phase, balances)
-    write_jsonl(run / "questions.jsonl", [])
-    write_jsonl(run / "drafts.jsonl", [])
+    write_jsonl(run / "questions.jsonl", questions)
+    write_jsonl(run / "drafts.jsonl", drafts)
     lap("output")
 
     result = None

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request, Response
 
+from ..drafts import render
 from .errors import Problem, not_found
 from .human import active_rules, next_id, now_iso, validate_rule
 from .query import Paging, Where, fetch, order_by, page_of
@@ -88,7 +89,8 @@ def list_questions(runId: str, request: Request, paging: Paging, status: str | N
 def _party_of_option(run: RunData, option_id: str) -> str:
     """An option is an item (its party) or a party."""
     if option_id.startswith(ITEM_PREFIXES):
-        got = run.cursor().execute('SELECT "partyId" FROM open_items WHERE "itemId" = ?', [option_id]).fetchone()
+        first = option_id.split("+")[0]  # a combination of items: they all belong to one party
+        got = run.cursor().execute('SELECT "partyId" FROM open_items WHERE "itemId" = ?', [first]).fetchone()
         if got:
             return got[0]
     return option_id
@@ -176,10 +178,47 @@ def manual_draft(runId: str, draftId: str, request: Request, body: DraftAction |
     return _write_outbox(request.app.state.store.run(runId), draftId, "manual", body.by if body else None)
 
 
+def _draft_facts(run: RunData, case: dict) -> tuple[dict, str | None]:
+    """What the template needs about a case, read from the run's tables, and the exception of a supplier line."""
+    cur = run.cursor()
+    party = fetch(cur, 'SELECT name, country FROM party WHERE "partyId" = ?', [case["partyId"]])
+    sender = cur.execute("SELECT name FROM entities WHERE code = ?", [case["entity"]]).fetchone()
+    found = {r["itemId"]: r for r in fetch(cur, 'SELECT "itemId", "documentNumber", "dueDate", currency, '
+                                           '"openAtEndCents" FROM open_items WHERE "itemId" = ANY(?)',
+                                           [case["itemIds"]])}
+    items = [{"number": r["documentNumber"], "due_date": r["dueDate"], "currency": r["currency"],
+              "open_cents": r["openAtEndCents"]} for i in case["itemIds"] if (r := found.get(i))]
+    exception = None
+    if case["kind"] == "supplier_invoice_mismatch" and case["bankTxnId"]:
+        got = cur.execute('SELECT exception FROM rows WHERE "bankTxnId" = ? AND "itemId" = ?',
+                          [case["bankTxnId"], case["itemIds"][0]]).fetchone()
+        exception = got[0] if got else None
+    facts = {"partyName": party[0]["name"] if party else None, "country": party[0]["country"] if party else None,
+             "email": None, "sender": sender[0] if sender else None, "items": items}
+    return facts, exception
+
+
 @router.post("/runs/{runId}/drafts", response_model=Draft)
 def create_draft(runId: str, body: DraftCreate, request: Request):
-    request.app.state.store.run(runId)
-    raise Problem(501, "Not implemented", "Draft generation with a model is not available yet")
+    """The template of the case, written to human/outbox.jsonl as a draft (it carries the whole draft: the
+    backend file is not rewritten). Asking again for the same case and kind returns the draft that exists."""
+    run = request.app.state.store.run(runId)
+    got = fetch(run.cursor(), 'SELECT "caseId", kind, "partyId", entity, "itemIds", "amountCents", currency, '
+                '"amountEur", "bookingDate", "bankTxnId" FROM cases WHERE "caseId" = ?', [body.caseId])
+    if not got:
+        raise not_found("Case", body.caseId)
+    case = got[0]
+    existing = next((d for d in run.drafts() if d["caseId"] == body.caseId and d["kind"] == body.kind), None)
+    if existing:
+        return existing
+    facts, exception = _draft_facts(run, case)
+    draft = render(case, facts, exception)
+    if draft is None or draft["kind"] != body.kind:
+        raise Problem(422, "No template for this case", f"{case['kind']} has no {body.kind} template")
+    created = run.human.append_with_id("outbox.jsonl", lambda _: {
+        "draftId": next_id("D-", "draftId", [*run.drafts(), *run.human.read("outbox.jsonl")], 6), **draft,
+        "createdAt": now_iso(), "by": None, "at": now_iso()})
+    return _draft(run, created["draftId"])
 
 
 # ── memory rules ─────────────────────────────────────────────────────────────

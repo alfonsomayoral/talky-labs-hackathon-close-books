@@ -89,8 +89,12 @@ def answered_questions(decisions: list[dict]) -> dict[str, dict]:
 
 def apply_outbox(drafts: list[dict], outbox: list[dict]) -> list[dict]:
     latest = {o["draftId"]: o for o in outbox}
+    known = {d["draftId"] for d in drafts}
+    # a draft asked for from the platform exists only in the outbox: its first line carries the whole draft
+    asked = {o["draftId"]: {k: v for k, v in o.items() if k not in ("by", "at")} for o in reversed(outbox)
+             if "caseId" in o and o["draftId"] not in known}
     merged = []
-    for d in drafts:
+    for d in [*drafts, *asked.values()]:
         o = latest.get(d["draftId"])
         merged.append({**d, **{k: o[k] for k in ("subject", "body", "to", "attachments") if k in o},
                        "status": o["status"]} if o else d)
